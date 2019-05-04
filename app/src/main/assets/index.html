@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8"/>
+
+    <script src="_native.js"></script>
+    <script>
+
+
+
+   (function (){
+     console.log("启动中")
+    _JSNativeBridge._requestNative("test","哈哈哈哈哈哈",function(json){
+         console.log("收到test结果: " + json);
+    })
+
+  })();
+
+
+   </script>
+
+    <div>
+        <p id="text">web view</p>
+        <img src="http://i03.c.aliimg.com/img/ibank/2015/042/495/2161594240_758858327.jpg"/>
+    </div>
+
+
+</html>
