@@ -4,20 +4,22 @@
     <meta charset="utf-8"/>
 
     <script src="_native.js"></script>
-    <script>
+     <script>
+    (function (){
+      console.log("启动中")
+
+      _JSNativeBridge._register("test",function(data){
+         console.log("JS方法 test,收到调用,参数: " + data+" -> "+data[0]);
+      })
+
+     _JSNativeBridge._requestNative("test","哈哈哈哈哈哈",function(data){
+          console.log("收到test结果: " + data);
+     })
+
+   })();
 
 
-
-   (function (){
-     console.log("启动中")
-    _JSNativeBridge._requestNative("test","哈哈哈哈哈哈",function(json){
-         console.log("收到test结果: " + json);
-    })
-
-  })();
-
-
-   </script>
+    </script>
 
     <div>
         <p id="text">web view</p>

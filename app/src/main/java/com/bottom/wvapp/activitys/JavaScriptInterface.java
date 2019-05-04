@@ -7,6 +7,7 @@ import android.webkit.JavascriptInterface;
 import android.webkit.WebView;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonSyntaxException;
 
 import org.jetbrains.annotations.Nullable;
 
@@ -17,6 +18,7 @@ import java.io.InputStreamReader;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Arrays;
+import java.util.HashMap;
 
 /**
  * 提供给JS调用的后台接口
@@ -32,11 +34,14 @@ public class JavaScriptInterface {
 
     private final static String JAVA_SCRIPT = "javascript:";
 
+    private final static String JS_INTERFACE_INVOKE_NAME = JAVA_SCRIPT + "_JSNativeBridge._invoke('%s','%s','%s')";// invoke js function
+
     private final static String JS_INTERFACE_NAME = JAVA_SCRIPT + "_JSNativeBridge._callbackInvoke('%s','%s')";// js callback function
 
     private final WebView webView;
 
     private final Object holder;
+
 
     public JavaScriptInterface(WebView webView, Object holder) {
         this.webView = webView;
@@ -47,10 +52,16 @@ public class JavaScriptInterface {
         int code = 0;
         Object data;
     }
+
+    interface JSCallback{
+        void callback(String json,JsCallbackResult result);
+    }
+
+    private final HashMap<String,JSCallback> jsCallbackMap = new HashMap<>();
+
     /**
      * 请求格式:
      * js需要调用的方法名 - method(String.class), js传递的参数信息(json),js回调函数的ID - function(response)
-     *
      */
     @JavascriptInterface
     public void invoke(String methodName,String json,final String callback_id) {
@@ -73,21 +84,48 @@ public class JavaScriptInterface {
                 result.data  =((InvocationTargetException)e).getTargetException();
             }
         }
+        if (callback_id.equals("null")) return;
         webView.post(new Runnable() {
             @Override
             public void run() {
-                String js = String.format(JS_INTERFACE_NAME,callback_id ,new Gson().toJson(result));
-                Log.d("JavaScriptInterface",js);
-                webView.loadUrl(js);
+                webView.loadUrl(String.format(JS_INTERFACE_NAME,callback_id ,new Gson().toJson(result)));
             }
         });
-//
+    }
+    // 主动调用js方法
+    public void requestJs(final String method, final Object data, JSCallback callback){
+        String callbackId = "null";
+        if (callback!=null){
+            callbackId = "java_callback_"+System.currentTimeMillis();
+            jsCallbackMap.put(callbackId,callback);
+        }
+        final String _callbackId = callbackId;
+        webView.post(new Runnable() {
+            @Override
+            public void run() {
+                webView.loadUrl(String.format(JS_INTERFACE_INVOKE_NAME,method ,new Gson().toJson(data),_callbackId));
+            }
+        });
+    }
+    /**
+     * js回调
+     */
+    @JavascriptInterface
+    public void callbackInvoke(String callback_id,String json){
+        try {
+            JSCallback callback = jsCallbackMap.remove(callback_id);
+            if (callback==null) throw new Exception(callback_id + " callback function doesn\'t exist!");
+            callback.callback(json,new Gson().fromJson(json,JsCallbackResult.class));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
-    public static void webViewLoadLocalJs(WebView view) {
+    public static String webViewLoadLocalJs(WebView view) {
         String jsContent = assetFile2Str(view.getContext(), "_native.js");
-        Log.d("加载JS",jsContent);
-        view.loadUrl(JAVA_SCRIPT + "document.write('<script>"+jsContent+"</script>')" );
+        Log.d("加载JS","\n"+jsContent);
+        return jsContent;
+
     }
 
     private static String assetFile2Str(Context c, String urlStr) {
@@ -124,4 +162,23 @@ public class JavaScriptInterface {
         return null;
     }
 
+    public static void test(final JavaScriptInterface javaScriptInterface){
+        new Thread(){
+            @Override
+            public void run() {
+                try {
+                    Thread.sleep(5000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+                String[] arr = new String[]{"1111111","555555"};
+                javaScriptInterface.requestJs("test", arr, new JSCallback() {
+                    @Override
+                    public void callback(String json, JsCallbackResult result) {
+                        Log.d("调用JS回调",json+ "\n" +result);
+                    }
+                });
+            }
+        }.start();
+    }
 }
