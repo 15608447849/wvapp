@@ -4,17 +4,30 @@
     <meta charset="utf-8"/>
 
     <script src="_native.js"></script>
+
      <script>
+     function fileServer(){
+         _JSNativeBridge._requestNative("fsInfo",function(result){
+         console.log("类型: "+typeof result +" ,回调结果: " + result.code);
+         if(result){
+           var d = result.data;
+           var v = document.getElementById("input_result").value;
+           document.getElementById("input_result").value = v +" >> "+ JSON.stringify(d);
+         }
+    })}
+
+      function transfer(){
+               var str = _JSNativeBridge._transfer("globalServer","FileInfoModule","fileServerInfo");
+             _JSNativeBridge._requestNative(str,function(result){
+
+        })}
+
     (function (){
       console.log("启动中")
 
-      _JSNativeBridge._register("test",function(data){
-         console.log("JS方法 test,收到调用,参数: " + data+" -> "+data[0]);
+      _JSNativeBridge._register("input_text",function(data){
+        console.log("input_text() 接受到Native数据 : " + data);
       })
-
-     _JSNativeBridge._requestNative("test","哈哈哈哈哈哈",function(data){
-          console.log("收到test结果: " + data);
-     })
 
    })();
 
@@ -22,8 +35,10 @@
     </script>
 
     <div>
-        <p id="text">web view</p>
-        <img src="http://i03.c.aliimg.com/img/ibank/2015/042/495/2161594240_758858327.jpg"/>
+        <button onclick="fileServer()">获取文件信息</button>
+
+        <input type="text" id="input_result" value="结果:"/>
+        <button onclick="transfer()">转发</button>
     </div>
 
 

@@ -4,9 +4,19 @@
     package="com.bottom.wvapp">
 
     <dist:module dist:instant="true" />
+    <!--网络连接-->
     <uses-permission android:name="android.permission.INTERNET"/>
+    <!--网络状态查看-->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
+    <!--允许程序设置内置sd卡的写权限-->
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <!--相机-->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <!--震动 -->
+    <uses-permission android:name="android.permission.VIBRATE" />
 
     <application
+        android:name=".WvApplication"
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
@@ -14,13 +24,24 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme"
         android:usesCleartextTraffic="true">
-        <activity android:name=".activitys.MainActivity">
+
+        <activity android:name=".activitys.MainActivity" android:launchMode="singleInstance">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!--适配android 7.0-->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
 
     </application>
 
