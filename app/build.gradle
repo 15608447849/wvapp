@@ -26,5 +26,6 @@ dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
     implementation 'com.zeroc:ice:3.6.3'
     implementation 'com.google.code.gson:gson:2.8.5'
-
+    implementation project(':lib_singlepageframwork')
+    implementation project(':lib_toolset')
 }

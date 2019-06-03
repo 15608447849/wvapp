@@ -1,0 +1,34 @@
+package com.bottom.wvapp.app;
+
+import android.webkit.WebView;
+
+import com.bottom.wvapp.jsprovider.BackServerImp;
+import com.onek.client.IceClient;
+
+import lee.bottle.lib.singlepageframwork.use.RegisterCentre;
+import lee.bottle.lib.toolset.os.ApplicationAbs;
+
+/**
+ * Created by Leeping on 2019/5/5.
+ * email: 793065165@qq.com
+ */
+public class WebApplication extends ApplicationAbs {
+
+    @Override
+    protected void onCreateByAllProgress(String processName) {
+        super.onCreateByAllProgress(processName);
+        WebView.setWebContentsDebuggingEnabled(true);
+        BackServerImp.bindApplication(this);
+        //设置服务器信息
+        settingServerInfo();
+        //初始化页面
+        initPageInfo();
+    }
+
+    private void settingServerInfo() {
+        BackServerImp.start(new IceClient("DemoIceGrid","114.116.149.145",4061));
+    }
+    private void initPageInfo() {
+        RegisterCentre.register(BackServerImp.dynamicPageInformation());
+    }
+}
