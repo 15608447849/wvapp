@@ -11,6 +11,7 @@ import java.util.List;
 import lee.bottle.lib.singlepageframwork.base.SFAttribute;
 import lee.bottle.lib.singlepageframwork.base.SFGroup;
 import lee.bottle.lib.singlepageframwork.base.SFragment;
+import lee.bottle.lib.singlepageframwork.base.SLog;
 import lee.bottle.lib.singlepageframwork.infs.SFOInterface;
 
 /**
@@ -41,19 +42,50 @@ public class SFOImp implements SFOInterface {
             }
         }
         /**提交*/
-        private void commit(FragmentTransaction ft){
+        private boolean commit(FragmentTransaction ft){
             synchronized (this){
                 try{
-                    ft.commit();
+                    if (activityResume) {
+                        ft.commit();
+                    }else{
+                        ft.commitAllowingStateLoss();
+                    }
                 }catch (Exception e){
+                    SLog.print("FragmentTransaction commit() Error!!!");
                     e.printStackTrace();
-                    ft.commitAllowingStateLoss();
                 }
+                return true;
+            }
+        }
+        /**提交*/
+        private boolean _commit(FragmentTransaction ft){
+            synchronized (this){
+                try{
+                    ft.commitAllowingStateLoss();
+                }catch (Exception e){
+                    SLog.print("--------------------------FragmentTransaction commitAllowingStateLoss() 失败---------------------------------");
+                    e.printStackTrace();
+                    return false;
+                }
+                return true;
             }
         }
     }
 
     private Helper h = new Helper();
+
+    private volatile boolean activityResume = false;
+
+    /**
+     * 当前activity 是否显示
+     *
+     * @param isResume
+     */
+    @Override
+    public void setActivityResume(boolean isResume) {
+        this.activityResume = isResume;
+        SLog.print("activity resume state: "+ activityResume);
+    }
 
     /**
      * 查询一个fragment对象
@@ -104,7 +136,11 @@ public class SFOImp implements SFOInterface {
                 flag = true;
             }
         }
-        if (flag) h.commit(ft);
+        if (flag) {
+//            flag = h._commit(ft);
+            flag = h.commit(ft);
+//            if (!flag) return showGroupFragment(pageHolder,gAttribute);
+        }
         return  flag;
     }
 

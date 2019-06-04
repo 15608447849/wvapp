@@ -3,29 +3,32 @@ package com.bottom.wvapp.activitys;
 import android.Manifest;
 import android.content.Intent;
 import android.os.Bundle;
+import android.os.PersistableBundle;
 import android.widget.FrameLayout;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
-import lee.bottle.lib.toolset.os.PermissionApply;
 import com.bottom.wvapp.R;
 
 import lee.bottle.lib.singlepageframwork.anno.SLayoutId;
 import lee.bottle.lib.singlepageframwork.base.SActivity;
+import lee.bottle.lib.toolset.log.LLog;
+import lee.bottle.lib.toolset.os.PermissionApply;
 
 /**
  * Created by Leeping on 2019/5/17.
  * email: 793065165@qq.com
+ * 主入口
  */
-
 public class SingleActivity extends SActivity implements PermissionApply.Callback{
 
     //权限数组
     private String[] permissionArray = new String[]{
             Manifest.permission.CAMERA, // 相机和闪光灯
             Manifest.permission.READ_CONTACTS,//读取联系人
-            Manifest.permission.WRITE_EXTERNAL_STORAGE // 写sd卡
+            Manifest.permission.WRITE_EXTERNAL_STORAGE, // 写sd卡
+            Manifest.permission.READ_PHONE_STATE // 获取手机状态
     };
 
     //权限申请
@@ -52,7 +55,20 @@ public class SingleActivity extends SActivity implements PermissionApply.Callbac
     }
 
     @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        LLog.print("onSaveInstanceState","onSaveInstanceState(Bundle outState)");
+        super.onSaveInstanceState(outState);
+    }
+
+    @Override
+    public void onSaveInstanceState(Bundle outState, PersistableBundle outPersistentState) {
+        LLog.print("onSaveInstanceState","onSaveInstanceState(Bundle outState, PersistableBundle outPersistentState)");
+        super.onSaveInstanceState(outState, outPersistentState);
+    }
+
+    @Override
     public void onPermissionsGranted() {
+        LLog.print("授权成功");
         //授权成功
         getSFOPage().skip("content","web");//跳转到web页面
     }
@@ -69,6 +85,5 @@ public class SingleActivity extends SActivity implements PermissionApply.Callbac
             permissionApply.permissionCheck();
         }
     }
-
 
 }

@@ -1,0 +1,9 @@
+[
+	{"container":"content",
+		"fragment":"com.bottom.wvapp.fragments.WebFragment",
+		"name":"web",
+		"map":{
+			"url":"http://192.168.1.115:8080"
+		}
+	}
+]

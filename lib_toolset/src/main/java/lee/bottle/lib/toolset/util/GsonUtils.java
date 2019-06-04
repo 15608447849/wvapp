@@ -75,5 +75,4 @@ public class GsonUtils {
         return list;
     }
 
-
 }

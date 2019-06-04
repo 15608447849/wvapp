@@ -9,28 +9,29 @@ import android.webkit.WebView;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
-import com.bottom.log.LLog;
-import com.bottom.wvapp.tool.WebViewUtil;
 import com.bottom.wvapp.R;
-import com.bottom.wvapp.jsbridge.JavaScriptInterface;
-import com.bottom.wvapp.jsprovider.BackServerImp;
+import com.bottom.wvapp.jsprovider.NativeServerImp;
+import com.bottom.wvapp.tool.WebViewUtil;
 
 import lee.bottle.lib.singlepageframwork.base.SFragment;
+import lee.bottle.lib.toolset.jsbridge.JavaScriptInterface;
+import lee.bottle.lib.toolset.log.LLog;
 
 /**
  * Created by Leeping on 2019/5/17.
  * email: 793065165@qq.com
  */
 public class WebFragment extends SFragment {
+
     private WebView webView;
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
             if (webView == null){
                 webView = (WebView) inflater.inflate(R.layout.activity_main,null);
-                BackServerImp server = new BackServerImp();
-                JavaScriptInterface jsInterface = new JavaScriptInterface(webView,server,server);
-                server.settingBridge(jsInterface);
+                NativeServerImp server = new NativeServerImp();
+                JavaScriptInterface jsInterface = new JavaScriptInterface(webView);
+                jsInterface.setIBridgeImp(server);
                 WebViewUtil.initViewWeb(webView,JavaScriptInterface.NAME,jsInterface);
             }
         return webView;

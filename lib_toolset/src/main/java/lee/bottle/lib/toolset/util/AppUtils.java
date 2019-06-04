@@ -1,5 +1,6 @@
 package lee.bottle.lib.toolset.util;
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.ActivityManager;
 import android.content.Context;
@@ -15,6 +16,7 @@ import android.net.wifi.WifiManager;
 import android.os.Build;
 import android.os.Looper;
 import android.os.Parcelable;
+import android.telephony.TelephonyManager;
 import android.view.View;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.Toast;
@@ -31,6 +33,8 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.Arrays;
 
+import static android.Manifest.permission.READ_PHONE_STATE;
+import static android.content.Context.TELEPHONY_SERVICE;
 import static android.content.Intent.FLAG_ACTIVITY_NEW_TASK;
 
 /**
@@ -38,6 +42,18 @@ import static android.content.Intent.FLAG_ACTIVITY_NEW_TASK;
  * email: 793065165@qq.com
  */
 public class AppUtils {
+    /**
+     * 判断应用是否存在指定权限
+     */
+    public static boolean checkPermissionExist(Context context,String permissionName){
+        //判断是否存在文件写入权限
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M){
+            int hasPermission = context.checkSelfPermission(permissionName);
+            //没有授权写权限
+            return hasPermission != PackageManager.PERMISSION_DENIED;
+        }
+        return true;
+    }
 
     /**
      * 隐藏软键盘
@@ -54,8 +70,6 @@ public class AppUtils {
             e.printStackTrace();
         }
     }
-
-
     /**
      *是否打开无线模块
      * @param context
@@ -66,12 +80,12 @@ public class AppUtils {
         assert mWifiManager != null;
         return mWifiManager.isWifiEnabled();
     }
-
     /**
      * @param context 上下文
      * @return 仅仅是用来判断网络连接
      * <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
      */
+    @SuppressLint("MissingPermission")
     public static boolean isNetworkAvailable(@NonNull Context context) {
         ConnectivityManager cm = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
         if (cm != null) {
@@ -83,19 +97,16 @@ public class AppUtils {
         }
         return false;
     }
-
     //检查无线网络有效
     private boolean isWirelessNetworkValid(Context context) {
         return AppUtils.isOpenWifi(context) && AppUtils.isNetworkAvailable(context);
     }
-
    //判断GPS是否开启
     public static boolean isOenGPS(@NonNull Context context) {
         LocationManager locationManager = (LocationManager) context.getSystemService(Context.LOCATION_SERVICE);
         assert locationManager != null;
         return locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
     }
-
     //打开GPS设置界面
     public static void openGPS(@NonNull Context context){
         Intent intent = new Intent(android.provider.Settings.ACTION_LOCATION_SOURCE_SETTINGS);
@@ -103,12 +114,10 @@ public class AppUtils {
         // 打开GPS设置界面
         context.startActivity(intent);
     }
-
     //检查UI线程
     public static boolean checkUIThread() {
         return Looper.myLooper() == Looper.getMainLooper();
     }
-
     //获取当前进程名
     public static String getCurrentProcessName(@NonNull Context context) {
         int pid = android.os.Process.myPid();
@@ -123,17 +132,14 @@ public class AppUtils {
         }
         return processName;
     }
-
     //判断当前进程是否是主进程
     public static boolean checkCurrentIsMainProgress(@NonNull Context context){
         return checkCurrentIsMainProgress(context, AppUtils.getCurrentProcessName(context));
     }
-
     //判断当前进程是否是主进程
     public static boolean checkCurrentIsMainProgress(@NonNull Context context, @NonNull String currentProgressName){
         return context.getPackageName().equals(currentProgressName);
     }
-
     //获取应用版本号
     public static int getVersionCode(@NonNull Context ctx) {
         // 获取packagemanager的实例
@@ -147,7 +153,6 @@ public class AppUtils {
         }
         return version;
     }
-
     //获取应用版本名
     public static String getVersionName(@NonNull Context ctx) {
         // 获取package manager的实例
@@ -161,18 +166,15 @@ public class AppUtils {
         }
         return version;
     }
-
     //简单信息弹窗
     public static void toast(@NonNull Context context, @NonNull String message){
         if (!checkUIThread() ) return;
         Toast.makeText(context,message, Toast.LENGTH_SHORT).show();
     }
-
     //获取CPU型号
     public static String getCpuType(@NonNull Context context){
         return Arrays.toString(Build.SUPPORTED_ABIS);
     }
-
     //把bitmap 转file
     public static boolean bitmap2File(Bitmap bitmap, File file){
         try {
@@ -187,8 +189,6 @@ public class AppUtils {
         }
         return false;
     }
-
-
     //创建快捷方式 ; 权限:  <uses-permission android:name="com.android.launcher.permission.INSTALL_SHORTCUT"/>
     public static void addShortcut(Context context, int appIcon, boolean isCheck) {
 
@@ -215,8 +215,8 @@ public class AppUtils {
             e.printStackTrace();
         }
     }
-
-    public static String assetFile2Str(Context c, String filePath) {
+    //读取assets目录指定文件内容
+    public static String assetFileContentToText(Context c, String filePath) {
         InputStream in = null;
         try {
             in = c.getAssets().open(filePath);
@@ -226,16 +226,17 @@ public class AppUtils {
             do {
                 line = bufferedReader.readLine();
                 if (line != null) {
-                    line = line.replaceAll("\\t", "   ");
-                    if (!line.matches("^\\s*\\/\\/.*")) {
+                    line = line.replaceAll("\\t", "");
+                    line = line.replaceAll("\\s", "");
+
+//                    if (!line.matches("^\\s*\\/\\/.*")) {
                         sb.append(line);
-                    }
+//                    }
                 }
             } while (line != null);
 
             bufferedReader.close();
             in.close();
-
             return sb.toString();
         } catch (Exception e) {
             e.printStackTrace();
@@ -249,7 +250,7 @@ public class AppUtils {
         }
         return null;
     }
-
+    // 安装apk
     public static void installApk(Context context, File apkFile) {
         try {
             Intent intent = new Intent();
@@ -269,5 +270,18 @@ public class AppUtils {
         }
     }
 
+    /**
+     *  获取设备IMEI
+     * <uses-permission android:name="android.permission.READ_PHONE_STATE"/>
+     */
+    @SuppressLint({"MissingPermission", "HardwareIds"})
+    public static String devIMEI(Context context){
+        if (checkPermissionExist(context,READ_PHONE_STATE)){
+            TelephonyManager TelephonyMgr = (TelephonyManager)context.getSystemService(TELEPHONY_SERVICE);
+            assert TelephonyMgr != null;
+            return TelephonyMgr.getDeviceId();
+        }
+      return "";
+    }
 
 }

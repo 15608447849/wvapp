@@ -72,7 +72,6 @@ public final class SFGroup implements Closeable{
         while (iterator.hasNext()){
             entry = iterator.next();
             iterator.remove();
-//            SpaPrt.print(this+" , 移除页面: "+entry);
         }
         this.currentGroupPage = null;
     }

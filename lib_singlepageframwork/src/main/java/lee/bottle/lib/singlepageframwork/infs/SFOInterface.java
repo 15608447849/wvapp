@@ -10,6 +10,9 @@ import lee.bottle.lib.singlepageframwork.base.SFragment;
  */
 
 public interface SFOInterface {
+    /** 当前activity 是否显示 */
+    void setActivityResume(boolean isResume);
+
     /** 查询一个fragment对象*/
     SFragment queryFragmentByTag(SFGroup pageHolder, SFAttribute gAttribute);
     /**检测栈顶是否与目标相同*/

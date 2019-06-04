@@ -35,6 +35,16 @@ public final class SFManage implements SFOInterface {
      */
     private SFOInterface spaFragmentOperation = new SFOImp();
 
+    /**
+     * 当前activity 是否显示
+     *
+     * @param isResume
+     */
+    @Override
+    public void setActivityResume(boolean isResume) {
+        spaFragmentOperation.setActivityResume(isResume);
+    }
+
     @Override
     public SFragment queryFragmentByTag(SFGroup pageHolder, SFAttribute gAttribute) {
         if (gAttribute==null) return null;

@@ -2,7 +2,7 @@ package com.bottom.wvapp.app;
 
 import android.webkit.WebView;
 
-import com.bottom.wvapp.jsprovider.BackServerImp;
+import com.bottom.wvapp.jsprovider.NativeServerImp;
 import com.onek.client.IceClient;
 
 import lee.bottle.lib.singlepageframwork.use.RegisterCentre;
@@ -18,7 +18,7 @@ public class WebApplication extends ApplicationAbs {
     protected void onCreateByAllProgress(String processName) {
         super.onCreateByAllProgress(processName);
         WebView.setWebContentsDebuggingEnabled(true);
-        BackServerImp.bindApplication(this);
+        NativeServerImp.bindApplication(this);
         //设置服务器信息
         settingServerInfo();
         //初始化页面
@@ -26,9 +26,9 @@ public class WebApplication extends ApplicationAbs {
     }
 
     private void settingServerInfo() {
-        BackServerImp.start(new IceClient("DemoIceGrid","114.116.149.145",4061));
+        NativeServerImp.start(new IceClient("DemoIceGrid","114.116.149.145",4061));
     }
     private void initPageInfo() {
-        RegisterCentre.register(BackServerImp.dynamicPageInformation());
+        RegisterCentre.register(NativeServerImp.dynamicPageInformation());
     }
 }

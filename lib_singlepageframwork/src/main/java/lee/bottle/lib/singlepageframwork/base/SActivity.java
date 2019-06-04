@@ -51,11 +51,6 @@ public class SActivity extends AppCompatActivity implements SICommunication {
         SLog.print(this+" , onRestoreInstanceState , savedInstanceState");
     }
 
-    @Override
-    protected void onSaveInstanceState(Bundle outState) {
-        super.onSaveInstanceState(outState);
-        SLog.print(this+" , onSaveInstanceState");
-    }
 
     /**
      * 所有碎片及当前显示碎片等属性管理
@@ -97,9 +92,19 @@ public class SActivity extends AppCompatActivity implements SICommunication {
     //第一次显示界面
     private boolean isResumed = true;
 
+
+    @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+        SLog.print(this+" , onSaveInstanceState");
+        getSFManage().setActivityResume(false);
+    }
+
     @Override
     protected void onResume() {
         super.onResume();
+        SLog.print(this+" , onResume");
+        getSFManage().setActivityResume(true);
         if (isResumed){
             mHandler.io(new Runnable() {
                 @Override
@@ -122,6 +127,7 @@ public class SActivity extends AppCompatActivity implements SICommunication {
     protected void onInitResume(){
         isResumed = false;
     }
+
     private boolean isRegister = false;
     /**
      * 反射,自动创建fragment容器视图持有者
@@ -212,6 +218,8 @@ public class SActivity extends AppCompatActivity implements SICommunication {
         return m;
     }
 
+
+
     /**
      * fragment发送消息到activity 或者 一个可以对消息做出处理的实现类
      * 返回 true 则被拦截-处理
@@ -222,4 +230,6 @@ public class SActivity extends AppCompatActivity implements SICommunication {
     public boolean dispatch(SMessage message) {
         return false;
     }
+
+
 }

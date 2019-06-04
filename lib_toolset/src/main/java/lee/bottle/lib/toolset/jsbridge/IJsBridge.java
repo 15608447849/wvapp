@@ -1,4 +1,4 @@
-package com.bottom.wvapp.jsbridge;
+package lee.bottle.lib.toolset.jsbridge;
 
 /**
  * Created by Leeping on 2019/5/5.
@@ -9,5 +9,5 @@ public interface IJsBridge {
         void callback(String data);
     }
     // 主动调用js方法
-    public void requestJs(final String method, final String data, JSCallback callback);
+    void requestJs(final String method, final String data, JSCallback callback);
 }

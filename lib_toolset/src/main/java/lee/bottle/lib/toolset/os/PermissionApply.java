@@ -27,6 +27,7 @@ import lee.bottle.lib.toolset.log.LLog;
  */
 
 public class PermissionApply {
+
      public interface Callback{
          void onPermissionsGranted();
          void onPowerIgnoreGranted();

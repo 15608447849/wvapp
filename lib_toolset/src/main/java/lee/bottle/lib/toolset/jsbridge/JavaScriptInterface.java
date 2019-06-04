@@ -1,14 +1,12 @@
-package com.bottom.wvapp.jsbridge;
+package lee.bottle.lib.toolset.jsbridge;
 
 import android.annotation.SuppressLint;
 import android.webkit.JavascriptInterface;
 import android.webkit.WebView;
 
-import com.bottom.log.LLog;
-
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.util.HashMap;
+
+import lee.bottle.lib.toolset.log.LLog;
 
 /**
  * js / native 通讯接口
@@ -26,14 +24,16 @@ public class JavaScriptInterface implements IJsBridge {
 
     private final WebView webView;
 
-    private final Object holder;
+    private IBridgeImp hImp;
 
-    private final ITransferServer iTransferServer; //转发服务
-
-    public JavaScriptInterface(WebView webView,ITransferServer iTransferServer ,Object holder) {
+    public JavaScriptInterface(WebView webView) {
         this.webView = webView;
-        this.iTransferServer = iTransferServer;
-        this.holder = holder;
+    }
+
+    //关联一个实现
+    public void setIBridgeImp( IBridgeImp imp){
+        this.hImp = imp;
+        this.hImp.setIJsBridge(this);
     }
 
     private final HashMap<String, IJsBridge.JSCallback> jsCallbackMap = new HashMap<>();
@@ -47,26 +47,14 @@ public class JavaScriptInterface implements IJsBridge {
     @JavascriptInterface
     public void invoke(final String methodName, final String data, final String callback_id) {
         //异步执行
-        Object value;
+        Object value = null;
         try {
-            if (methodName.startsWith("ts:")){
-                //转发协议  ts:服务名@类名@方法名
-                String temp = methodName.replace("ts:","");
-                String[] args = temp.split("@");
-                value = iTransferServer.transfer(args[0],args[1],args[2],data);
-
-            }else{
-                //反射调用方法
-                Method m = holder.getClass().getMethod(methodName, String.class);
-                value = m.invoke(holder,data);
+            if (hImp!=null){
+                value = hImp.invoke(methodName,data);
             }
-
         } catch (Exception e) {
             e.printStackTrace();
-            value = e;
-            if (e instanceof InvocationTargetException) {
-                value  =((InvocationTargetException)e).getTargetException();
-            }
+            value = "bridge execute error:\t"+ e;
         }
         if (callback_id == null) return;
 
@@ -75,7 +63,7 @@ public class JavaScriptInterface implements IJsBridge {
         webView.post(new Runnable() {
             @Override
             public void run() {
-                LLog.print(methodName+"参数:"+data+" js的回调函数:"+callback_id+"回调数据: "+result);
+                LLog.print(methodName+" 参数:"+data+" js的回调函数:"+callback_id+"回调数据: "+result);
                 webView.loadUrl(String.format(JS_INTERFACE_NAME,callback_id ,result));
             }
         });

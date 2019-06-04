@@ -31,7 +31,7 @@ public abstract class ApplicationAbs extends Application implements Application.
         this.isRegisterActivityLifecycleCallbacks =  flag;
     }
 
-    private boolean isPrintLifeLog = true;
+    private boolean isPrintLifeLog = false;
 
     public void setPrintLifeLog(boolean flag) {
         isPrintLifeLog = flag;
