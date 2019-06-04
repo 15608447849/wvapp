@@ -79,11 +79,16 @@ public class NativeServerImp  implements IBridgeImp {
             String[] args = temp.split("@");
             return transfer(args[0],args[1],args[2],data);
         }
-        Class[] classes = data == null? null : new Class[]{ data.getClass() };
-        Object[] params = data == null?null : new Object[]{data};
-         //反射调用方法
-        Method m = this.getClass().getMethod(methodName,classes);
-        return m.invoke(this,params);
+        //反射调用方法
+        if(data == null){
+            Method m = this.getClass().getDeclaredMethod(methodName);
+            m.setAccessible(true);
+            return m.invoke(this);
+        }else{
+            Method m = this.getClass().getDeclaredMethod(methodName,String.class);
+            m.setAccessible(true);
+            return m.invoke(this,data);
+        }
     }
 
     //转发
