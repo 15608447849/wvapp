@@ -185,7 +185,7 @@ public class NativeServerImp implements IBridgeImp {
 
         //等待结果
         exeWait();
-        return imagePaths == null ? "error"
+        return imagePaths == null ? null
                 : "image://"+imagePaths.get(0);
     }
 
