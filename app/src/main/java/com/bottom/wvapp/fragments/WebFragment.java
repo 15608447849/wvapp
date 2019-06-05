@@ -1,5 +1,6 @@
 package com.bottom.wvapp.fragments;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -24,15 +25,15 @@ import lee.bottle.lib.toolset.log.LLog;
 public class WebFragment extends SFragment {
 
     private WebView webView;
+    private NativeServerImp server;
+
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
             if (webView == null){
                 webView = (WebView) inflater.inflate(R.layout.activity_main,null);
-                NativeServerImp server = new NativeServerImp();
-                JavaScriptInterface jsInterface = new JavaScriptInterface(webView);
-                jsInterface.setIBridgeImp(server);
-                WebViewUtil.initViewWeb(webView,JavaScriptInterface.NAME,jsInterface);
+                server = new NativeServerImp(this);
+                WebViewUtil.initViewWeb(webView,JavaScriptInterface.NAME,new JavaScriptInterface(webView).setIBridgeImp(server));
             }
         return webView;
     }
@@ -42,6 +43,12 @@ public class WebFragment extends SFragment {
         Bundle bundle = getArguments();
         LLog.print(bundle);
         if (bundle!=null) webView.loadUrl(bundle.getString("url")); //加载链接
+    }
+
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        LLog.print("fragment","onActivityResult");
+        server.onActivityResult(requestCode,resultCode,data);
     }
 
     @Override

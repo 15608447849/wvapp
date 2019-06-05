@@ -51,7 +51,9 @@ public class SingleActivity extends SActivity implements PermissionApply.Callbac
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        LLog.print("activity","onActivityResult");
         if (permissionApply != null) permissionApply.onActivityResult(requestCode, resultCode, data);
+        super.onActivityResult(requestCode,resultCode,data);
     }
 
     @Override

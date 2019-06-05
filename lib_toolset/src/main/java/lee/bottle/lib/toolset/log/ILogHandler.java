@@ -6,5 +6,5 @@ package lee.bottle.lib.toolset.log;
  * 日志输出接口
  */
 public interface ILogHandler {
-    void handle(Build build, String content) throws Exception;
+    void handle(String tag,Build build, String content) throws Exception;
 }

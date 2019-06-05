@@ -3,17 +3,23 @@ package com.bottom.wvapp.jsprovider;
 import android.annotation.SuppressLint;
 import android.app.Application;
 import android.content.ContentResolver;
+import android.content.Intent;
 import android.database.Cursor;
 import android.net.Uri;
 import android.provider.ContactsContract;
 import android.util.Log;
 
+import androidx.fragment.app.Fragment;
+
+import com.bottom.wvapp.tool.GlideLoader;
 import com.onek.client.IceClient;
 
+import java.lang.ref.SoftReference;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 
+import lee.bottle.lib.imagepick.ImagePicker;
 import lee.bottle.lib.singlepageframwork.use.RegisterCentre;
 import lee.bottle.lib.toolset.jsbridge.IBridgeImp;
 import lee.bottle.lib.toolset.jsbridge.IJsBridge;
@@ -21,18 +27,25 @@ import lee.bottle.lib.toolset.log.LLog;
 import lee.bottle.lib.toolset.util.AppUtils;
 import lee.bottle.lib.toolset.util.GsonUtils;
 
+import static android.app.Activity.RESULT_OK;
+
 
 /**
  * 提供给JS调用的后台接口
  * lzp
  */
-public class NativeServerImp  implements IBridgeImp {
+public class NativeServerImp implements IBridgeImp {
+
+    private static int REQUEST_SELECT_IMAGES_CODE = 255;
+
 
     private static Application app;
 
     private static IceClient ic = null;
 
     private IJsBridge jsBridgeImp;
+
+    private SoftReference<Fragment> fragment;
 
     public static void start(IceClient client) {
         if (ic == null){
@@ -44,8 +57,9 @@ public class NativeServerImp  implements IBridgeImp {
         app = application;
     }
 
-    public NativeServerImp() {
+    public NativeServerImp(Fragment fragment) {
         if (ic == null) throw new RuntimeException("ICE 连接未初始化");
+        this.fragment = new SoftReference<>(fragment);
     }
 
     //获取页面配置信息JSON
@@ -91,6 +105,38 @@ public class NativeServerImp  implements IBridgeImp {
         }
     }
 
+
+    private void exeNotify() {
+       synchronized (jsBridgeImp){
+            jsBridgeImp.notify();
+        }
+    }
+    private void exeWait(){
+        synchronized (jsBridgeImp) {
+            try {
+                jsBridgeImp.wait();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    //************************************nativi 方法调用****************************************//
+
+    //图片选择结果集
+    private ArrayList<String> imagePaths;
+
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        LLog.print("onActivityResult",  requestCode,  resultCode, data );
+        if (requestCode == REQUEST_SELECT_IMAGES_CODE && resultCode == RESULT_OK) {
+            imagePaths = data.getStringArrayListExtra(ImagePicker.EXTRA_SELECT_IMAGES);
+        }
+        exeNotify();
+    }
+
+
+
     //转发
     private String transfer(String serverName, String cls, String method, String json) {
         String devid =AppUtils.devIMEI(app.getApplicationContext());
@@ -121,8 +167,27 @@ public class NativeServerImp  implements IBridgeImp {
         return list;
     }
 
+    /** 打开图片选择器 */
+    private String openImageSelect(){
+        if (fragment.get() == null) throw new NullPointerException("fragment is null");
+        if (fragment.get().getActivity() == null) throw new NullPointerException("activity is null");
 
+        ImagePicker.getInstance()
+                .setTitle("请选择图片")//设置标题
+                .showCamera(true)//设置是否显示拍照按钮
+                .showImage(true)//设置是否展示图片
+                .showVideo(false)//设置是否展示视频
+                .setSingleType(true)//设置图片视频不能同时选择
+                .setMaxCount(1)//设置最大选择图片数目(默认为1，单选)
+                .setImagePaths(imagePaths)//保存上一次选择图片的状态，如果不需要可以忽略
+                .setImageLoader(new GlideLoader(app.getApplicationContext()))//设置自定义图片加载器
+                .start(fragment.get(),REQUEST_SELECT_IMAGES_CODE);
 
+        //等待结果
+        exeWait();
+        return imagePaths == null ? "error"
+                : "image://"+imagePaths.get(0);
+    }
 
 
 

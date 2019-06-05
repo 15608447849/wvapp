@@ -26,7 +26,10 @@ import androidx.core.content.FileProvider;
 
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -97,6 +100,28 @@ public class AppUtils {
         }
         return false;
     }
+
+    public static byte[] getLocalFileByte(File image) {
+        byte[] buffer = null;
+        try {
+            FileInputStream fis = new FileInputStream(image);
+            ByteArrayOutputStream bos = new ByteArrayOutputStream(1000);
+            byte[] b = new byte[1000];
+            int n;
+            while ((n = fis.read(b)) != -1) {
+                bos.write(b, 0, n);
+            }
+            fis.close();
+            bos.close();
+            buffer = bos.toByteArray();
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return buffer;
+    }
+
     //检查无线网络有效
     private boolean isWirelessNetworkValid(Context context) {
         return AppUtils.isOpenWifi(context) && AppUtils.isNetworkAvailable(context);

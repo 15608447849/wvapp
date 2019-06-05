@@ -1,1 +1,1 @@
-include ':app', ':lib_singlepageframwork', ':lib_toolset'
+include ':app', ':lib_singlepageframwork', ':lib_toolset', ':lib_imagepick'

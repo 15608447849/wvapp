@@ -2,35 +2,38 @@ package com.bottom.wvapp.tool;
 
 import android.annotation.SuppressLint;
 import android.net.http.SslError;
-import android.util.Log;
 import android.webkit.ConsoleMessage;
 import android.webkit.SslErrorHandler;
 import android.webkit.WebChromeClient;
+import android.webkit.WebResourceRequest;
+import android.webkit.WebResourceResponse;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 
+import androidx.annotation.Nullable;
+
+import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.FileNotFoundException;
+
 import lee.bottle.lib.toolset.log.LLog;
+
+import static lee.bottle.lib.toolset.util.AppUtils.getLocalFileByte;
 
 /**
  * Created by Leeping on 2019/5/17.
  * email: 793065165@qq.com
  */
 public class WebViewUtil {
-    private static final String TAG = "WEB_VIEW_UTIL";
-
+    private static String TAG = "web-view";
     /**web 内核*/
     private static final WebChromeClient WEB_CHROME_CLIENT = new WebChromeClient(){
 
-        /*android 低版本 Desperate*/
-        @Override
-        public void onConsoleMessage(String message, int lineNumber, String sourceID) {
-            super.onConsoleMessage(message, lineNumber, sourceID);
-        }
-
+        //控制台消息
         @Override
         public boolean onConsoleMessage(ConsoleMessage consoleMessage) {
-            LLog.print(
+            LLog.printTag(TAG,
                     "(" +consoleMessage.sourceId().substring(consoleMessage.sourceId().lastIndexOf("/"))+
                             ":" + consoleMessage.lineNumber() + ","
                             +consoleMessage.messageLevel()+")",
@@ -39,15 +42,35 @@ public class WebViewUtil {
             return true;
         }
     };
+
     /**web 客户端*/
     private static final WebViewClient WEB_VIEW_CLIENT = new WebViewClient(){
+
+        @Nullable
+        @Override
+        public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
+
+            String scheme = request.getUrl().getScheme();
+            LLog.printTag(TAG,"请求URL:",request.getUrl()+" - " +scheme);
+            try {
+                if ("image".equalsIgnoreCase(scheme)
+                || "audio".equalsIgnoreCase(scheme)
+                || "video".equalsIgnoreCase(scheme)){
+                    LLog.print("------");
+                    return mediaLoad(view,request);
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            return super.shouldInterceptRequest(view, request);
+        }
+
         @Override
         public void onReceivedSslError(WebView view, SslErrorHandler handler, SslError error) {
             handler.proceed();// 接受所有网站的证书
         }
         @Override
         public boolean shouldOverrideUrlLoading(WebView view, String url) {
-            Log.d(TAG,"shouldOverrideUrlLoading "+ view+" "+url);
             view.loadUrl(url);
             return false;
         }
@@ -65,4 +88,15 @@ public class WebViewUtil {
         web_view.setWebViewClient(WEB_VIEW_CLIENT);
     }
 
+    private static WebResourceResponse mediaLoad(WebView view, WebResourceRequest request) throws Exception {
+            String path = request.getUrl().getPath();
+            File file = new File(path);
+            LLog.printTag(TAG,"加载本地文件:" + path+" , " + file.exists() );
+            if (!file.exists()) throw new FileNotFoundException(path);
+//            file = imageCompression(view.getContext(),file,1000);//压缩
+            byte[] imageBuf = getLocalFileByte(file);
+                    String mimeType = request.getUrl().getScheme()+"/*";
+                    return new WebResourceResponse(mimeType, "UTF-8",
+                            new ByteArrayInputStream(imageBuf));
+    }
 }

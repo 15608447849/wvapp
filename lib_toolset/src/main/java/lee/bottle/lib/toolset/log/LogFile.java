@@ -54,7 +54,7 @@ class LogFile implements ILogHandler{
     }
 
     @Override
-    public void handle(Build build,String content) throws Exception{
+    public void handle(String tag,Build build,String content) throws Exception{
 
         //判断是否存在文件写入权限
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M){

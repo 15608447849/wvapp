@@ -8,6 +8,7 @@ public interface IJsBridge {
     interface JSCallback{
         void callback(String data);
     }
+
     // 主动调用js方法
     void requestJs(final String method, final String data, JSCallback callback);
 }

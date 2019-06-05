@@ -31,9 +31,10 @@ public class JavaScriptInterface implements IJsBridge {
     }
 
     //关联一个实现
-    public void setIBridgeImp( IBridgeImp imp){
+    public IJsBridge setIBridgeImp( IBridgeImp imp){
         this.hImp = imp;
         this.hImp.setIJsBridge(this);
+        return this;
     }
 
     private final HashMap<String, IJsBridge.JSCallback> jsCallbackMap = new HashMap<>();

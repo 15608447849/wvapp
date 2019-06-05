@@ -9,8 +9,8 @@ import android.util.Log;
  */
 class LogConsole implements ILogHandler{
     @Override
-    public void handle(Build build, String content)  {
+    public void handle(String tag,Build build, String content)  {
         if (!build.isWriteConsole) return;
-        Log.println(build.level,build.tag,"\t"+content);
+        Log.println(build.level,tag,content);
     }
 }

@@ -78,24 +78,29 @@ public class LLog{
     }
 
     //格式化写入
-    public static final void format(String format,Object... args){
+    public static void format(String format, Object... args){
         StackTraceElement[] stackTraceElements = Thread.currentThread().getStackTrace();
         Thread thread = Thread.currentThread();
         //加入队列
         locQueue.offer(
-                new Object[]{thread,stackTraceElements,
+                new Object[]{build.tag,thread,stackTraceElements,
                         new Object[]{String.format(Locale.getDefault(),format,args)}}
         );
         notifyThread();
     }
 
     //打印
-    public static final void print(Object... objects){
+    public static void print(Object... objects){
+        printTag(null,objects);
+    }
+    //打印
+    public static void printTag(String tag, Object... objects){
+        if (tag == null) tag = build.tag;
         StackTraceElement[] stackTraceElements = Thread.currentThread().getStackTrace();
         Thread thread = Thread.currentThread();
         //加入队列
         locQueue.offer(
-                    new Object[]{thread,stackTraceElements, objects}
+                    new Object[]{tag,thread,stackTraceElements, objects}
                 );
         notifyThread();
     }
@@ -129,12 +134,13 @@ public class LLog{
         return obj;
     }
 
-    private static void execute(Object[] objects) throws Exception{
+    private static void execute(Object[] objects){
         checkNotNull(objects);
-        if (objects.length!=3) throw new IllegalArgumentException("objects length = " + objects.length);
-        Thread thread = (Thread) objects[0];
-        StackTraceElement[] trace = (StackTraceElement[]) objects[1];
-        Object[] messages = (Object[]) objects[2];
+        if (objects.length!=4) throw new IllegalArgumentException("objects length = " + objects.length);
+        String tag = objects[0].toString();
+        Thread thread = (Thread) objects[1];
+        StackTraceElement[] trace = (StackTraceElement[]) objects[2];
+        Object[] messages = (Object[]) objects[3];
 
         StringBuffer stringBuffer = new StringBuffer();
 
@@ -144,11 +150,12 @@ public class LLog{
         stackInfo(trace,stringBuffer);
         //获取日志信息
         logInfo(messages ,stringBuffer);
+        //日志内容
         final String content = stringBuffer.toString();
         //输出日志
         for (ILogHandler h : handlerList){
             try {
-                h.handle(build,content);
+                h.handle(tag,build,content);
             } catch (Exception e) {
 
                 if (isDebug){
