@@ -170,8 +170,7 @@ public class NativeServerImp implements IBridgeImp {
     /** 打开图片选择器 */
     private String openImageSelect(){
         if (fragment.get() == null) throw new NullPointerException("fragment is null");
-        if (fragment.get().getActivity() == null) throw new NullPointerException("activity is null");
-
+        String url = "";
         ImagePicker.getInstance()
                 .setTitle("请选择图片")//设置标题
                 .showCamera(true)//设置是否显示拍照按钮
@@ -185,8 +184,10 @@ public class NativeServerImp implements IBridgeImp {
 
         //等待结果
         exeWait();
-        return imagePaths == null ? null
-                : "image://"+imagePaths.get(0);
+        if (imagePaths!=null && imagePaths.size()==1){
+            url = "image://" + imagePaths.get(0);
+        }
+        return url;
     }
 
 

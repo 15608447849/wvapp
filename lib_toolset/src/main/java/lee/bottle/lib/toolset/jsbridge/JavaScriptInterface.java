@@ -57,6 +57,7 @@ public class JavaScriptInterface implements IJsBridge {
             e.printStackTrace();
             value = "bridge execute error:\t"+ e;
         }
+
         if (callback_id == null) return;
 
         final String result  = value == null ? null : value.toString();

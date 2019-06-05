@@ -27,14 +27,13 @@ import static lee.bottle.lib.toolset.util.ImageUtils.imageCompression;
  * email: 793065165@qq.com
  */
 public class WebViewUtil {
-    private static String TAG = "web-view";
     /**web 内核*/
     private static final WebChromeClient WEB_CHROME_CLIENT = new WebChromeClient(){
 
         //控制台消息
         @Override
         public boolean onConsoleMessage(ConsoleMessage consoleMessage) {
-            LLog.printTag(TAG,
+            LLog.print(
                     "(" +consoleMessage.sourceId().substring(consoleMessage.sourceId().lastIndexOf("/"))+
                             ":" + consoleMessage.lineNumber() + ","
                             +consoleMessage.messageLevel()+")",
@@ -90,7 +89,7 @@ public class WebViewUtil {
     private static WebResourceResponse mediaLoad(WebView view, WebResourceRequest request) throws Exception {
             String path = request.getUrl().getPath();
             File file = new File(path);
-            LLog.printTag(TAG,"加载本地文件:" + path+" , " + file.exists() );
+            LLog.print("加载本地文件:" + path+" , " + file.exists());
             if (!file.exists()) throw new FileNotFoundException(path);
             if ("image".equalsIgnoreCase(request.getUrl().getScheme())){
                 file = imageCompression(view.getContext(),file,1000);//图片压缩
