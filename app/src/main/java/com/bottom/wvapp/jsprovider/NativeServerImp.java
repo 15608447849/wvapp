@@ -179,7 +179,7 @@ public class NativeServerImp implements IBridgeImp {
                 .showVideo(false)//设置是否展示视频
                 .setSingleType(true)//设置图片视频不能同时选择
                 .setMaxCount(1)//设置最大选择图片数目(默认为1，单选)
-                .setImagePaths(imagePaths)//保存上一次选择图片的状态，如果不需要可以忽略
+//                .setImagePaths(imagePaths)//保存上一次选择图片的状态，如果不需要可以忽略
                 .setImageLoader(new GlideLoader(app.getApplicationContext()))//设置自定义图片加载器
                 .start(fragment.get(),REQUEST_SELECT_IMAGES_CODE);
 

@@ -20,6 +20,7 @@ import java.io.FileNotFoundException;
 import lee.bottle.lib.toolset.log.LLog;
 
 import static lee.bottle.lib.toolset.util.AppUtils.getLocalFileByte;
+import static lee.bottle.lib.toolset.util.ImageUtils.imageCompression;
 
 /**
  * Created by Leeping on 2019/5/17.
@@ -49,14 +50,11 @@ public class WebViewUtil {
         @Nullable
         @Override
         public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
-
             String scheme = request.getUrl().getScheme();
-            LLog.printTag(TAG,"请求URL:",request.getUrl()+" - " +scheme);
             try {
                 if ("image".equalsIgnoreCase(scheme)
                 || "audio".equalsIgnoreCase(scheme)
                 || "video".equalsIgnoreCase(scheme)){
-                    LLog.print("------");
                     return mediaLoad(view,request);
                 }
             } catch (Exception e) {
@@ -88,12 +86,16 @@ public class WebViewUtil {
         web_view.setWebViewClient(WEB_VIEW_CLIENT);
     }
 
+    //媒体文件加载
     private static WebResourceResponse mediaLoad(WebView view, WebResourceRequest request) throws Exception {
             String path = request.getUrl().getPath();
             File file = new File(path);
             LLog.printTag(TAG,"加载本地文件:" + path+" , " + file.exists() );
             if (!file.exists()) throw new FileNotFoundException(path);
-//            file = imageCompression(view.getContext(),file,1000);//压缩
+            if ("image".equalsIgnoreCase(request.getUrl().getScheme())){
+                file = imageCompression(view.getContext(),file,1000);//图片压缩
+            }
+
             byte[] imageBuf = getLocalFileByte(file);
                     String mimeType = request.getUrl().getScheme()+"/*";
                     return new WebResourceResponse(mimeType, "UTF-8",
