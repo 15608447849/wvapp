@@ -12,7 +12,7 @@ import androidx.annotation.Nullable;
 
 import com.bottom.wvapp.R;
 import com.bottom.wvapp.jsprovider.NativeServerImp;
-import com.bottom.wvapp.tool.WebViewUtil;
+import com.bottom.wvapp.jsprovider.WebViewUtil;
 
 import lee.bottle.lib.singlepageframwork.base.SFragment;
 import lee.bottle.lib.toolset.jsbridge.JavaScriptInterface;

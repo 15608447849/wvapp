@@ -135,8 +135,6 @@ public class NativeServerImp implements IBridgeImp {
         exeNotify();
     }
 
-
-
     //转发
     private String transfer(String serverName, String cls, String method, String json) {
         String devid =AppUtils.devIMEI(app.getApplicationContext());
@@ -190,6 +188,12 @@ public class NativeServerImp implements IBridgeImp {
         return url;
     }
 
+    /** 文件上传*/
+    private String fileUpload(String json){
+        HttpServerImp.JSUploadFile bean = GsonUtils.jsonToJavaBean(json, HttpServerImp.JSUploadFile.class);
+        if (bean == null) return null;
+        return HttpServerImp.updateFile(bean);
+    }
 
 
 }

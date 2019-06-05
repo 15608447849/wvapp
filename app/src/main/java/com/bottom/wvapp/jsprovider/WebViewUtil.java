@@ -1,4 +1,4 @@
-package com.bottom.wvapp.tool;
+package com.bottom.wvapp.jsprovider;
 
 import android.annotation.SuppressLint;
 import android.net.http.SslError;
@@ -100,4 +100,5 @@ public class WebViewUtil {
                     return new WebResourceResponse(mimeType, "UTF-8",
                             new ByteArrayInputStream(imageBuf));
     }
+
 }
