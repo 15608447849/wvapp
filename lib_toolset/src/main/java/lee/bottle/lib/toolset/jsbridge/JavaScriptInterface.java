@@ -7,6 +7,9 @@ import android.webkit.WebView;
 import java.util.HashMap;
 
 import lee.bottle.lib.toolset.log.LLog;
+import lee.bottle.lib.toolset.util.GsonUtils;
+
+import static lee.bottle.lib.toolset.util.StringUtils.getDecodeJSONStr;
 
 /**
  * js / native 通讯接口
@@ -60,7 +63,8 @@ public class JavaScriptInterface implements IJsBridge {
 
         if (callback_id == null) return;
 
-        final String result  = value == null ? null : value.toString();
+        final String result  = value == null ? null :
+                value instanceof String ? getDecodeJSONStr(value.toString()) : GsonUtils.javaBeanToJson(value);
 
         webView.post(new Runnable() {
             @Override

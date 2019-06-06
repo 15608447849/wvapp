@@ -27,9 +27,10 @@ dependencies {
     implementation 'com.zeroc:ice:3.6.3'
     implementation project(':lib_singlepageframwork')
     implementation project(':lib_toolset')
+    implementation project(':lib_recycleviews')
     ////图片选择器
     implementation project(':lib_imagepick')
-
+    implementation 'androidx.recyclerview:recyclerview:1.0.0'
     implementation 'com.github.bumptech.glide:glide:4.9.0'
     annotationProcessor 'com.github.bumptech.glide:compiler:4.9.0'
 }

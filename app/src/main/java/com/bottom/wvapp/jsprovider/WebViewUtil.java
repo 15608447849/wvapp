@@ -27,6 +27,24 @@ import static lee.bottle.lib.toolset.util.ImageUtils.imageCompression;
  * email: 793065165@qq.com
  */
 public class WebViewUtil {
+
+    @SuppressLint({"SetJavaScriptEnabled", "JavascriptInterface"})
+    public static void initViewWeb(WebView web_view, String name, Object jsBridge){
+        WebSettings settings = web_view.getSettings();
+        settings.setJavaScriptEnabled(true);  //开启JavaScript支持
+        // 添加一个对象, 让JS可以访问该对象的方法, 该对象中可以调用JS中的方法
+        web_view.addJavascriptInterface(jsBridge, name);
+        settings.setDomStorageEnabled(true);//开启DOM Storage功能
+        settings.setBlockNetworkImage(false);//解决图片不显示
+        settings.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
+        settings.setJavaScriptCanOpenWindowsAutomatically(true);//设置js可以直接打开窗口，如window.open()，默认为false
+        settings.setMediaPlaybackRequiresUserGesture(false);//播放音频，多媒体需要用户手动？设置为false为可自动播放
+        settings.setLoadWithOverviewMode(true);
+        web_view.setWebChromeClient(WEB_CHROME_CLIENT);
+        web_view.setWebViewClient(WEB_VIEW_CLIENT);
+
+    }
+
     /**web 内核*/
     private static final WebChromeClient WEB_CHROME_CLIENT = new WebChromeClient(){
 
@@ -48,7 +66,15 @@ public class WebViewUtil {
 
         @Nullable
         @Override
+        public WebResourceResponse shouldInterceptRequest(WebView view, String url) {
+            LLog.print("shouldInterceptRequest(view,url)" + url);
+            return super.shouldInterceptRequest(view, url);
+        }
+
+        @Nullable
+        @Override
         public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
+            LLog.print("shouldInterceptRequest(view,request)" + request);
             String scheme = request.getUrl().getScheme();
             try {
                 if ("image".equalsIgnoreCase(scheme)
@@ -64,26 +90,16 @@ public class WebViewUtil {
 
         @Override
         public void onReceivedSslError(WebView view, SslErrorHandler handler, SslError error) {
+            LLog.print("onReceivedSslError(WebView,SslErrorHandler)"); //如果是证书问题，会打印出此条log到console
             handler.proceed();// 接受所有网站的证书
+            super.onReceivedSslError(view, handler, error);
         }
         @Override
         public boolean shouldOverrideUrlLoading(WebView view, String url) {
             view.loadUrl(url);
-            return false;
+            return true;
         }
     };
-
-    @SuppressLint({"SetJavaScriptEnabled", "JavascriptInterface"})
-    public static void initViewWeb(WebView web_view, String name, Object jsBridge){
-        WebSettings settings = web_view.getSettings();
-        settings.setJavaScriptEnabled(true);  //开启JavaScript支持
-        // 添加一个对象, 让JS可以访问该对象的方法, 该对象中可以调用JS中的方法
-        web_view.addJavascriptInterface(jsBridge, name);
-        settings.setBlockNetworkImage(false);//解决图片不显示
-        settings.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
-        web_view.setWebChromeClient(WEB_CHROME_CLIENT);
-        web_view.setWebViewClient(WEB_VIEW_CLIENT);
-    }
 
     //媒体文件加载
     private static WebResourceResponse mediaLoad(WebView view, WebResourceRequest request) throws Exception {

@@ -11,6 +11,7 @@ import android.util.Log;
 
 import androidx.fragment.app.Fragment;
 
+import com.bottom.wvapp.activitys.CitySelectActivity;
 import com.bottom.wvapp.tool.GlideLoader;
 import com.onek.client.IceClient;
 
@@ -78,6 +79,16 @@ public class NativeServerImp implements IBridgeImp {
         return list.toArray(new RegisterCentre.Bean[list.size()]);
     }
 
+    //获取地区信息
+    public static String areaJson(long areaCode){
+        return  ic.setServerAndRequest("globalServer","WebAppModule","appAreaAll").setArrayParams(areaCode).execute();
+    }
+
+    //获取地区全名
+    public static String getAreaFullName(long areaCode){
+        return ic.setServerAndRequest("globalServer","CommonModule","getCompleteName").setArrayParams(areaCode).execute();
+    }
+
     @Override
     public void setIJsBridge(IJsBridge bridge) {
         this.jsBridgeImp = bridge;
@@ -129,9 +140,14 @@ public class NativeServerImp implements IBridgeImp {
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
         LLog.print("onActivityResult",  requestCode,  resultCode, data );
-        if (requestCode == REQUEST_SELECT_IMAGES_CODE && resultCode == RESULT_OK) {
-            imagePaths = data.getStringArrayListExtra(ImagePicker.EXTRA_SELECT_IMAGES);
+        if (resultCode == RESULT_OK){
+            if (requestCode == REQUEST_SELECT_IMAGES_CODE) {
+                imagePaths = data.getStringArrayListExtra(ImagePicker.EXTRA_SELECT_IMAGES);
+            }else if (requestCode == CitySelectActivity.CONST.getREQUEST_SELECT_AREA_CODE()) {
+                area.code = data.getLongExtra( CitySelectActivity.CONST.getAREA_CODE(),0);
+            }
         }
+
         exeNotify();
     }
 
@@ -188,11 +204,32 @@ public class NativeServerImp implements IBridgeImp {
         return url;
     }
 
+    private static class AreaBean{
+        private long code;
+        private String fullName = "";
+    }
+    private AreaBean area = new AreaBean();
+
+
     /** 文件上传*/
     private String fileUpload(String json){
         HttpServerImp.JSUploadFile bean = GsonUtils.jsonToJavaBean(json, HttpServerImp.JSUploadFile.class);
         if (bean == null) return null;
         return HttpServerImp.updateFile(bean);
+    }
+
+    /** 打开地区选择器 */
+    private AreaBean areaSelect(){
+        area.code = 0; //重置
+        if (fragment.get() == null) throw new NullPointerException("fragment is null");
+        Intent intent = new Intent(fragment.get().getContext(), CitySelectActivity.class);
+        fragment.get().startActivityForResult(intent, CitySelectActivity.CONST.getREQUEST_SELECT_AREA_CODE());
+        //等待结果
+        exeWait();
+        //获取全名
+        if (area.code > 0) area.fullName = getAreaFullName(area.code);
+//        return areaCode;
+        return  area;
     }
 
 

@@ -30,6 +30,8 @@
         android:theme="@style/AppTheme"
         android:usesCleartextTraffic="true">
 
+        <activity android:name=".activitys.CitySelectActivity"/>
+
         <activity android:name=".activitys.SingleActivity" android:launchMode="singleInstance">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

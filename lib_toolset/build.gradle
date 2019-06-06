@@ -24,4 +24,6 @@ dependencies {
     implementation 'com.google.code.gson:gson:2.8.5'
     //图片压缩
     implementation 'top.zibin:Luban:1.1.8'
+    //拼音转换工具
+    implementation 'com.belerweb:pinyin4j:2.5.1'
 }
