@@ -49,9 +49,13 @@ public class WebFragment extends SFragment {
 
         if (bundle!=null) {
             this.loadUrl = bundle.getString("url");
-            webView.loadUrl(loadUrl); //加载链接
+            loadView();
         }
 
+    }
+
+    private void loadView() {
+        webView.loadUrl(loadUrl); //加载链接
     }
 
     @Override

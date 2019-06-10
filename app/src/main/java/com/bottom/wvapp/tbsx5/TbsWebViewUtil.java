@@ -16,6 +16,7 @@ import java.io.FileNotFoundException;
 import lee.bottle.lib.toolset.log.LLog;
 
 import static lee.bottle.lib.toolset.util.AppUtils.getLocalFileByte;
+import static lee.bottle.lib.toolset.util.AppUtils.toast;
 import static lee.bottle.lib.toolset.util.ImageUtils.imageCompression;
 
 ;
@@ -26,33 +27,20 @@ import static lee.bottle.lib.toolset.util.ImageUtils.imageCompression;
  * email: 793065165@qq.com
  */
 public class TbsWebViewUtil {
-
     public static void tbsInit(final Context appContext) {
-
-        File file = new File("/storage/emulated/0/tencent/tbs/backup/com.bottom.wvapp/x5.tbs.decouple");
-        if (!file.exists()){
-            file.mkdirs();
-        }
-
-        //搜集本地tbs内核信息并上报服务器，服务器返回结果决定使用哪个内核
-        final QbSdk.PreInitCallback cb = new QbSdk.PreInitCallback() {
+        //x5内核初始化接口
+        QbSdk.initX5Environment(appContext,   new QbSdk.PreInitCallback() {
             @Override
             public void onCoreInitFinished() {
                 LLog.print("X5内核初始化完成");
             }
-
             @Override
             public void onViewInitFinished(boolean flag) {
                 //x5內核初始化完成的回调，为true表示x5内核加载成功，否则表示x5内核加载失败，会自动切换到系统内核。
                 LLog.print("X5内核使用: "+ flag);
-
+                toast(appContext,"当前使用X5内核 : "+ flag);
             }
-        };
-
-//        QbSdk.setDownloadWithoutWifi(true);
-        //x5内核初始化接口
-        QbSdk.initX5Environment(appContext,  cb);
-
+        });
         LLog.print("开始初始化X5内核");
     }
 
