@@ -1,7 +1,6 @@
 package com.bottom.wvapp.app;
 
 import com.bottom.wvapp.jsprovider.NativeServerImp;
-import com.bottom.wvapp.tbsx5.TbsWebViewUtil;
 import com.onek.client.IceClient;
 
 import lee.bottle.lib.singlepageframwork.use.RegisterCentre;
@@ -16,7 +15,6 @@ public class WebApplication extends ApplicationAbs {
     @Override
     protected void onCreateByAllProgress(String processName) {
         super.onCreateByAllProgress(processName);
-        TbsWebViewUtil.tbsInit(getApplicationContext());
         NativeServerImp.bindApplication(this);
         //设置服务器信息
         settingServerInfo();

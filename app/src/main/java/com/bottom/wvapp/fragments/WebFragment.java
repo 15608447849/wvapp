@@ -26,11 +26,13 @@ public class WebFragment extends SFragment {
     private View view;
     private com.tencent.smtt.sdk.WebView webView;
     private NativeServerImp server;
+    private String loadUrl;
 
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
             if (webView == null){
+                TbsWebViewUtil.tbsInit(getContext());
                 view = inflater.inflate(R.layout.fragment_web,null);
                 webView = view.findViewById(R.id.web_view);
                 server = new NativeServerImp(this);
@@ -44,7 +46,12 @@ public class WebFragment extends SFragment {
     public void onViewCreated(View view, @Nullable Bundle savedInstanceState) {
         Bundle bundle = getArguments();
         LLog.print(bundle);
-        if (bundle!=null) webView.loadUrl(bundle.getString("url")); //加载链接
+
+        if (bundle!=null) {
+            this.loadUrl = bundle.getString("url");
+            webView.loadUrl(loadUrl); //加载链接
+        }
+
     }
 
     @Override

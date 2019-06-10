@@ -37,15 +37,15 @@ public class X5WebViewClient extends WebViewClient {
     /**
      * url拦截
      */
-    @Override
+   /* @Override
     public WebResourceResponse shouldInterceptRequest(WebView webView, String url) {
-        LLog.print("shouldInterceptRequest(WebView,String)" + url);
+//        LLog.print("shouldInterceptRequest(WebView,String)\t" + url);
         return super.shouldInterceptRequest(webView, url);
-    }
+    }*/
 
     @Override
     public WebResourceResponse shouldInterceptRequest(WebView webView, WebResourceRequest request) {
-        LLog.print("shouldInterceptRequest(WebView,WebResourceRequest)" + request.getUrl());
+
         WebResourceResponse resourceResponse = mediaLoad(webView,request);
         return resourceResponse != null ? resourceResponse : super.shouldInterceptRequest(webView, request) ;
     }
@@ -56,7 +56,7 @@ public class X5WebViewClient extends WebViewClient {
     @Override
     public void onReceivedHttpError(WebView webView, WebResourceRequest request, WebResourceResponse errorResponse) {
         super.onReceivedHttpError(webView, request, errorResponse);
-        LLog.print("onReceivedHttpError(WebView,WebResourceRequest,WebResourceResponse)");
+        LLog.print("onReceivedHttpError(WebView,WebResourceRequest,WebResourceResponse)\t");
     }
 
     @Override
@@ -66,7 +66,7 @@ public class X5WebViewClient extends WebViewClient {
 
     @Override
     public void onReceivedSslError(WebView webView, SslErrorHandler handler, SslError error) {
-        LLog.print("onReceivedSslError(WebView,SslErrorHandler,SslError)");
+        LLog.print("onReceivedSslError(WebView,SslErrorHandler,SslError)\t");
         handler.proceed();// 接受所有网站的证书
         super.onReceivedSslError(webView, handler, error);
     }
@@ -75,7 +75,7 @@ public class X5WebViewClient extends WebViewClient {
 
     @Override
     public void onPageFinished(WebView webView, String url) {
-        LLog.print("onPageFinished()" + url);
+        LLog.print("onPageFinished()\t" + url +" ,x5 core = " + TbsWebViewUtil.isX5CoreUse(webView) );
         super.onPageFinished(webView, url);
     }
 }

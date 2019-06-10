@@ -18,12 +18,12 @@ public class X5WebChromeClient extends WebChromeClient {
     @Override
     public void onProgressChanged(WebView view, int newProgress) {
         super.onProgressChanged(view, newProgress);
-        LLog.print("onProgressChanged 当前进度:"+newProgress);
+        LLog.print("onProgressChanged(WebView,int):\t"+newProgress);
     }
 
-    @Override
+   @Override
     public void onGeolocationPermissionsShowPrompt(String origin, GeolocationPermissionsCallback callback) {
-        LLog.print("onGeolocationPermissionsShowPrompt(String,GeolocationPermissions)");
+        LLog.print("onGeolocationPermissionsShowPrompt(String,GeolocationPermissions)\t");
         callback.invoke(origin, true, false);
         super.onGeolocationPermissionsShowPrompt(origin, callback);
     }
@@ -35,9 +35,10 @@ public class X5WebChromeClient extends WebChromeClient {
         String fileName =  consoleMessage.sourceId();
 //        consoleMessage.sourceId().substring(consoleMessage.sourceId().lastIndexOf("/"));
         LLog.print(
-                "(" +fileName + ":" + consoleMessage.lineNumber() + "," +consoleMessage.messageLevel()+")",
-                consoleMessage.message()
+//                "(" +fileName + ":" + consoleMessage.lineNumber() + ")" +"\n",
+                "["+consoleMessage.messageLevel()+"]\t"+consoleMessage.message()
         );
-        return super.onConsoleMessage(consoleMessage);
+        return true;
+//        return super.onConsoleMessage(consoleMessage);
     }
 }

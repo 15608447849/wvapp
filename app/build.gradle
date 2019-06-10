@@ -2,6 +2,9 @@ apply plugin: 'com.android.application'
 apply plugin: 'kotlin-android'
 apply plugin: 'kotlin-android-extensions'
 
+
+
+
 android {
     compileSdkVersion 28
     defaultConfig {
@@ -11,8 +14,12 @@ android {
         versionCode 1
         versionName "1.0"
         ndk {
-            abiFilters "armeabi", "armeabi-v7a", "x86", "mips"
+            abiFilters "armeabi", "armeabi-v7a","armeabi-v8a", "x86","x86_64", "mips","mips64"
         }
+    }
+    dexOptions {
+        javaMaxHeapSize "4g"
+        preDexLibraries = false
     }
     buildTypes {
         release {
@@ -37,3 +44,4 @@ dependencies {
     implementation 'com.github.bumptech.glide:glide:4.9.0'
     annotationProcessor 'com.github.bumptech.glide:compiler:4.9.0'
 }
+

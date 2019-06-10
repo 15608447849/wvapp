@@ -185,6 +185,7 @@ public class NativeServerImp implements IBridgeImp {
     private String openImageSelect(){
         if (fragment.get() == null) throw new NullPointerException("fragment is null");
         String url = "";
+        imagePaths = null;
         ImagePicker.getInstance()
                 .setTitle("请选择图片")//设置标题
                 .showCamera(true)//设置是否显示拍照按钮
