@@ -5,14 +5,13 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.webkit.WebView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import com.bottom.wvapp.R;
 import com.bottom.wvapp.jsprovider.NativeServerImp;
-import com.bottom.wvapp.jsprovider.WebViewUtil;
+import com.bottom.wvapp.tbsx5.TbsWebViewUtil;
 
 import lee.bottle.lib.singlepageframwork.base.SFragment;
 import lee.bottle.lib.toolset.jsbridge.JavaScriptInterface;
@@ -24,18 +23,21 @@ import lee.bottle.lib.toolset.log.LLog;
  */
 public class WebFragment extends SFragment {
 
-    private WebView webView;
+    private View view;
+    private com.tencent.smtt.sdk.WebView webView;
     private NativeServerImp server;
 
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
             if (webView == null){
-                webView = (WebView) inflater.inflate(R.layout.activity_main,null);
+                view = inflater.inflate(R.layout.fragment_web,null);
+                webView = view.findViewById(R.id.web_view);
                 server = new NativeServerImp(this);
-                WebViewUtil.initViewWeb(webView,JavaScriptInterface.NAME,new JavaScriptInterface(webView).setIBridgeImp(server));
+                //webView.addJavascriptInterface(new JavaScriptInterface(webView).setIBridgeImp(server),JavaScriptInterface.NAME);
+                TbsWebViewUtil.initViewWeb(webView, JavaScriptInterface.NAME,new JavaScriptInterface(webView).setIBridgeImp(server));
             }
-        return webView;
+        return view;
     }
 
     @Override

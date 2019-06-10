@@ -29,6 +29,7 @@ public class SingleActivity extends SActivity implements PermissionApply.Callbac
             Manifest.permission.READ_CONTACTS,//读取联系人
             Manifest.permission.WRITE_EXTERNAL_STORAGE, // 写sd卡
             Manifest.permission.READ_PHONE_STATE // 获取手机状态
+
     };
 
     //权限申请

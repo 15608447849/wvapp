@@ -8,16 +8,32 @@
     <uses-permission android:name="android.permission.INTERNET"/>
     <!--网络状态查看-->
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
+    <!--访问无线状态权限-->
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+
     <!--允许程序设置内置sd卡的写权限-->
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <!--挂载SD卡-->
+    <!--<uses-permission android:name="android.permission.MOUNT_UNMOUNT_FILESYSTEMS" />-->
+    <!--读取文件-->
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+
     <!--读取通讯录-->
     <uses-permission android:name="android.permission.READ_CONTACTS"/>
     <!--获取手机状态-->
     <uses-permission android:name="android.permission.READ_PHONE_STATE"/>
+    <!--获取手机设置-->
+    <uses-permission android:name="android.permission.READ_SETTINGS" />
+    <!--写入手机设置-->
+    <!--<uses-permission android:name="android.permission.WRITE_SETTINGS" />-->
+
     <!--相机-->
     <uses-permission android:name="android.permission.CAMERA" />
     <!--震动 -->
     <uses-permission android:name="android.permission.VIBRATE" />
+
+    <!-- 硬件加速对X5视频播放非常重要，建议开启 -->
+    <uses-permission android:name="android.permission.GET_TASKS" />
 
 
     <application
@@ -28,7 +44,8 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/AppTheme"
-        android:usesCleartextTraffic="true">
+        android:usesCleartextTraffic="true"
+        android:hardwareAccelerated="true">
 
         <activity android:name=".activitys.CitySelectActivity"/>
 

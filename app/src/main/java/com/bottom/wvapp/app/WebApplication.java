@@ -1,8 +1,7 @@
 package com.bottom.wvapp.app;
 
-import android.webkit.WebView;
-
 import com.bottom.wvapp.jsprovider.NativeServerImp;
+import com.bottom.wvapp.tbsx5.TbsWebViewUtil;
 import com.onek.client.IceClient;
 
 import lee.bottle.lib.singlepageframwork.use.RegisterCentre;
@@ -17,13 +16,15 @@ public class WebApplication extends ApplicationAbs {
     @Override
     protected void onCreateByAllProgress(String processName) {
         super.onCreateByAllProgress(processName);
-        WebView.setWebContentsDebuggingEnabled(true);
+        TbsWebViewUtil.tbsInit(getApplicationContext());
         NativeServerImp.bindApplication(this);
         //设置服务器信息
         settingServerInfo();
         //初始化页面
         initPageInfo();
     }
+
+
 
     private void settingServerInfo() {
         NativeServerImp.start(new IceClient("DemoIceGrid","114.116.149.145",4061));

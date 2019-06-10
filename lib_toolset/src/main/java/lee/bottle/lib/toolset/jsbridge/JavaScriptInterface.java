@@ -1,12 +1,14 @@
 package lee.bottle.lib.toolset.jsbridge;
 
 import android.annotation.SuppressLint;
+import android.view.View;
 import android.webkit.JavascriptInterface;
-import android.webkit.WebView;
 
+import java.lang.reflect.Method;
 import java.util.HashMap;
 
 import lee.bottle.lib.toolset.log.LLog;
+import lee.bottle.lib.toolset.threadpool.IOUtils;
 import lee.bottle.lib.toolset.util.GsonUtils;
 
 import static lee.bottle.lib.toolset.util.StringUtils.getDecodeJSONStr;
@@ -25,11 +27,11 @@ public class JavaScriptInterface implements IJsBridge {
 
     private final static String JS_INTERFACE_NAME = JAVA_SCRIPT + "JNB._callbackInvoke('%s','%s')";// js callback function
 
-    private final WebView webView;
+    private final View webView;
 
     private IBridgeImp hImp;
 
-    public JavaScriptInterface(WebView webView) {
+    public JavaScriptInterface(View webView) {
         this.webView = webView;
     }
 
@@ -50,29 +52,50 @@ public class JavaScriptInterface implements IJsBridge {
      */
     @JavascriptInterface
     public void invoke(final String methodName, final String data, final String callback_id) {
-        //异步执行
-        Object value = null;
-        try {
-            if (hImp!=null){
-                value = hImp.invoke(methodName,data);
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-            value = "bridge execute error:\t"+ e;
-        }
 
-        if (callback_id == null) return;
-
-        final String result  = value == null ? null :
-                value instanceof String ? getDecodeJSONStr(value.toString()) : GsonUtils.javaBeanToJson(value);
-
-        webView.post(new Runnable() {
+        IOUtils.run(new Runnable() {
             @Override
             public void run() {
-                LLog.print(methodName+" 参数:"+data+" js的回调函数:"+callback_id+"回调数据: "+result);
-                webView.loadUrl(String.format(JS_INTERFACE_NAME,callback_id ,result));
+
+                //异步执行
+                Object value = null;
+                try {
+                    if (hImp!=null){
+                        value = hImp.invoke(methodName,data);
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    value = "bridge execute error:\t"+ e;
+                }
+
+                if (callback_id == null) return;
+
+                final String result  = value == null ? null :
+                        value instanceof String ? getDecodeJSONStr(value.toString()) : GsonUtils.javaBeanToJson(value);
+
+                webView.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        LLog.print(methodName+" 参数:"+data+" js的回调函数:"+callback_id+"回调数据: "+result);
+                        loadUrl(String.format(JS_INTERFACE_NAME,callback_id ,result));
+                    }
+                });
+
             }
         });
+
+    }
+
+    private boolean loadUrl(String content) {
+        try {
+            Method m = webView.getClass().getDeclaredMethod("loadUrl",String.class);
+            m.setAccessible(true);
+            m.invoke(webView,content);
+            return true;
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return false;
     }
 
 
@@ -89,7 +112,7 @@ public class JavaScriptInterface implements IJsBridge {
         webView.post(new Runnable() {
             @Override
             public void run() {
-                webView.loadUrl(String.format(JS_INTERFACE_INVOKE_NAME,method ,data,_callbackId));
+                loadUrl(String.format(JS_INTERFACE_INVOKE_NAME,method ,data,_callbackId));
             }
         });
     }
