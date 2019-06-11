@@ -11,4 +11,6 @@ public interface IJsBridge {
 
     // 主动调用js方法
     void requestJs(final String method, final String data, JSCallback callback);
+
+    public void loadUrl(String content);
 }

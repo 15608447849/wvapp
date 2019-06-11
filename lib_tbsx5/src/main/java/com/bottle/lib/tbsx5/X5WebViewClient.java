@@ -1,4 +1,4 @@
-package com.bottom.wvapp.tbsx5;
+package com.bottle.lib.tbsx5;
 
 
 import com.tencent.smtt.export.external.interfaces.SslError;
@@ -9,9 +9,8 @@ import com.tencent.smtt.export.external.interfaces.WebResourceResponse;
 import com.tencent.smtt.sdk.WebView;
 import com.tencent.smtt.sdk.WebViewClient;
 
+import lee.bottle.lib.toolset.jsbridge.JSUtils;
 import lee.bottle.lib.toolset.log.LLog;
-
-import static com.bottom.wvapp.tbsx5.TbsWebViewUtil.mediaLoad;
 
 /**
  * Created by Leeping on 2019/6/10.
@@ -37,17 +36,10 @@ public class X5WebViewClient extends WebViewClient {
     /**
      * url拦截
      */
-   /* @Override
-    public WebResourceResponse shouldInterceptRequest(WebView webView, String url) {
-//        LLog.print("shouldInterceptRequest(WebView,String)\t" + url);
-        return super.shouldInterceptRequest(webView, url);
-    }*/
-
     @Override
-    public WebResourceResponse shouldInterceptRequest(WebView webView, WebResourceRequest request) {
-
-        WebResourceResponse resourceResponse = mediaLoad(webView,request);
-        return resourceResponse != null ? resourceResponse : super.shouldInterceptRequest(webView, request) ;
+    public WebResourceResponse shouldInterceptRequest(WebView webView, String url) {
+        WebResourceResponse webResourceResponse = JSUtils.mediaUriIntercept(webView.getContext(),url,WebResourceResponse.class);
+        return webResourceResponse != null ? webResourceResponse : super.shouldInterceptRequest(webView,url);
     }
 
     /**
@@ -75,7 +67,7 @@ public class X5WebViewClient extends WebViewClient {
 
     @Override
     public void onPageFinished(WebView webView, String url) {
-        LLog.print("onPageFinished()\t" + url +" ,x5 core = " + TbsWebViewUtil.isX5CoreUse(webView) );
+        LLog.print("onPageFinished()\t" + url +" ,x5 core = " + X5Core.isX5CoreUse(webView) );
         super.onPageFinished(webView, url);
     }
 }

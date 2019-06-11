@@ -1,33 +1,63 @@
-package com.bottom.wvapp.tbsx5;
+package com.bottle.lib.tbsx5;
 
-import android.annotation.SuppressLint;
 import android.content.Context;
+import android.view.ViewGroup;
 
-import com.tencent.smtt.export.external.interfaces.WebResourceRequest;
-import com.tencent.smtt.export.external.interfaces.WebResourceResponse;
-import com.tencent.smtt.sdk.CookieSyncManager;
 import com.tencent.smtt.sdk.QbSdk;
 import com.tencent.smtt.sdk.WebView;
 
-import java.io.ByteArrayInputStream;
-import java.io.File;
-import java.io.FileNotFoundException;
-
+import lee.bottle.lib.toolset.jsbridge.IBridgeImp;
+import lee.bottle.lib.toolset.jsbridge.IWebViewInit;
 import lee.bottle.lib.toolset.log.LLog;
 
-import static lee.bottle.lib.toolset.util.AppUtils.getLocalFileByte;
 import static lee.bottle.lib.toolset.util.AppUtils.toast;
-import static lee.bottle.lib.toolset.util.ImageUtils.imageCompression;
-
-;
-;
 
 /**
- * Created by Leeping on 2019/5/17.
+ * Created by Leeping on 2019/6/11.
  * email: 793065165@qq.com
  */
-public class TbsWebViewUtil {
+public class X5Core extends IWebViewInit<WebView> {
+
+
     public static void tbsInit(final Context appContext) {
+
+     /*   QbSdk.setTbsListener(new TbsListener() {
+            @Override
+            public void onDownloadFinish(int i) {
+                LLog.print("onDownloadFinish " + i);
+            }
+
+            @Override
+            public void onInstallFinish(int i) {
+                LLog.print("onInstallFinish " + i);
+            }
+
+            @Override
+            public void onDownloadProgress(int i) {
+                LLog.print("onDownloadProgress " + i);
+            }
+        });
+
+        TbsDownloader.needDownload(appContext, false);
+
+        LLog.print("QbSdk.isTbsCoreInited() = " + QbSdk.isTbsCoreInited());*/
+
+        QbSdk.setDownloadWithoutWifi(true);
+
+      /*  if (!QbSdk.isTbsCoreInited()){
+            QbSdk.preInit(appContext, new QbSdk.PreInitCallback() {
+                @Override
+                public void onCoreInitFinished() {
+                    LLog.print("X5 onCoreInitFinished");
+                }
+
+                @Override
+                public void onViewInitFinished(boolean b) {
+                    LLog.print("X5 preInit onViewInitFinished = " + b);
+                }
+            });
+        } */
+
         //x5内核初始化接口
         QbSdk.initX5Environment(appContext,   new QbSdk.PreInitCallback() {
             @Override
@@ -48,26 +78,19 @@ public class TbsWebViewUtil {
         return webView.getX5WebViewExtension() != null;
     }
 
-    @SuppressLint({"SetJavaScriptEnabled", "JavascriptInterface"})
-    public static void initViewWeb(com.tencent.smtt.sdk.WebView webView, String name, Object jsBridge){
-        initSetting(webView.getContext() , webView.getSettings());
-
-        webView.setWebChromeClient(new X5WebChromeClient());
-        webView.setWebViewClient(new X5WebViewClient());
-
-        //去除滚动条
-        webView.setHorizontalFadingEdgeEnabled(false);
-        webView.setVerticalScrollBarEnabled(false);
-        if (isX5CoreUse(webView)) webView.getX5WebViewExtension().setScrollBarFadingEnabled(false);
-
-        // 添加一个对象, 让JS可以访问该对象的方法, 该对象中可以调用JS中的方法
-        webView.addJavascriptInterface(jsBridge, name);
-
-        CookieSyncManager.createInstance(webView.getContext());
-        CookieSyncManager.getInstance().sync();
+    public X5Core(ViewGroup group, IBridgeImp bridge) throws Exception {
+        super(group, bridge);
     }
 
-    private static void initSetting(Context context,com.tencent.smtt.sdk.WebSettings settings) {
+    @Override
+    protected void initPrev(ViewGroup group) {
+        tbsInit(group.getContext());
+    }
+
+    @Override
+    public void initSetting(WebView webview) {
+        com.tencent.smtt.sdk.WebSettings settings = webview.getSettings();
+        Context context = webview.getContext();
         //https://blog.csdn.net/a2241076850/article/details/52983939
 
         //设置WebView是否允许执行JavaScript脚本，默认false
@@ -128,60 +151,25 @@ public class TbsWebViewUtil {
         //不禁止网络图片加载
         settings.setBlockNetworkImage(false);
 
+        webview.setWebChromeClient(new X5WebChromeClient());
+        webview.setWebViewClient(new X5WebViewClient());
+
+        //去除滚动条
+        webview.setHorizontalFadingEdgeEnabled(false);
+        webview.setVerticalScrollBarEnabled(false);
+        if (isX5CoreUse(webview)) webview.getX5WebViewExtension().setScrollBarFadingEnabled(false);
+
+
     }
 
-    //媒体文件加载
-    public static WebResourceResponse mediaLoad(WebView view, WebResourceRequest request){
-        String scheme = request.getUrl().getScheme();
-        try {
-            if ("image".equalsIgnoreCase(scheme)
-                    || "audio".equalsIgnoreCase(scheme)
-                    || "video".equalsIgnoreCase(scheme)){
-                LLog.print("拦截URL处理\t" + request.getUrl());
-                String path = request.getUrl().getPath();
-                File file = new File(path);
-                LLog.print("加载本地文件:" + path+" , " + file.exists());
-                if (!file.exists()) throw new FileNotFoundException(path);
-                if ("image".equalsIgnoreCase(request.getUrl().getScheme())){
-                    file = imageCompression(view.getContext(),file,1000);//图片压缩
-                }
-
-                byte[] imageBuf = getLocalFileByte(file);
-                String mimeType = request.getUrl().getScheme()+"/*";
-                return new WebResourceResponse(mimeType, "UTF-8",
-                        new ByteArrayInputStream(imageBuf));
+    @Override
+    public boolean onBackPressed() {
+        if (getWebView()!=null){
+            if (getWebView().canGoBack()) {
+                getWebView().goBack();
+                return true;
             }
-        } catch (Exception e) {
-            e.printStackTrace();
         }
-            return null;
+        return false;
     }
-
 }
-
-
-/**
- *LOAD_CACHE_ONLY： 不使用网络，只读取本地缓存数据，
- * LOAD_DEFAULT：根据cache-control决定是否从网络上取数据，
- * LOAD_CACHE_NORMAL：API level 17中已经废弃, 从API level 11开始作用同- - LOAD_DEFAULT模式，
- * LOAD_NO_CACHE: 不使用缓存，只从网络获取数据，
- * LOAD_CACHE_ELSE_NETWORK，只要本地有，无论是否过期，或者no-cache，都使用缓存中的数据。
- */
-
-
-//cookie同步策略
-//        CookieSyncManager.createInstance(context);
-//        CookieSyncManager.getInstance().startSync();
-//cookie停止同步：
-//CookieSyncManager.getInstance().stopSync()
-//cookie立即同步：调用了该方法会立即进行cookie的同步
-//        CookieSyncManager.getInstance().sync();
-//删除cookie操作
-//        CookieSyncManager.createInstance(this);
-//        CookieManager.getInstance().removeAllCookie();
-//        CookieManager.getInstance().removeSessionCookie();
-//        CookieSyncManager.getInstance().sync();
-//        CookieSyncManager.getInstance().startSync();
-//删除cookie操作：底层实现是异步清除数据库的记录
-//CookieManager.getInstance().removeAllCookies(null);
-//        CookieManager.getInstance().flush();

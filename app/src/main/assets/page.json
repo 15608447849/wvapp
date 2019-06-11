@@ -1,9 +1,10 @@
 [
 	{"container":"content",
-		"fragment":"com.bottom.wvapp.fragments.WebFragment",
+		"fragment":"com.bottom.wvapp.fragments.CosWebFragment",
 		"name":"web",
 		"map":{
-			"url":"http://192.168.1.115:8080"
+			"core": "com.bottle.lib.tbsx5.X5Core",
+			"url":"http://192.168.1.115:8888"
 		}
 	}
 ]

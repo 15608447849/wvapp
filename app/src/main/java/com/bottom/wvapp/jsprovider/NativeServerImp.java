@@ -88,7 +88,7 @@ public class NativeServerImp implements IBridgeImp {
     public static String getAreaFullName(long areaCode){
         return ic.setServerAndRequest("globalServer","CommonModule","getCompleteName").setArrayParams(areaCode).execute();
     }
-    
+
     public String convertAreaCodeToFullName(String areaCode){
         return getAreaFullName(Long.parseLong(areaCode));
     }

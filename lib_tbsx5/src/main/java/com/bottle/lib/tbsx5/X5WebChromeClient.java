@@ -1,4 +1,4 @@
-package com.bottom.wvapp.tbsx5;
+package com.bottle.lib.tbsx5;
 
 import com.tencent.smtt.export.external.interfaces.ConsoleMessage;
 import com.tencent.smtt.export.external.interfaces.GeolocationPermissionsCallback;
@@ -25,7 +25,7 @@ public class X5WebChromeClient extends WebChromeClient {
     public void onGeolocationPermissionsShowPrompt(String origin, GeolocationPermissionsCallback callback) {
         LLog.print("onGeolocationPermissionsShowPrompt(String,GeolocationPermissions)\t");
         callback.invoke(origin, true, false);
-        super.onGeolocationPermissionsShowPrompt(origin, callback);
+//        super.onGeolocationPermissionsShowPrompt(origin, callback);
     }
 
 

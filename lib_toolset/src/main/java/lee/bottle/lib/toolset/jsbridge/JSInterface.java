@@ -17,9 +17,9 @@ import static lee.bottle.lib.toolset.util.StringUtils.getDecodeJSONStr;
  * js / native 通讯接口
  */
 @SuppressLint("JavascriptInterface")
-public class JavaScriptInterface implements IJsBridge {
+public class JSInterface implements IJsBridge {
 
-    public static final String NAME = "native";
+    private static final String NAME = "native";
 
     private final static String JAVA_SCRIPT = "javascript:";
 
@@ -31,12 +31,24 @@ public class JavaScriptInterface implements IJsBridge {
 
     private IBridgeImp hImp;
 
-    public JavaScriptInterface(View webView) {
+    public JSInterface(View webView) {
         this.webView = webView;
+        addJavascriptInterface();
+    }
+
+    private void addJavascriptInterface() {
+        try {
+            if (webView == null) return;
+            Method m = webView.getClass().getDeclaredMethod("addJavascriptInterface",Object.class,String.class);
+            m.setAccessible(true);
+            m.invoke(webView,this,NAME);
+        }catch (Exception e){
+            e.printStackTrace();
+        }
     }
 
     //关联一个实现
-    public IJsBridge setIBridgeImp( IBridgeImp imp){
+    public IJsBridge setIBridgeImp(IBridgeImp imp){
         this.hImp = imp;
         this.hImp.setIJsBridge(this);
         return this;
@@ -46,7 +58,6 @@ public class JavaScriptInterface implements IJsBridge {
 
     /**
      * js -> native
-     *
      * 请求格式:
      * js需要调用的方法名 - method(String.class), js传递的参数信息(json/text),js回调函数的ID - function(response)
      */
@@ -86,23 +97,21 @@ public class JavaScriptInterface implements IJsBridge {
 
     }
 
-    private boolean loadUrl(String content) {
+    @Override
+    public void loadUrl(String content) {
         try {
+            if (webView == null) return;
             Method m = webView.getClass().getDeclaredMethod("loadUrl",String.class);
             m.setAccessible(true);
             m.invoke(webView,content);
-            return true;
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return false;
     }
-
 
     // 主动调用js方法
     @Override
     public void requestJs(final String method, final String data, IJsBridge.JSCallback callback){
-
         String callbackId = null;
         if (callback!=null){
             callbackId = "java_callback_"+System.currentTimeMillis();
@@ -118,7 +127,7 @@ public class JavaScriptInterface implements IJsBridge {
     }
 
     /**
-     * native -> js , 然后 js回调
+     * native -> js ,js回调
      */
     @JavascriptInterface
     public void callbackInvoke(String callback_id,String data){
