@@ -220,7 +220,7 @@ public class NativeServerImp implements IBridgeImp {
     private String fileUpload(String json){
         HttpServerImp.JSUploadFile bean = GsonUtils.jsonToJavaBean(json, HttpServerImp.JSUploadFile.class);
         if (bean == null) return null;
-        return HttpServerImp.updateFile(bean);
+        return HttpServerImp.updateFile(app.getApplicationContext(),bean);
     }
 
     /** 打开地区选择器 */

@@ -87,7 +87,7 @@ public class JSInterface implements IJsBridge {
                 webView.post(new Runnable() {
                     @Override
                     public void run() {
-                        LLog.print(methodName+" 参数:"+data+" js的回调函数:"+callback_id+"回调数据: "+result);
+                        LLog.print("数据调用显示:" + methodName+" 参数:" + data +"\n 回调数据: "+result);
                         loadUrl(String.format(JS_INTERFACE_NAME,callback_id ,result));
                     }
                 });

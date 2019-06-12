@@ -10,7 +10,7 @@ import lee.bottle.lib.toolset.jsbridge.IBridgeImp;
 import lee.bottle.lib.toolset.jsbridge.IWebViewInit;
 import lee.bottle.lib.toolset.jsbridge.JSInterface;
 
-;
+;import static org.xwalk.core.XWalkSettings.LOAD_NO_CACHE;
 
 /**
  * Created by Leeping on 2019/6/11.
@@ -86,6 +86,8 @@ public class CKCore extends IWebViewInit<XWalkView> {
         settings.setLoadsImagesAutomatically(true);
         //不禁止网络图片加载
         settings.setBlockNetworkImage(false);
+
+        settings.setCacheMode(LOAD_NO_CACHE);
 
         webview.setResourceClient(new CKWebViewClient(webview));
         webview.setUIClient(new CKWebChromeClient(webview));

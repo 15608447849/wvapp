@@ -49,13 +49,11 @@ public class CosWebFragment extends SFragment {
     public void onViewCreated(View view, @Nullable Bundle savedInstanceState) {
         Bundle bundle = getArguments();
         LLog.print(bundle);
-
         if (bundle!=null) {
             this.loadUrl = bundle.getString("url");
             this.core = bundle.getString("core");
             selectCoreDialog();
         }
-
     }
 
     private void selectCoreDialog() {
