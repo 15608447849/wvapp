@@ -1,7 +1,15 @@
 package lee.bottle.lib.toolset.util;
 
-import com.google.gson.*;
+import com.google.gson.Gson;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonParser;
+import com.google.gson.JsonSyntaxException;
 import com.google.gson.reflect.TypeToken;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONTokener;
 
 import java.lang.reflect.Type;
 import java.util.ArrayList;
@@ -73,6 +81,19 @@ public class GsonUtils {
             e.printStackTrace();
         }
         return list;
+    }
+
+    /**
+     * 判断是否是数组类型的json字符串
+     */
+    public static boolean checkJsonIsArray(String json){
+        try {
+            Object jsonObj = new JSONTokener(json).nextValue();
+            if (jsonObj instanceof JSONArray) {
+                return true;
+            }
+        } catch (JSONException ignored) { }
+        return false;
     }
 
 }

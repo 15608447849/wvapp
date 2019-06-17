@@ -1,5 +1,6 @@
 package lee.bottle.lib.toolset.jsbridge;
 
+import android.app.ProgressDialog;
 import android.content.Context;
 import android.net.Uri;
 
@@ -9,6 +10,7 @@ import java.io.FileNotFoundException;
 import java.io.InputStream;
 
 import lee.bottle.lib.toolset.log.LLog;
+import lee.bottle.lib.toolset.util.DialogUtil;
 import lee.bottle.lib.toolset.util.ObjectRefUtil;
 
 import static lee.bottle.lib.toolset.util.AppUtils.getLocalFileByte;
@@ -19,6 +21,9 @@ import static lee.bottle.lib.toolset.util.ImageUtils.imageCompression;
  * email: 793065165@qq.com
  */
 public class JSUtils {
+
+    public static ProgressDialog dialog;
+
     /** 对媒体文件拦截 */
     public static <T> T mediaUriIntercept(Context context, String url,Class clazz){
         Uri uri = Uri.parse(url);
@@ -42,5 +47,27 @@ public class JSUtils {
             }
         } catch (Exception e) { e.printStackTrace(); }
         return null;
+    }
+
+
+    public static void progressHandler(Context context,int progress){
+        if (progress<100){
+            openProgressDialog(context);
+        }else{
+            closeProgressDialog();
+        }
+    }
+
+    public static void openProgressDialog(Context context){
+        if (dialog == null){
+            dialog = DialogUtil.createSimpleProgressDialog(context,"应用加载中...");
+            dialog.show();
+        }
+    }
+    public static void closeProgressDialog(){
+        if (dialog!=null){
+            dialog.cancel();
+            dialog = null;
+        }
     }
 }

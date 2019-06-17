@@ -103,10 +103,10 @@ public class NativeServerImp implements IBridgeImp {
         LLog.print("本地方法: "+ methodName +" ,数据: "+ data );
 
         if (methodName.startsWith("ts:")){
-            //转发协议  ts:服务名@类名@方法名
+            //转发协议  ts:服务名@类名@方法名@分页页码@分页条数
             String temp = methodName.replace("ts:","");
             String[] args = temp.split("@");
-            return transfer(args[0],args[1],args[2],data);
+            return transfer(args[0],args[1],args[2],Integer.parseInt(args[3]),Integer.parseInt(args[4]),data);
         }
         //反射调用方法
         if(data == null){
@@ -156,10 +156,13 @@ public class NativeServerImp implements IBridgeImp {
     }
 
     //转发
-    private String transfer(String serverName, String cls, String method, String json) {
-        String devid =AppUtils.devIMEI(app.getApplicationContext());
-        LLog.print("设备ID = " + devid);
-        return ic.settingProxy(serverName).settingReq(devid,cls,method).settingParam(json).execute();
+    private String transfer(String serverName, String cls, String method,int page,int count, String json) {
+        String devid =AppUtils.devIMEI(app.getApplicationContext()) + "@PHONE";
+        IceClient client = ic.settingProxy(serverName).settingReq(devid,cls,method);
+        client.setPageInfo(page,count);
+        if (GsonUtils.checkJsonIsArray(json)) client.settingParam(GsonUtils.jsonToJavaBean(json,String[].class));
+        else client.settingParam(json);
+        return client.execute();
     }
 
     /** 读取手机通讯录 */
@@ -236,6 +239,14 @@ public class NativeServerImp implements IBridgeImp {
 //        return areaCode;
         return  area;
     }
+
+    /** 拨号 */
+    private void callPhone(String phone){
+        if (fragment.get()==null || fragment.get().getContext()==null) return;
+        LLog.print("phone - " + phone);
+        AppUtils.callPhoneNo(fragment.get().getContext(),phone);
+    }
+
 
 
 }

@@ -19,6 +19,8 @@ import static lee.bottle.lib.toolset.util.StringUtils.getDecodeJSONStr;
 @SuppressLint("JavascriptInterface")
 public class JSInterface implements IJsBridge {
 
+    public  static  boolean isDebug = false;
+
     private static final String NAME = "native";
 
     private final static String JAVA_SCRIPT = "javascript:";
@@ -87,7 +89,9 @@ public class JSInterface implements IJsBridge {
                 webView.post(new Runnable() {
                     @Override
                     public void run() {
-                        LLog.print("数据调用显示:" + methodName+" 参数:" + data +"\n 回调数据: "+result);
+                        if (isDebug) {
+                            LLog.print("JS->NATIVE:" + methodName + "\n参数: " + data + "\n回调数据: " + result);
+                        }
                         loadUrl(String.format(JS_INTERFACE_NAME,callback_id ,result));
                     }
                 });

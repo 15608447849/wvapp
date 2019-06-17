@@ -26,7 +26,8 @@
     <uses-permission android:name="android.permission.READ_SETTINGS" />
     <!--写入手机设置-->
     <!--<uses-permission android:name="android.permission.WRITE_SETTINGS" />-->
-
+    <!--拨号-->
+    <uses-permission android:name="android.permission.CALL_PHONE" />
     <!--相机-->
     <uses-permission android:name="android.permission.CAMERA" />
     <!--震动 -->

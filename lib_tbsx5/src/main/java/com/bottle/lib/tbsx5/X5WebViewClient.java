@@ -70,4 +70,6 @@ public class X5WebViewClient extends WebViewClient {
         LLog.print("onPageFinished()\t" + url +" ,x5 core = " + X5Core.isX5CoreUse(webView) );
         super.onPageFinished(webView, url);
     }
+
+//    oncon
 }

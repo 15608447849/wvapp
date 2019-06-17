@@ -12,11 +12,15 @@ import org.xwalk.core.XWalkWebResourceResponse;
 import lee.bottle.lib.toolset.jsbridge.JSUtils;
 import lee.bottle.lib.toolset.log.LLog;
 
+import static lee.bottle.lib.toolset.jsbridge.JSUtils.progressHandler;
+
 /**
  * Created by Leeping on 2019/6/11.
  * email: 793065165@qq.com
  */
 public class CKWebViewClient extends XWalkResourceClient{
+
+
     public CKWebViewClient(XWalkView view) {
         super(view);
     }
@@ -54,6 +58,9 @@ public class CKWebViewClient extends XWalkResourceClient{
     @Override
     public void onProgressChanged(XWalkView view, int progressInPercent) {
         LLog.print("onProgressChanged " + progressInPercent);
-        super.onProgressChanged(view, progressInPercent);
+        progressHandler(view.getContext(),progressInPercent);
+//        super.onProgressChanged(view, progressInPercent);
     }
+
+
 }

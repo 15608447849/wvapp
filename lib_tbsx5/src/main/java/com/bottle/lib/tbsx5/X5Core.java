@@ -172,4 +172,14 @@ public class X5Core extends IWebViewInit<WebView> {
         }
         return false;
     }
+
+    @Override
+    public void clear() {
+
+    }
+
+    @Override
+    public void close(ViewGroup view) {
+
+    }
 }

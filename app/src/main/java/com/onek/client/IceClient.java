@@ -1,12 +1,13 @@
 package com.onek.client;
 
-import lee.bottle.lib.toolset.util.GsonUtils;
 import com.onek.server.inf.IRequest;
 import com.onek.server.inf.InterfacesPrx;
 import com.onek.server.inf.InterfacesPrxHelper;
 
 import java.util.HashMap;
 import java.util.Locale;
+
+import lee.bottle.lib.toolset.util.GsonUtils;
 
 /**
  * @Author: leeping
@@ -92,6 +93,11 @@ public class IceClient {
         request.param.json = json;
         return this;
     }
+    public IceClient setPageInfo(int index, int number) {
+        request.param.pageIndex = index;
+        request.param.pageNumber = number;
+        return this;
+    }
     public IceClient settingParam(String[] array, int index, int number){
         request.param.arrays = array;
         request.param.pageIndex = index;
@@ -115,4 +121,6 @@ public class IceClient {
              curPrx.sendMessageToClient(identity,message);
         }
     }
+
+
 }

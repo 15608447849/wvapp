@@ -28,7 +28,8 @@ public class SingleActivity extends SActivity implements PermissionApply.Callbac
             Manifest.permission.CAMERA, // 相机和闪光灯
             Manifest.permission.READ_CONTACTS,//读取联系人
             Manifest.permission.WRITE_EXTERNAL_STORAGE, // 写sd卡
-            Manifest.permission.READ_PHONE_STATE // 获取手机状态
+            Manifest.permission.READ_PHONE_STATE, // 获取手机状态
+            Manifest.permission.CALL_PHONE // 拨号
 
     };
 
@@ -73,7 +74,7 @@ public class SingleActivity extends SActivity implements PermissionApply.Callbac
     public void onPermissionsGranted() {
         LLog.print("授权成功");
         //授权成功
-        getSFOPage().skip("content","web");//跳转到web页面
+//        getSFOPage().skip("content","web");//跳转到web页面
     }
 
     @Override
@@ -86,6 +87,7 @@ public class SingleActivity extends SActivity implements PermissionApply.Callbac
         super.onInitResume();
         if (!isSysRecovery()){
             permissionApply.permissionCheck();
+            getSFOPage().skip("content","web");//跳转到web页面
         }
     }
 

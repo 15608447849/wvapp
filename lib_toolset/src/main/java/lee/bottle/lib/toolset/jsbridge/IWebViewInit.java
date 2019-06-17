@@ -36,7 +36,6 @@ public abstract class IWebViewInit<V extends View> {
         ParameterizedType parameterizedType = (ParameterizedType)this.getClass().getGenericSuperclass();
         Type[] typeArr = parameterizedType.getActualTypeArguments();
         webView = (V)ObjectRefUtil.createObject((Class) typeArr[0],new Class[]{Context.class},group.getContext());
-
         group.addView(webView,ViewGroup.LayoutParams.MATCH_PARENT,ViewGroup.LayoutParams.MATCH_PARENT);
         initSetting(webView);
         proxy = genJSInterface(webView).setIBridgeImp(bridge);
@@ -49,5 +48,9 @@ public abstract class IWebViewInit<V extends View> {
     public abstract void initSetting(V webview);
 
     public abstract boolean onBackPressed();
+
+    public abstract void clear();
+
+    public abstract void close(ViewGroup view);
 
 }

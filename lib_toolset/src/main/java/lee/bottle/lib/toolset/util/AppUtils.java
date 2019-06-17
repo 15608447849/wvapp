@@ -309,4 +309,16 @@ public class AppUtils {
       return "";
     }
 
+
+    /**
+     * 拨打电话
+     *<uses-permission android:name="android.permission.CALL_PHONE" />
+     */
+    public static void callPhoneNo(Context context,String phoneNo){
+        Intent intent = new Intent();
+        intent.setAction(Intent.ACTION_CALL);
+        intent.setData(Uri.parse("tel:"+phoneNo));
+        context.startActivity(intent);
+    }
+
 }
