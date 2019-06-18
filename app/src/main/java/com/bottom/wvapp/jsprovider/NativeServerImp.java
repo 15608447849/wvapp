@@ -7,13 +7,14 @@ import android.content.Intent;
 import android.database.Cursor;
 import android.net.Uri;
 import android.provider.ContactsContract;
-import android.util.Log;
 
 import androidx.fragment.app.Fragment;
 
 import com.bottom.wvapp.activitys.CitySelectActivity;
 import com.bottom.wvapp.tool.GlideLoader;
 import com.onek.client.IceClient;
+import com.onek.server.inf.InterfacesPrx;
+import com.onek.server.inf.InterfacesPrxHelper;
 
 import java.lang.ref.SoftReference;
 import java.lang.reflect.Method;
@@ -29,6 +30,7 @@ import lee.bottle.lib.toolset.util.AppUtils;
 import lee.bottle.lib.toolset.util.GsonUtils;
 
 import static android.app.Activity.RESULT_OK;
+import static lee.bottle.lib.toolset.jsbridge.JSInterface.isDebug;
 
 
 /**
@@ -40,26 +42,31 @@ public class NativeServerImp implements IBridgeImp {
     private static int REQUEST_SELECT_IMAGES_CODE = 255;
 
 
+    private LongConnectionServerImp longConnectionServerImp;
+
     private static Application app;
 
-    private static IceClient ic = null;
+    private static String DEVID = null;
+
+    private static IceClient client = null;
 
     private IJsBridge jsBridgeImp;
 
     private SoftReference<Fragment> fragment;
 
     public static void start(IceClient client) {
-        if (ic == null){
-            ic = client.startCommunication();
+        if (NativeServerImp.client == null){
+            NativeServerImp.client = client.startCommunication();
         }
     }
 
     public static void bindApplication(Application application){
         app = application;
+        DEVID = AppUtils.devIMEI(app.getApplicationContext()) + "@PHONE" ;
     }
 
     public NativeServerImp(Fragment fragment) {
-        if (ic == null) throw new RuntimeException("ICE 连接未初始化");
+        if (client == null) throw new RuntimeException("ICE 连接未初始化");
         this.fragment = new SoftReference<>(fragment);
     }
 
@@ -68,7 +75,6 @@ public class NativeServerImp implements IBridgeImp {
         if (app == null) throw new RuntimeException("应用初始化失败");
         //本地获取
         String json = AppUtils.assetFileContentToText(app.getApplicationContext(),"page.json");
-        Log.e("初始化应用",json);
         //网络获取
 //        String json = ic.setServerAndRequest("globalServer","WebAppModule","pageInfo").execute();
         List<RegisterCentre.Bean> list = GsonUtils.json2List(json,RegisterCentre.Bean.class);
@@ -81,18 +87,42 @@ public class NativeServerImp implements IBridgeImp {
 
     //获取地区信息
     public static String areaJson(long areaCode){
-        return  ic.setServerAndRequest("globalServer","WebAppModule","appAreaAll").setArrayParams(areaCode).execute();
+        return  client.setServerAndRequest("globalServer","WebAppModule","appAreaAll").setArrayParams(areaCode).execute();
     }
 
     //获取地区全名
     public static String getAreaFullName(long areaCode){
-        return ic.setServerAndRequest("globalServer","CommonModule","getCompleteName").setArrayParams(areaCode).execute();
+        return client.setServerAndRequest("globalServer","CommonModule","getCompleteName").setArrayParams(areaCode).execute();
     }
 
+    //转换地区码->全称
     public String convertAreaCodeToFullName(String areaCode){
         return getAreaFullName(Long.parseLong(areaCode));
     }
 
+    private static class UserInfo {
+        public int userId; //用户ID
+        public long roleCode; //角色复合码
+        public String phone; //手机号码
+        public String userName;//姓名
+        public int compId;//企业ID
+    }
+
+    //获取公司码
+    private int getCompId() {
+        String json = client.setServerAndRequest(DEVID,"userServer","LoginRegistrationModule","appStoreInfo").execute();
+        UserInfo info = GsonUtils.jsonToJavaBean(json,UserInfo.class);
+        if (info!=null) return info.compId;
+        return 0;
+    }
+    /**
+     * 根据企业码 获取 分库分表的订单服务的下标序列
+     */
+    private static int getOrderServerNo(int compid){
+        return compid / 8192 % 65535;
+    }
+
+    /********************************************************************************************************/
     @Override
     public void setIJsBridge(IJsBridge bridge) {
         this.jsBridgeImp = bridge;
@@ -100,7 +130,7 @@ public class NativeServerImp implements IBridgeImp {
 
     @Override
     public Object invoke(String methodName, String data) throws Exception{
-        LLog.print("本地方法: "+ methodName +" ,数据: "+ data );
+        if (isDebug) LLog.print("本地方法: "+ methodName +" ,数据: "+ data );
 
         if (methodName.startsWith("ts:")){
             //转发协议  ts:服务名@类名@方法名@分页页码@分页条数
@@ -157,8 +187,8 @@ public class NativeServerImp implements IBridgeImp {
 
     //转发
     private String transfer(String serverName, String cls, String method,int page,int count, String json) {
-        String devid =AppUtils.devIMEI(app.getApplicationContext()) + "@PHONE";
-        IceClient client = ic.settingProxy(serverName).settingReq(devid,cls,method);
+
+        IceClient client = NativeServerImp.client.settingProxy(serverName).settingReq(DEVID,cls,method);
         client.setPageInfo(page,count);
         if (GsonUtils.checkJsonIsArray(json)) client.settingParam(GsonUtils.jsonToJavaBean(json,String[].class));
         else client.settingParam(json);
@@ -247,6 +277,44 @@ public class NativeServerImp implements IBridgeImp {
         AppUtils.callPhoneNo(fragment.get().getContext(),phone);
     }
 
+    //js 接受处理长连接的实现
+    private static final String connectionFunc = "communicationReceive";
+
+    /** 打开/关闭连接 */
+    public void communication(String type){
+        if (type.equals("start") && longConnectionServerImp == null){
+            //获取用户信息
+            int compid = getCompId();
+            if (compid > 0){
+                try {
+                    longConnectionServerImp = new LongConnectionServerImp(this);
+                    Ice.ObjectPrx base = client.iceCommunication().stringToProxy("orderServer" + getOrderServerNo(compid));
+                    InterfacesPrx prx = InterfacesPrxHelper.checkedCast(base);
+                    Ice.Identity identity = new Ice.Identity(compid+"","android");
+                    Ice.ObjectAdapter adapter = client.iceCommunication().createObjectAdapter("");
+                    adapter.add(longConnectionServerImp,identity);
+                    adapter.activate();
+                    prx.ice_getConnection().setAdapter(adapter);
+                    prx.online( identity );
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    longConnectionServerImp = null;
+                }
+            }
+        }else if (type.equals("close") && longConnectionServerImp!=null){
+            longConnectionServerImp = null;
+        }
+    }
+
+    /** 推送消息 */
+    public void pushMessageToJs(final String message){
+        jsBridgeImp.requestJs(connectionFunc,message, new IJsBridge.JSCallback() {
+            @Override
+            public void callback(String result) {
+                LLog.print(message + " - - - " + result);
+            }
+        });
+    }
 
 
 }

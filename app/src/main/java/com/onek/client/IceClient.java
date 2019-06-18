@@ -18,6 +18,10 @@ public class IceClient {
 
     private  Ice.Communicator ic = null;
 
+    public Ice.Communicator iceCommunication(){
+        return ic;
+    }
+
     //接口代理缓存
     private final HashMap<String,InterfacesPrx> prxMaps;
 
@@ -65,6 +69,10 @@ public class IceClient {
         request.method = med;
         request.param.token = token;
         return this;
+    }
+
+    public IceClient setServerAndRequest(String token,String serverName,String clazz,String method){
+        return settingProxy(serverName).settingReq(token,clazz,method);
     }
 
     public IceClient setServerAndRequest(String serverName,String clazz,String method){
