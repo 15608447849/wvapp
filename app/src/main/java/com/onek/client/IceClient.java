@@ -56,10 +56,18 @@ public class IceClient {
         if (prx == null){
             Ice.ObjectPrx base = ic.stringToProxy(serverName);
             prx =  InterfacesPrxHelper.checkedCast(base);
-            if (prx!=null) prxMaps.put(serverName,prx);
+
+            if (prx!=null) {
+                prx.ice_invocationTimeout(5000);
+                prxMaps.put(serverName,prx);
+            }
         }
         curPrx = prx;
         return this;
+    }
+
+    public InterfacesPrx getProxy(){
+        return curPrx;
     }
     private IRequest request;
 

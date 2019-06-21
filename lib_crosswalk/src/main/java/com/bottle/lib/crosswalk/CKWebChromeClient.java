@@ -42,7 +42,7 @@ public class CKWebChromeClient extends XWalkUIClient{
 
     @Override
     public void onPageLoadStarted(XWalkView view, String url) {
-        LLog.print("开始加载:" + url);
+        //LLog.print("开始加载:" + url);
         super.onPageLoadStarted(view, url);
     }
 }

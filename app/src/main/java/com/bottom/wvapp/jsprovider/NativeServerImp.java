@@ -14,7 +14,6 @@ import com.bottom.wvapp.activitys.CitySelectActivity;
 import com.bottom.wvapp.tool.GlideLoader;
 import com.onek.client.IceClient;
 import com.onek.server.inf.InterfacesPrx;
-import com.onek.server.inf.InterfacesPrxHelper;
 
 import java.lang.ref.SoftReference;
 import java.lang.reflect.Method;
@@ -41,22 +40,25 @@ public class NativeServerImp implements IBridgeImp {
 
     private static int REQUEST_SELECT_IMAGES_CODE = 255;
 
-
-    private LongConnectionServerImp longConnectionServerImp;
+    private CommunicationServerImp notifyImp;
 
     private static Application app;
 
     private static String DEVID = null;
 
-    private static IceClient client = null;
+    private static IceClient ic = null;
+
+    private static Ice.ObjectAdapter localAdapter;
 
     private IJsBridge jsBridgeImp;
 
-    private SoftReference<Fragment> fragment;
+    protected SoftReference<Fragment> fragment;
 
     public static void start(IceClient client) {
-        if (NativeServerImp.client == null){
-            NativeServerImp.client = client.startCommunication();
+        if (ic == null){
+            ic = client.startCommunication();
+            localAdapter = ic.iceCommunication().createObjectAdapter("");
+            localAdapter.activate();
         }
     }
 
@@ -66,7 +68,7 @@ public class NativeServerImp implements IBridgeImp {
     }
 
     public NativeServerImp(Fragment fragment) {
-        if (client == null) throw new RuntimeException("ICE 连接未初始化");
+        if (ic == null) throw new RuntimeException("ICE 连接未初始化");
         this.fragment = new SoftReference<>(fragment);
     }
 
@@ -87,12 +89,12 @@ public class NativeServerImp implements IBridgeImp {
 
     //获取地区信息
     public static String areaJson(long areaCode){
-        return  client.setServerAndRequest("globalServer","WebAppModule","appAreaAll").setArrayParams(areaCode).execute();
+        return  ic.setServerAndRequest("globalServer","WebAppModule","appAreaAll").setArrayParams(areaCode).execute();
     }
 
     //获取地区全名
     public static String getAreaFullName(long areaCode){
-        return client.setServerAndRequest("globalServer","CommonModule","getCompleteName").setArrayParams(areaCode).execute();
+        return ic.setServerAndRequest("globalServer","CommonModule","getCompleteName").setArrayParams(areaCode).execute();
     }
 
     //转换地区码->全称
@@ -110,7 +112,7 @@ public class NativeServerImp implements IBridgeImp {
 
     //获取公司码
     private int getCompId() {
-        String json = client.setServerAndRequest(DEVID,"userServer","LoginRegistrationModule","appStoreInfo").execute();
+        String json = ic.setServerAndRequest(DEVID,"userServer","LoginRegistrationModule","appStoreInfo").execute();
         UserInfo info = GsonUtils.jsonToJavaBean(json,UserInfo.class);
         if (info!=null) return info.compId;
         return 0;
@@ -186,12 +188,19 @@ public class NativeServerImp implements IBridgeImp {
     }
 
     //转发
-    private String transfer(String serverName, String cls, String method,int page,int count, String json) {
+    private String transfer(String serverName, String cls, String method,int page,int count,String json) {
 
-        IceClient client = NativeServerImp.client.settingProxy(serverName).settingReq(DEVID,cls,method);
+        IceClient client = NativeServerImp.ic.settingProxy(serverName).settingReq(DEVID,cls,method);
         client.setPageInfo(page,count);
-        if (GsonUtils.checkJsonIsArray(json)) client.settingParam(GsonUtils.jsonToJavaBean(json,String[].class));
-        else client.settingParam(json);
+        String[] arrays = null;
+        if (GsonUtils.checkJsonIsArray(json)) {
+            arrays = GsonUtils.jsonToJavaBean(json,String[].class);
+        }
+        if (arrays != null){
+            client.settingParam(arrays);
+        }else{
+            client.settingParam(json);
+        }
         return client.execute();
     }
 
@@ -282,38 +291,53 @@ public class NativeServerImp implements IBridgeImp {
 
     /** 打开/关闭连接 */
     public void communication(String type){
-        if (type.equals("start") && longConnectionServerImp == null){
+        if (type.equals("start") && notifyImp == null){
             //获取用户信息
             int compid = getCompId();
             if (compid > 0){
+                if (notifyImp == null){
+                    notifyImp = new CommunicationServerImp(this);
+                    LLog.print("创建接受者");
+                }
                 try {
-                    longConnectionServerImp = new LongConnectionServerImp(this);
-                    Ice.ObjectPrx base = client.iceCommunication().stringToProxy("orderServer" + getOrderServerNo(compid));
-                    InterfacesPrx prx = InterfacesPrxHelper.checkedCast(base);
-                    Ice.Identity identity = new Ice.Identity(compid+"","android");
-                    Ice.ObjectAdapter adapter = client.iceCommunication().createObjectAdapter("");
-                    adapter.add(longConnectionServerImp,identity);
-                    adapter.activate();
-                    prx.ice_getConnection().setAdapter(adapter);
-                    prx.online( identity );
+                    if(checkCommunication()) return;
+                    InterfacesPrx prx = ic.settingProxy("orderServer" + getOrderServerNo(compid)).getProxy();
+                    notifyImp.identity = new Ice.Identity(compid+"","android");
+                    localAdapter.add(notifyImp,notifyImp.identity );
+                    prx.ice_getConnection().setAdapter(localAdapter);
+                    prx.online( notifyImp.identity);
+                    AppUtils.toast(fragment.get().getActivity(),"长连接,已连接服务");
+                    notifyImp.online = true;
+                    LLog.print("长连接,已连接服务!");
                 } catch (Exception e) {
                     e.printStackTrace();
-                    longConnectionServerImp = null;
+                    notifyImp = null;
                 }
             }
-        }else if (type.equals("close") && longConnectionServerImp!=null){
-            longConnectionServerImp = null;
+        }else if (type.equals("close") && notifyImp !=null){
+            notifyImp = null;
+            localAdapter.remove(notifyImp.identity);
         }
+    }
+
+    //检查长连接是否有效
+    private boolean checkCommunication() {
+        try {
+            if (notifyImp.online){
+                notifyImp.ice_ping();
+                return true;
+            }
+        } catch (Exception e) {
+            LLog.print("ping...error: " + e);
+            notifyImp.online = false;
+            e.printStackTrace();
+        }
+        return false;
     }
 
     /** 推送消息 */
     public void pushMessageToJs(final String message){
-        jsBridgeImp.requestJs(connectionFunc,message, new IJsBridge.JSCallback() {
-            @Override
-            public void callback(String result) {
-                LLog.print(message + " - - - " + result);
-            }
-        });
+        jsBridgeImp.requestJs(connectionFunc,message, null);
     }
 
 

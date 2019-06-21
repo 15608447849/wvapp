@@ -10,7 +10,6 @@ import org.xwalk.core.XWalkWebResourceRequest;
 import org.xwalk.core.XWalkWebResourceResponse;
 
 import lee.bottle.lib.toolset.jsbridge.JSUtils;
-import lee.bottle.lib.toolset.log.LLog;
 
 import static lee.bottle.lib.toolset.jsbridge.JSUtils.progressHandler;
 
@@ -27,7 +26,7 @@ public class CKWebViewClient extends XWalkResourceClient{
 
     @Override
     public void onLoadFinished(XWalkView view, String url) {
-        LLog.print("onLoadFinished " + url);
+        //LLog.print("onLoadFinished " + url);
         super.onLoadFinished(view, url);
     }
 
@@ -57,7 +56,7 @@ public class CKWebViewClient extends XWalkResourceClient{
 
     @Override
     public void onProgressChanged(XWalkView view, int progressInPercent) {
-        LLog.print("onProgressChanged " + progressInPercent);
+        //LLog.print("onProgressChanged " + progressInPercent);
         progressHandler(view.getContext(),progressInPercent);
 //        super.onProgressChanged(view, progressInPercent);
     }

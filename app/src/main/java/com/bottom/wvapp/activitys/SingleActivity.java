@@ -5,6 +5,7 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.os.PersistableBundle;
 import android.widget.FrameLayout;
+import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -13,6 +14,8 @@ import com.bottom.wvapp.R;
 
 import lee.bottle.lib.singlepageframwork.anno.SLayoutId;
 import lee.bottle.lib.singlepageframwork.base.SActivity;
+import lee.bottle.lib.toolset.log.Build;
+import lee.bottle.lib.toolset.log.ILogHandler;
 import lee.bottle.lib.toolset.log.LLog;
 import lee.bottle.lib.toolset.os.PermissionApply;
 
@@ -39,11 +42,29 @@ public class SingleActivity extends SActivity implements PermissionApply.Callbac
     @SLayoutId("content")
     private FrameLayout layout;
 
+    private TextView tv;
+
+    public void setLogger(final String message){
+        tv.post(new Runnable() {
+            @Override
+            public void run() {
+                tv.setText(tv.getText() + "\n" +message);
+            }
+        });
+    }
+
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_single);
         layout = findViewById(R.id.container);
+        tv = findViewById(R.id.logs);
+        LLog.addLogHandler(new ILogHandler() {
+            @Override
+            public void handle(String tag, Build build, String content) throws Exception {
+                setLogger(content);
+            }
+        });
     }
 
     @Override
