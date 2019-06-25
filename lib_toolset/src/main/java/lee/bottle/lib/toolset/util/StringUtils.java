@@ -6,6 +6,10 @@ import net.sourceforge.pinyin4j.format.HanyuPinyinOutputFormat;
 import net.sourceforge.pinyin4j.format.HanyuPinyinToneType;
 import net.sourceforge.pinyin4j.format.exception.BadHanyuPinyinOutputFormatCombination;
 
+import java.net.URLEncoder;
+import java.util.Iterator;
+import java.util.Map;
+
 public class StringUtils {
 
 
@@ -64,6 +68,25 @@ public class StringUtils {
             }
         }
         return sb.toString();
+    }
+
+    /**
+     　　* 把数组所有元素排序，并按照“参数=参数值”的模式用“&”字符拼接成字符串
+     　　*/
+    public static String mapToString(Map map){
+        try{
+            StringBuffer sb = new StringBuffer();
+            Iterator<Map.Entry> it = map.entrySet().iterator();
+            while (it.hasNext()){
+                Map.Entry e = it.next();
+                sb.append(e.getKey()).append("=").append(URLEncoder.encode(e.getValue()+"","UTF-8")).append("&");
+            }
+            sb = sb.deleteCharAt(sb.length() - 1);
+            return sb.toString();
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+       return null;
     }
 
 }

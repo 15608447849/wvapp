@@ -1,6 +1,6 @@
 [
 	{"container":"content",
-		"fragment":"com.bottom.wvapp.fragments.CosWebFragment",
+		"fragment":"com.bottle.wvapp.fragments.CosWebFragment",
 		"name":"web",
 		"map":{
 			"core": "com.bottle.lib.tbsx5.X5Core",

@@ -1,4 +1,4 @@
-package com.bottom.wvapp.fragments;
+package com.bottle.wvapp.fragments;
 
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -10,8 +10,8 @@ import android.view.ViewGroup;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
-import com.bottom.wvapp.R;
-import com.bottom.wvapp.jsprovider.NativeServerImp;
+import com.bottle.wvapp.R;
+import com.bottle.wvapp.jsprovider.NativeServerImp;
 
 import lee.bottle.lib.singlepageframwork.base.SFragment;
 import lee.bottle.lib.toolset.jsbridge.IBridgeImp;

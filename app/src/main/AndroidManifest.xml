@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:dist="http://schemas.android.com/apk/distribution"
-    package="com.bottom.wvapp">
+    package="com.bottle.wvapp">
 
     <dist:module dist:instant="true" />
     <!--网络连接-->
@@ -38,7 +38,7 @@
 
 
     <application
-        android:name=".app.WebApplication"
+        android:name="com.bottle.wvapp.app.WebApplication"
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
@@ -48,14 +48,22 @@
         android:usesCleartextTraffic="true"
         android:hardwareAccelerated="true">
 
-        <activity android:name=".activitys.CitySelectActivity"/>
+        <activity android:name="com.bottle.wvapp.activitys.CitySelectActivity"/>
 
-        <activity android:name=".activitys.SingleActivity" android:launchMode="singleInstance">
+        <activity android:name="com.bottle.wvapp.activitys.SingleActivity" android:launchMode="singleInstance">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!--<activity android:name="com.bottle.pay.PayActivity"-->
+            <!--android:launchMode="singleInstance">-->
+            <!--<intent-filter>-->
+                <!--<action android:name="android.intent.action.MAIN" />-->
+                <!--<category android:name="android.intent.category.LAUNCHER" />-->
+            <!--</intent-filter>-->
+        <!--</activity>-->
 
         <!--适配android 7.0-->
         <provider

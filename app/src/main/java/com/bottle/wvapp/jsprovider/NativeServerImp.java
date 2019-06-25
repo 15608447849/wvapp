@@ -1,6 +1,7 @@
-package com.bottom.wvapp.jsprovider;
+package com.bottle.wvapp.jsprovider;
 
 import android.annotation.SuppressLint;
+import android.app.Activity;
 import android.app.Application;
 import android.content.ContentResolver;
 import android.content.Intent;
@@ -10,15 +11,18 @@ import android.provider.ContactsContract;
 
 import androidx.fragment.app.Fragment;
 
-import com.bottom.wvapp.activitys.CitySelectActivity;
-import com.bottom.wvapp.tool.GlideLoader;
+import com.alipay.sdk.app.PayTask;
+import com.bottle.wvapp.activitys.CitySelectActivity;
+import com.bottle.wvapp.tool.GlideLoader;
 import com.onek.client.IceClient;
 import com.onek.server.inf.InterfacesPrx;
 
 import java.lang.ref.SoftReference;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import lee.bottle.lib.imagepick.ImagePicker;
 import lee.bottle.lib.singlepageframwork.use.RegisterCentre;
@@ -30,6 +34,7 @@ import lee.bottle.lib.toolset.util.GsonUtils;
 
 import static android.app.Activity.RESULT_OK;
 import static lee.bottle.lib.toolset.jsbridge.JSInterface.isDebug;
+import static lee.bottle.lib.toolset.util.StringUtils.mapToString;
 
 
 /**
@@ -286,8 +291,7 @@ public class NativeServerImp implements IBridgeImp {
         AppUtils.callPhoneNo(fragment.get().getContext(),phone);
     }
 
-    //js 接受处理长连接的实现
-    private static final String connectionFunc = "communicationReceive";
+
 
     /** 打开/关闭连接 */
     public void communication(String type){
@@ -297,7 +301,6 @@ public class NativeServerImp implements IBridgeImp {
             if (compid > 0){
                 if (notifyImp == null){
                     notifyImp = new CommunicationServerImp(this);
-                    LLog.print("创建接受者");
                 }
                 try {
                     if(checkCommunication()) return;
@@ -306,9 +309,8 @@ public class NativeServerImp implements IBridgeImp {
                     localAdapter.add(notifyImp,notifyImp.identity );
                     prx.ice_getConnection().setAdapter(localAdapter);
                     prx.online( notifyImp.identity);
-                    AppUtils.toast(fragment.get().getActivity(),"长连接,已连接服务");
                     notifyImp.online = true;
-                    LLog.print("长连接,已连接服务!");
+                    AppUtils.toast(fragment.get().getActivity(),"推送服务有效");
                 } catch (Exception e) {
                     e.printStackTrace();
                     notifyImp = null;
@@ -337,8 +339,64 @@ public class NativeServerImp implements IBridgeImp {
 
     /** 推送消息 */
     public void pushMessageToJs(final String message){
-        jsBridgeImp.requestJs(connectionFunc,message, null);
+        jsBridgeImp.requestJs("communicationSysReceive",message, null);
     }
+    public void pushPaySuccessMessageToJs(final String message){
+        jsBridgeImp.requestJs("communicationPayReceive",message, null);
+    }
+
+
+    /**
+     * app支付
+     * json = { orderno=订单号,paytype=付款方式,flag客户端类型0 web,1 app }
+     */
+    private Map payHandle(String orderNo,String payType){
+        Map map = new HashMap<>();
+            map.put("orderno",orderNo);
+            map.put("paytype",payType);
+            map.put("flag",1);
+        String json = transfer("orderServer"+getOrderServerNo(getCompId()),"PayModule","prePay",0,0,GsonUtils.javaBeanToJson(map));
+        map = GsonUtils.jsonToJavaBean(json,Map.class);
+        if (map.get("data") !=null ){
+            map = (Map) map.get("data");
+        }
+        return map;
+    }
+
+    //支付前准备
+    private Activity payPrevHandle(){
+        if (fragment.get() == null) return null;
+        Activity activity = fragment.get().getActivity();
+        if (activity==null) return null;
+        communication("open");//强制打开连接
+        return notifyImp.online? activity : null;
+    }
+
+    /** 支付宝支付 */
+    public int alipay(String orderNo){
+        LLog.print("支付宝支付调用,"+orderNo);
+        Activity activity = payPrevHandle();
+        if (activity == null) return -1;
+        //获取支付信息
+        Map map = payHandle(orderNo,"alipay");
+        final String orderInfo = mapToString(map);
+
+        PayTask alipay = new PayTask(activity);
+        //执行
+        map = alipay.payV2(orderInfo,true);
+        //{resultStatus=9000, result={"alipay_trade_app_pay_response":{"code":"10000","msg":"Success","app_id":"2019051764979899","auth_app_id":"2019051764979899","charset":"utf-8","timestamp":"2019-06-24 17:38:21","out_trade_no":"1906240000004602006","total_amount":"0.01","trade_no":"2019062422001433570517481026","seller_id":"2088531074373364"},"sign":"cM/zo2G7kINrbsrOPFLwxipR+CKPwGN9BUOnCjOhQSWSqnMAdec5kTW5CR9m8hxJW569/n7q37mMxA/OX4N+B7C7cjzcj3tlPY/IV/nxiQnDMo7OhYhVg2UUzfYMSOGEjIzXgaztuffHZebARvFas+IcKsfM1hCr8hwM3w+ZyLtlShBER5NkzIjzLQwKjKI37CXXd/PiOv1VjEvosQwuXs8+09FUvyysHiYC6u313m90J0XFd+JTuv8FtHLkox3Wx4VgKCnwbLQMR82hxKCJX6HYcROjjWRz5dzgWMwqVlzK88Q3pjcdX6SwAxTomDtI9/CMNFalA5jdhDS7Cgp0Aw==","sign_type":"RSA2"}, memo=}
+//        LLog.print(map);
+        return  map.get("resultStatus").toString().equals("9000") ? 0 : -1;
+    }
+
+    /** 微信支付 */
+    public int wxpay(String orderNo){
+        Activity activity = payPrevHandle();
+        if (activity == null) return -1;
+
+        return 0;
+    }
+
 
 
 }

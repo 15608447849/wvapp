@@ -1,9 +1,9 @@
-package com.bottom.wvapp.tool;
+package com.bottle.wvapp.tool;
 
 import android.content.Context;
 import android.widget.ImageView;
 
-import com.bottom.wvapp.R;
+import com.bottle.wvapp.R;
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.load.DecodeFormat;
 import com.bumptech.glide.request.RequestOptions;

@@ -1,6 +1,6 @@
-package com.bottom.wvapp.jsprovider;
+package com.bottle.wvapp.jsprovider;
 
-import com.bottom.wvapp.tool.NotifyUer;
+import com.bottle.wvapp.tool.NotifyUer;
 import com.onek.server.inf._PushMessageClientDisp;
 
 import Ice.Current;
@@ -18,10 +18,11 @@ public class CommunicationServerImp extends _PushMessageClientDisp {
 
     public boolean online = false;
 
+
     public CommunicationServerImp(NativeServerImp bridgeImp) {
         this.bridgeImp = bridgeImp;
-
     }
+
     /**
      * 客户端接受服务端 消息
      *
@@ -34,19 +35,17 @@ public class CommunicationServerImp extends _PushMessageClientDisp {
             @Override
             public void run() {
                 LLog.print("服务器推送消息:" + message);
+                String msg = message.substring(4);
                 //解析
                 if (message.startsWith("sys")){
-                    //打开广播
-                    if (bridgeImp!=null){
-                        String msg = message.substring(4);
-                        bridgeImp.pushMessageToJs(msg);
-                        NotifyUer.createMessageNotify(bridgeImp.fragment.get().getContext(),
-                                msg);
-
-                    }
+                    bridgeImp.pushMessageToJs(msg);
+                    NotifyUer.createMessageNotify(bridgeImp.fragment.get().getContext(), msg); //打开广播
                 }
-
+                else if (message.startsWith("pay")){
+                    bridgeImp.pushPaySuccessMessageToJs(msg);
+                }
             }
         });
     }
+
 }

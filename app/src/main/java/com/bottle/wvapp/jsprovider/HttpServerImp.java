@@ -1,4 +1,4 @@
-package com.bottom.wvapp.jsprovider;
+package com.bottle.wvapp.jsprovider;
 
 import android.content.Context;
 import android.net.Uri;

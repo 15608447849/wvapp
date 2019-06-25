@@ -1,4 +1,4 @@
-package com.bottom.wvapp.activitys;
+package com.bottle.wvapp.activitys;
 
 import android.Manifest;
 import android.content.Intent;
@@ -10,7 +10,7 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
-import com.bottom.wvapp.R;
+import com.bottle.wvapp.R;
 
 import lee.bottle.lib.singlepageframwork.anno.SLayoutId;
 import lee.bottle.lib.singlepageframwork.base.SActivity;

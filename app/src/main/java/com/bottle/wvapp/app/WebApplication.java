@@ -1,6 +1,6 @@
-package com.bottom.wvapp.app;
+package com.bottle.wvapp.app;
 
-import com.bottom.wvapp.jsprovider.NativeServerImp;
+import com.bottle.wvapp.jsprovider.NativeServerImp;
 import com.onek.client.IceClient;
 
 import lee.bottle.lib.singlepageframwork.use.RegisterCentre;

@@ -1,4 +1,4 @@
-package com.bottom.wvapp.activitys
+package com.bottle.wvapp.activitys
 
 import android.content.Context
 import android.content.Intent
@@ -15,8 +15,8 @@ import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.DefaultItemAnimator
 import androidx.recyclerview.widget.LinearLayoutManager
-import com.bottom.wvapp.R
-import com.bottom.wvapp.jsprovider.NativeServerImp.areaJson
+import com.bottle.wvapp.R
+import com.bottle.wvapp.jsprovider.NativeServerImp.areaJson
 import com.leezp.lib.recycles.BaseViewHolderDataModel
 import com.leezp.lib.recycles.RecyclerUtil
 import com.leezp.lib.recycles.more_view_adapter.AutomaticViewBaseViewHolder
