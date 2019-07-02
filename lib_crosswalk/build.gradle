@@ -10,7 +10,8 @@ android {
         versionCode 1
         versionName "1.0"
         ndk {
-            abiFilters 'armeabi-v7a','x86'
+            abiFilters 'armeabi-v7a'//,'x86'
+//                abiFilters "armeabi", "armeabi-v7a","armeabi-v8a", "x86","x86_64", "mips","mips64"
         }
     }
 
@@ -23,6 +24,8 @@ android {
 
 }
 
+
+
 dependencies {
 
     implementation fileTree(dir: 'libs', include: ['*.jar'])
@@ -30,6 +33,10 @@ dependencies {
     implementation project(':lib_toolset')
     //https://download.01.org/crosswalk/releases/crosswalk/android/maven2/org/xwalk/xwalk_core_library/23.53.589.4/xwalk_core_library-23.53.589.4.pom
     // 停止维护得浏览器内核
-    implementation 'org.xwalk:xwalk_core_library:23.53.589.4'
-
+//    maven {
+//        url 'https://download.01.org/crosswalk/releases/crosswalk/android/maven2'
+//    }
+//    implementation 'org.xwalk:xwalk_core_library:23.53.589.4'
+    implementation (name: 'xwalk_core_library-23.53.589.4-64bit', ext: 'aar')
+//    implementation (name: 'xwalk_core_library-23.53.589.4', ext: 'aar')
 }

@@ -34,13 +34,12 @@ public class CosWebFragment extends SFragment {
 
     private IWebViewInit iWebViewInit;
 
-
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
             if (view == null){
                 view = inflater.inflate(R.layout.fragment_cosweb,null);
-                server = new NativeServerImp(this);
+                server = NativeServerImp.createServer(this);
             }
         return view;
     }
@@ -52,7 +51,8 @@ public class CosWebFragment extends SFragment {
         if (bundle!=null) {
             this.loadUrl = bundle.getString("url");
             this.core = bundle.getString("core");
-            selectCoreDialog();
+            loadView();
+//            selectCoreDialog();
         }
     }
 
@@ -76,6 +76,7 @@ public class CosWebFragment extends SFragment {
                 e.printStackTrace();
             }
         }
+        LLog.print("准备加载页面: "+ loadUrl);
         if (iWebViewInit!=null) iWebViewInit.getProxy().loadUrl(loadUrl);
     }
 

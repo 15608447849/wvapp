@@ -26,6 +26,7 @@ import static org.xwalk.core.internal.XWalkSettingsInternal.LayoutAlgorithmInter
  */
 public class CKCore extends IWebViewInit<XWalkView> {
 
+
     public CKCore(ViewGroup group, IBridgeImp bridge) throws Exception{
         super(group, bridge);
     }
@@ -43,6 +44,24 @@ public class CKCore extends IWebViewInit<XWalkView> {
             @ org.xwalk.core.JavascriptInterface
             public void callbackInvoke(String callback_id, String data) {
                 super.callbackInvoke(callback_id, data);
+            }
+
+            @Override
+            @ org.xwalk.core.JavascriptInterface
+            public void putData(String key, String val) {
+                super.putData(key, val);
+            }
+
+            @Override
+            @ org.xwalk.core.JavascriptInterface
+            public String getData(String key) {
+                return super.getData(key);
+            }
+
+            @Override
+            @ org.xwalk.core.JavascriptInterface
+            public void delData(String key) {
+                super.delData(key);
             }
         };
     }
@@ -67,7 +86,7 @@ public class CKCore extends IWebViewInit<XWalkView> {
 
             //允许访问文件
             settings.setAllowFileAccess(true);
-            //是否允许运行在一个context of a file scheme URL环境中的JavaScript访问来自其他URL环境的内容
+            //是否允许运行在一个context of pay_result file scheme URL环境中的JavaScript访问来自其他URL环境的内容
             settings.setAllowFileAccessFromFileURLs(false);
             //是否允许运行在一个file schema URL环境下的JavaScript访问来自其他任何来源的内容
             settings.setAllowUniversalAccessFromFileURLs(false);

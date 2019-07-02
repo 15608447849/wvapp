@@ -32,10 +32,8 @@
     <uses-permission android:name="android.permission.CAMERA" />
     <!--震动 -->
     <uses-permission android:name="android.permission.VIBRATE" />
-
     <!-- 硬件加速对X5视频播放非常重要，建议开启 -->
     <uses-permission android:name="android.permission.GET_TASKS" />
-
 
     <application
         android:name="com.bottle.wvapp.app.WebApplication"
@@ -47,8 +45,11 @@
         android:theme="@style/AppTheme"
         android:usesCleartextTraffic="true"
         android:hardwareAccelerated="true">
+        <uses-library android:name="org.apache.http.legacy" android:required="false" />
 
         <activity android:name="com.bottle.wvapp.activitys.CitySelectActivity"/>
+
+        <activity android:name="com.bottle.wvapp.activitys.ScanActivity"/>
 
         <activity android:name="com.bottle.wvapp.activitys.SingleActivity" android:launchMode="singleInstance">
             <intent-filter>
@@ -57,13 +58,11 @@
             </intent-filter>
         </activity>
 
-        <!--<activity android:name="com.bottle.pay.PayActivity"-->
-            <!--android:launchMode="singleInstance">-->
-            <!--<intent-filter>-->
-                <!--<action android:name="android.intent.action.MAIN" />-->
-                <!--<category android:name="android.intent.category.LAUNCHER" />-->
-            <!--</intent-filter>-->
-        <!--</activity>-->
+        <!--微信支付-->
+        <activity
+            android:name=".wxapi.WXPayEntryActivity"
+            android:exported="true"
+            android:launchMode="singleTop"/>
 
         <!--适配android 7.0-->
         <provider

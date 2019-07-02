@@ -1,6 +1,8 @@
 package lee.bottle.lib.toolset.jsbridge;
 
 import android.annotation.SuppressLint;
+import android.content.Context;
+import android.content.SharedPreferences;
 import android.view.View;
 import android.webkit.JavascriptInterface;
 
@@ -44,6 +46,7 @@ public class JSInterface implements IJsBridge {
             Method m = webView.getClass().getDeclaredMethod("addJavascriptInterface",Object.class,String.class);
             m.setAccessible(true);
             m.invoke(webView,this,NAME);
+
         }catch (Exception e){
             e.printStackTrace();
         }
@@ -78,6 +81,7 @@ public class JSInterface implements IJsBridge {
                     }
                 } catch (Exception e) {
                     e.printStackTrace();
+                    LLog.print("methodName = "+ methodName +" , data = " +data);
                     value = "bridge execute error:\t"+ e;
                 }
 
@@ -145,4 +149,27 @@ public class JSInterface implements IJsBridge {
         }
     }
 
+   // 存储
+    @JavascriptInterface
+    public void putData(String key,String val){
+        LLog.print("web 存储 : " + key  + "=" + val);
+        SharedPreferences sp = webView.getContext().getSharedPreferences("web_store",Context.MODE_PRIVATE);
+        sp.edit().putString(key,val).apply();
+    }
+
+    //获取
+    @JavascriptInterface
+    public String getData(String key){
+        LLog.print("web 取值 : " + key );
+        SharedPreferences sp = webView.getContext().getSharedPreferences("web_store",Context.MODE_PRIVATE);
+        return sp.getString(key,"");
+    }
+
+    //移除
+    @JavascriptInterface
+    public void delData(String key){
+        LLog.print("web 删除 : " + key );
+        SharedPreferences sp = webView.getContext().getSharedPreferences("web_store",Context.MODE_PRIVATE);
+        sp.edit().remove(key).apply();
+    }
 }

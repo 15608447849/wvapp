@@ -89,7 +89,7 @@ public static String uriToFilePath(final Context context, final Uri uri) {
  * @param uri           The Uri to query.
  * @param selection     (Optional) Filter used in the query.
  * @param selectionArgs (Optional) Selection arguments used in the query.
- * @return The value of the _data column, which is typically a file path.
+ * @return The value of the _data column, which is typically pay_result file path.
  */
 public static String getDataColumn(Context context, Uri uri, String selection,
                             String[] selectionArgs) {

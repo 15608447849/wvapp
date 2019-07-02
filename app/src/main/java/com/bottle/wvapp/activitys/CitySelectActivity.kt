@@ -144,6 +144,10 @@ public class RecycleViewItemTemp: ItemViewTemplateManage(){
 }
 
 public class CitySelectActivity  : AppCompatActivity(){
+    companion object CONST{
+        val REQUEST_SELECT_AREA_CODE = 100;
+        val AREA_CODE = "areacode"
+    }
 
     var adapter: MultiTypeAdapter? = null
 
@@ -247,10 +251,7 @@ public class CitySelectActivity  : AppCompatActivity(){
         return GsonUtils.json2List(json,AreaDataItem::class.java)
     }
 
-    companion object CONST{
-        val REQUEST_SELECT_AREA_CODE = 100;
-        val AREA_CODE = "areacode"
-    }
+
 
     private var isOpen2Page: Boolean = false
 

@@ -4,7 +4,6 @@ import com.onek.server.inf.IRequest;
 import com.onek.server.inf.InterfacesPrx;
 import com.onek.server.inf.InterfacesPrxHelper;
 
-import java.util.HashMap;
 import java.util.Locale;
 
 import lee.bottle.lib.toolset.util.GsonUtils;
@@ -18,20 +17,30 @@ public class IceClient {
 
     private  Ice.Communicator ic = null;
 
+    private final String[] args ;
+
+    private int timeout = 30000;
+
+    public IceClient(String tag,String serverAdds) {
+        StringBuffer sb = new StringBuffer("--Ice.Default.Locator="+tag+"/Locator");
+        String str = ":tcp -h %s -p %s";
+        String[] infos = serverAdds.split(";");
+        for (String info : infos){
+            String[] host_port = info.split(":");
+            sb.append(String.format(Locale.CHINA,str, host_port[0],host_port[1]));
+        }
+        args = new String[]{sb.toString(),"idleTimeOutSeconds=300","--Ice.MessageSizeMax=4096"};
+    }
+
     public Ice.Communicator iceCommunication(){
         return ic;
     }
 
-    //接口代理缓存
-    private final HashMap<String,InterfacesPrx> prxMaps;
-
-    private final String[] args ;
-
-    public IceClient(String tag, String host, int port) {
-        String str = "--Ice.Default.Locator=%s/Locator:tcp -h %s -p %d";
-        args = new String[]{String.format(Locale.CHINA,str,tag,host,port)};
-        prxMaps = new HashMap<>();
+    public IceClient setTimeout(int timeout) {
+        this.timeout = timeout;
+        return this;
     }
+
 
     synchronized
     public IceClient startCommunication() {
@@ -52,17 +61,9 @@ public class IceClient {
     public InterfacesPrx curPrx;
 
     public IceClient settingProxy(String serverName){
-        InterfacesPrx prx = prxMaps.get(serverName);
-        if (prx == null){
-            Ice.ObjectPrx base = ic.stringToProxy(serverName);
-            prx =  InterfacesPrxHelper.checkedCast(base);
-
-            if (prx!=null) {
-                prx.ice_invocationTimeout(5000);
-                prxMaps.put(serverName,prx);
-            }
-        }
-        curPrx = prx;
+        Ice.ObjectPrx base = ic.stringToProxy(serverName);
+        curPrx =  InterfacesPrxHelper.checkedCast(base);
+        curPrx.ice_invocationTimeout(timeout);
         return this;
     }
 
@@ -127,7 +128,10 @@ public class IceClient {
 
     public String execute() {
         if (curPrx!=null && request!=null){
-            return curPrx.accessService(request);
+            String res = curPrx.accessService(request);
+            curPrx = null;
+            request = null;
+            return res;
         }
         throw new RuntimeException("ICE 未开始连接或找不到远程代理或请求参数异常");
     }

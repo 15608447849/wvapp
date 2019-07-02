@@ -35,7 +35,7 @@ public class SActivity extends AppCompatActivity implements SICommunication {
         return isSysRecovery;
     }
 
-    //因为系统原因 activity被杀死却保留碎片的状态而存活的fragment - 存在界面的重叠问题
+    /* 因为系统原因 activity被杀死却保留碎片的状态而存活的fragment - 存在界面的重叠问题*/
     private List<SFragment> recoveryFragments = new ArrayList<>();
 
     /** 被fragment调用 ,如果 activity没有创建完成却能加入到队列 说明是以前残存的碎片*/
@@ -92,7 +92,6 @@ public class SActivity extends AppCompatActivity implements SICommunication {
     //第一次显示界面
     private boolean isResumed = true;
 
-
     @Override
     protected void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
@@ -123,7 +122,7 @@ public class SActivity extends AppCompatActivity implements SICommunication {
             });
         }
     }
-
+    /** 第一次显示界面 */
     protected void onInitResume(){
         isResumed = false;
     }
@@ -131,7 +130,7 @@ public class SActivity extends AppCompatActivity implements SICommunication {
     private boolean isRegister = false;
     /**
      * 反射,自动创建fragment容器视图持有者
-     * */
+     */
     private void autoCreatePageHolder(){
         try{
             RegisterCentre.autoCreatePageHolder(this);
@@ -218,8 +217,6 @@ public class SActivity extends AppCompatActivity implements SICommunication {
         return m;
     }
 
-
-
     /**
      * fragment发送消息到activity 或者 一个可以对消息做出处理的实现类
      * 返回 true 则被拦截-处理
@@ -230,6 +227,5 @@ public class SActivity extends AppCompatActivity implements SICommunication {
     public boolean dispatch(SMessage message) {
         return false;
     }
-
 
 }

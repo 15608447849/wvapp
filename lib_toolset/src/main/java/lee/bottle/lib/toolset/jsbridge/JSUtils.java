@@ -53,6 +53,7 @@ public class JSUtils {
     public static void progressHandler(Context context,int progress){
         if (progress<100){
             openProgressDialog(context);
+            dialog.setMessage("应用加载进度:"+ progress);
         }else{
             closeProgressDialog();
         }

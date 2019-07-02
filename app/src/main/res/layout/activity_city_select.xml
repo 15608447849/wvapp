@@ -6,7 +6,6 @@
     android:layout_height="match_parent"
     android:background="@android:color/background_light"
     android:fitsSystemWindows="true">
-
     <!-- 头部 -->
     <RelativeLayout
         android:id="@+id/rl_title"
@@ -30,7 +29,7 @@
             android:textSize="18sp" />
 
     </RelativeLayout>
-
+    <!-- 输入搜索 -->
     <RelativeLayout
         android:layout_below="@id/rl_title"
         android:id="@+id/rl_content_input"
@@ -48,7 +47,7 @@
             />
 
     </RelativeLayout>
-
+    <!-- 列表 -->
     <FrameLayout
         android:layout_below="@id/rl_content_input"
         android:id="@+id/fl_content_list"
@@ -65,6 +64,4 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent" />
     </FrameLayout>
-
-
 </RelativeLayout>

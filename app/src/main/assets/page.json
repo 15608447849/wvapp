@@ -2,6 +2,7 @@
 	{"container":"content",
 		"fragment":"com.bottle.wvapp.fragments.CosWebFragment",
 		"name":"web",
+		"attr": "com.bottle.lib.crosswalk.CKCore,file:///android_asset/dist/index.html",
 		"map":{
 			"core": "com.bottle.lib.tbsx5.X5Core",
 			"url":"http://192.168.1.115:8888"

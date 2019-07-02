@@ -13,9 +13,13 @@ import androidx.fragment.app.Fragment;
 
 import com.alipay.sdk.app.PayTask;
 import com.bottle.wvapp.activitys.CitySelectActivity;
+import com.bottle.wvapp.activitys.ScanActivity;
 import com.bottle.wvapp.tool.GlideLoader;
 import com.onek.client.IceClient;
 import com.onek.server.inf.InterfacesPrx;
+import com.tencent.mm.opensdk.modelpay.PayReq;
+import com.tencent.mm.opensdk.openapi.IWXAPI;
+import com.tencent.mm.opensdk.openapi.WXAPIFactory;
 
 import java.lang.ref.SoftReference;
 import java.lang.reflect.Method;
@@ -23,6 +27,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 
 import lee.bottle.lib.imagepick.ImagePicker;
 import lee.bottle.lib.singlepageframwork.use.RegisterCentre;
@@ -31,8 +36,10 @@ import lee.bottle.lib.toolset.jsbridge.IJsBridge;
 import lee.bottle.lib.toolset.log.LLog;
 import lee.bottle.lib.toolset.util.AppUtils;
 import lee.bottle.lib.toolset.util.GsonUtils;
+import lee.bottle.lib.toolset.util.StringUtils;
 
 import static android.app.Activity.RESULT_OK;
+import static android.content.Intent.FLAG_ACTIVITY_NEW_TASK;
 import static lee.bottle.lib.toolset.jsbridge.JSInterface.isDebug;
 import static lee.bottle.lib.toolset.util.StringUtils.mapToString;
 
@@ -57,7 +64,7 @@ public class NativeServerImp implements IBridgeImp {
 
     private IJsBridge jsBridgeImp;
 
-    protected SoftReference<Fragment> fragment;
+    static SoftReference<Fragment> fragment;
 
     public static void start(IceClient client) {
         if (ic == null){
@@ -70,11 +77,31 @@ public class NativeServerImp implements IBridgeImp {
     public static void bindApplication(Application application){
         app = application;
         DEVID = AppUtils.devIMEI(app.getApplicationContext()) + "@PHONE" ;
+        settingServerInfo();
     }
 
-    public NativeServerImp(Fragment fragment) {
+    //设置,连接服务器
+    private static void settingServerInfo() {
+        try {
+            Properties properties = new Properties();
+            properties.load(app.getAssets().open("server.properties"));
+            String tag = properties.getProperty("tag");
+            String address = properties.getProperty("address");
+            NativeServerImp.start(new IceClient(tag,address));
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException(e);
+        }
+    }
+
+    private NativeServerImp() { }
+
+    public static final NativeServerImp INSTANCE = new NativeServerImp();
+
+    public static NativeServerImp createServer(Fragment fragmentInstance){
         if (ic == null) throw new RuntimeException("ICE 连接未初始化");
-        this.fragment = new SoftReference<>(fragment);
+        fragment = new SoftReference<>(fragmentInstance);
+        return INSTANCE;
     }
 
     //获取页面配置信息JSON
@@ -83,7 +110,7 @@ public class NativeServerImp implements IBridgeImp {
         //本地获取
         String json = AppUtils.assetFileContentToText(app.getApplicationContext(),"page.json");
         //网络获取
-//        String json = ic.setServerAndRequest("globalServer","WebAppModule","pageInfo").execute();
+//String json = ic.setServerAndRequest("globalServer","WebAppModule","pageInfo").execute();
         List<RegisterCentre.Bean> list = GsonUtils.json2List(json,RegisterCentre.Bean.class);
         if (list == null || list.size() == 0){
             //添加默认页面
@@ -157,13 +184,13 @@ public class NativeServerImp implements IBridgeImp {
         }
     }
 
-
-    private void exeNotify() {
+    public void exeNotify() {
        synchronized (jsBridgeImp){
             jsBridgeImp.notify();
         }
     }
-    private void exeWait(){
+
+    public void exeWait(){
         synchronized (jsBridgeImp) {
             try {
                 jsBridgeImp.wait();
@@ -186,6 +213,8 @@ public class NativeServerImp implements IBridgeImp {
                 imagePaths = data.getStringArrayListExtra(ImagePicker.EXTRA_SELECT_IMAGES);
             }else if (requestCode == CitySelectActivity.CONST.getREQUEST_SELECT_AREA_CODE()) {
                 area.code = data.getLongExtra( CitySelectActivity.CONST.getAREA_CODE(),0);
+            }else if (requestCode == ScanActivity.CONST.getSCAN_RESULT_CODE()){
+                scanRes = data.getStringExtra( ScanActivity.CONST.getSCAN_RES());
             }
         }
 
@@ -341,21 +370,29 @@ public class NativeServerImp implements IBridgeImp {
     public void pushMessageToJs(final String message){
         jsBridgeImp.requestJs("communicationSysReceive",message, null);
     }
+    /** 推送支付结果 */
     public void pushPaySuccessMessageToJs(final String message){
         jsBridgeImp.requestJs("communicationPayReceive",message, null);
     }
 
 
+    private static class PayParam{
+        String orderno; //订单号
+        String afsano; //售后单号
+    }
+
     /**
      * app支付
      * json = { orderno=订单号,paytype=付款方式,flag客户端类型0 web,1 app }
      */
-    private Map payHandle(String orderNo,String payType){
+    private Map payHandle(String json,String payType){
+        PayParam param = GsonUtils.jsonToJavaBean(json,PayParam.class);
         Map map = new HashMap<>();
-            map.put("orderno",orderNo);
+            map.put("orderno",param.orderno);
+            if (!StringUtils.isEmpty(param.afsano)) map.put("afsano",param.afsano);
             map.put("paytype",payType);
             map.put("flag",1);
-        String json = transfer("orderServer"+getOrderServerNo(getCompId()),"PayModule","prePay",0,0,GsonUtils.javaBeanToJson(map));
+        json = transfer("orderServer"+getOrderServerNo(getCompId()),"PayModule","prePay",0,0,GsonUtils.javaBeanToJson(map));
         map = GsonUtils.jsonToJavaBean(json,Map.class);
         if (map.get("data") !=null ){
             map = (Map) map.get("data");
@@ -373,30 +410,58 @@ public class NativeServerImp implements IBridgeImp {
     }
 
     /** 支付宝支付 */
-    public int alipay(String orderNo){
-        LLog.print("支付宝支付调用,"+orderNo);
+    public int alipay(String json){
+        {}
         Activity activity = payPrevHandle();
         if (activity == null) return -1;
         //获取支付信息
-        Map map = payHandle(orderNo,"alipay");
+        Map map = payHandle(json,"alipay");
         final String orderInfo = mapToString(map);
-
         PayTask alipay = new PayTask(activity);
         //执行
         map = alipay.payV2(orderInfo,true);
-        //{resultStatus=9000, result={"alipay_trade_app_pay_response":{"code":"10000","msg":"Success","app_id":"2019051764979899","auth_app_id":"2019051764979899","charset":"utf-8","timestamp":"2019-06-24 17:38:21","out_trade_no":"1906240000004602006","total_amount":"0.01","trade_no":"2019062422001433570517481026","seller_id":"2088531074373364"},"sign":"cM/zo2G7kINrbsrOPFLwxipR+CKPwGN9BUOnCjOhQSWSqnMAdec5kTW5CR9m8hxJW569/n7q37mMxA/OX4N+B7C7cjzcj3tlPY/IV/nxiQnDMo7OhYhVg2UUzfYMSOGEjIzXgaztuffHZebARvFas+IcKsfM1hCr8hwM3w+ZyLtlShBER5NkzIjzLQwKjKI37CXXd/PiOv1VjEvosQwuXs8+09FUvyysHiYC6u313m90J0XFd+JTuv8FtHLkox3Wx4VgKCnwbLQMR82hxKCJX6HYcROjjWRz5dzgWMwqVlzK88Q3pjcdX6SwAxTomDtI9/CMNFalA5jdhDS7Cgp0Aw==","sign_type":"RSA2"}, memo=}
-//        LLog.print(map);
         return  map.get("resultStatus").toString().equals("9000") ? 0 : -1;
     }
 
+    public IWXAPI wxapi;
+    public int wxpayRes = -1;
     /** 微信支付 */
-    public int wxpay(String orderNo){
+    public int wxpay(String json){
         Activity activity = payPrevHandle();
         if (activity == null) return -1;
-
-        return 0;
+        //获取支付信息 https://www.jianshu.com/p/84eac713f007
+        Map map = payHandle(json,"wxpay");
+        if (wxapi==null) wxapi = WXAPIFactory.createWXAPI(activity, map.get("appid").toString());
+        PayReq req = new PayReq();
+            req.appId = map.get("appid").toString(); //微信appid
+            req.partnerId = map.get("partnerid").toString(); //商户号
+            req.prepayId= map.get("prepayid").toString();//预支付交易会话ID
+            req.packageValue = map.get("package").toString();
+            req.nonceStr= map.get("noncestr").toString();//随机字符串
+            req.timeStamp= map.get("timestamp").toString();//时间戳
+            req.sign= map.get("sign").toString();//签名
+        boolean isSuccess = wxapi.sendReq(req);
+        if (!isSuccess) return -1;
+        exeWait();
+        return -1;
     }
 
+    private String scanRes;
 
+    public String scan(){
+        Fragment f  = fragment.get();
+        if (f == null) return "-1";
+        Intent intent = new Intent(f.getContext(), ScanActivity.class);
+        f.startActivityForResult(intent,ScanActivity.CONST.getSCAN_RESULT_CODE());
+        //等待结果
+        exeWait();
+        return StringUtils.isEmpty(scanRes) ? "0" : scanRes;
+    }
 
+    public void openTel(String qq){
+        String url="mqqwpa://im/chat?chat_type=wpa&uin="+qq;
+        Intent i = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+        i.setFlags(FLAG_ACTIVITY_NEW_TASK);
+        app.startActivity(i);
+    }
 }

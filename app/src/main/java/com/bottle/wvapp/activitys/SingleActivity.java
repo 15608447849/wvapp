@@ -5,17 +5,16 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.os.PersistableBundle;
 import android.widget.FrameLayout;
-import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import com.bottle.wvapp.R;
+import com.bottle.wvapp.jsprovider.NativeServerImp;
 
 import lee.bottle.lib.singlepageframwork.anno.SLayoutId;
 import lee.bottle.lib.singlepageframwork.base.SActivity;
-import lee.bottle.lib.toolset.log.Build;
-import lee.bottle.lib.toolset.log.ILogHandler;
+import lee.bottle.lib.singlepageframwork.use.RegisterCentre;
 import lee.bottle.lib.toolset.log.LLog;
 import lee.bottle.lib.toolset.os.PermissionApply;
 
@@ -33,40 +32,23 @@ public class SingleActivity extends SActivity implements PermissionApply.Callbac
             Manifest.permission.WRITE_EXTERNAL_STORAGE, // 写sd卡
             Manifest.permission.READ_PHONE_STATE, // 获取手机状态
             Manifest.permission.CALL_PHONE // 拨号
-
     };
 
     //权限申请
     private PermissionApply permissionApply =  new PermissionApply(this,permissionArray,this);
 
+    /* fragment 容器*/
     @SLayoutId("content")
     private FrameLayout layout;
-
-    private TextView tv;
-
-    public void setLogger(final String message){
-        tv.post(new Runnable() {
-            @Override
-            public void run() {
-                tv.setText(tv.getText() + "\n" +message);
-            }
-        });
-    }
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_single);
         layout = findViewById(R.id.container);
-        tv = findViewById(R.id.logs);
-        LLog.addLogHandler(new ILogHandler() {
-            @Override
-            public void handle(String tag, Build build, String content) throws Exception {
-                setLogger(content);
-            }
-        });
     }
 
+    /* 权限审核回调 */
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         if (permissionApply != null) permissionApply.onRequestPermissionsResult(requestCode, permissions, grantResults);
@@ -91,25 +73,45 @@ public class SingleActivity extends SActivity implements PermissionApply.Callbac
         super.onSaveInstanceState(outState, outPersistentState);
     }
 
+    //授权成功回调
     @Override
     public void onPermissionsGranted() {
-        LLog.print("授权成功");
-        //授权成功
-//        getSFOPage().skip("content","web");//跳转到web页面
     }
 
+    //忽略电源回调
     @Override
     public void onPowerIgnoreGranted() {
-        //忽略电源回调
     }
 
+    //界面显示
     @Override
     protected void onInitResume() {
+        LLog.print("onInitResume");
         super.onInitResume();
         if (!isSysRecovery()){
-            permissionApply.permissionCheck();
-            getSFOPage().skip("content","web");//跳转到web页面
+            initApp();
+            permissionApply.permissionCheck(); //权限检测
         }
     }
+
+    //初始化应用
+    private void initApp() {
+        mHandler.io(new Runnable() {
+            @Override
+            public void run() {
+                //初始化页面
+                RegisterCentre.register(NativeServerImp.dynamicPageInformation());
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        //加载页面
+                        getSFOPage().skip("content","web");//跳转到web页面
+                    }
+                });
+            }
+        });
+    }
+
+
 
 }

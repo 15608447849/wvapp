@@ -68,10 +68,9 @@ public class X5Core extends IWebViewInit<WebView> {
             public void onViewInitFinished(boolean flag) {
                 //x5內核初始化完成的回调，为true表示x5内核加载成功，否则表示x5内核加载失败，会自动切换到系统内核。
                 LLog.print("X5内核使用: "+ flag);
-                toast(appContext,"当前使用X5内核 : "+ flag);
+                toast(appContext,"当前使用X5内核: "+ flag);
             }
         });
-        LLog.print("开始初始化X5内核");
     }
 
     public static boolean isX5CoreUse(com.tencent.smtt.sdk.WebView webView){
@@ -103,7 +102,7 @@ public class X5Core extends IWebViewInit<WebView> {
 
         //允许访问文件
         settings.setAllowFileAccess(true);
-        //是否允许运行在一个context of a file scheme URL环境中的JavaScript访问来自其他URL环境的内容
+        //是否允许运行在一个context of pay_result file scheme URL环境中的JavaScript访问来自其他URL环境的内容
         settings.setAllowFileAccessFromFileURLs(false);
         //是否允许运行在一个file schema URL环境下的JavaScript访问来自其他任何来源的内容
         settings.setAllowUniversalAccessFromFileURLs(false);
@@ -158,8 +157,6 @@ public class X5Core extends IWebViewInit<WebView> {
         webview.setHorizontalFadingEdgeEnabled(false);
         webview.setVerticalScrollBarEnabled(false);
         if (isX5CoreUse(webview)) webview.getX5WebViewExtension().setScrollBarFadingEnabled(false);
-
-
     }
 
     @Override
@@ -175,11 +172,15 @@ public class X5Core extends IWebViewInit<WebView> {
 
     @Override
     public void clear() {
+        getWebView().clearCache(true);
+        getWebView().clearFormData();
 
     }
 
     @Override
-    public void close(ViewGroup view) {
-
+    public void close(ViewGroup viewGroup) {
+        viewGroup.removeView(getWebView());
+        getWebView().pauseTimers();
+        getWebView().stopLoading();
     }
 }
