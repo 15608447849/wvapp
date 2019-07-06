@@ -25,7 +25,7 @@ public class IceClient {
 
     public IceClient(String tag,String serverAdds,String argsStr) {
         args = initParams(tag,serverAdds,argsStr.split(","));
-        LLog.print("当前连接服务器信息:" + Arrays.toString(args) );
+        LLog.print("服务器信息:" + getEnvId() );
     }
 
     private String[] initParams(String tag,String serverAdds,String... iceArgs) {
@@ -51,6 +51,9 @@ public class IceClient {
         return ic;
     }
 
+    public String getEnvId(){
+        return Arrays.toString(args);
+    }
     public IceClient setTimeout(int timeout) {
         this.timeout = timeout;
         return this;

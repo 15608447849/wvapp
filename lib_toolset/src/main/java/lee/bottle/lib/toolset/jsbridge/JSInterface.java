@@ -31,19 +31,22 @@ public class JSInterface implements IJsBridge {
 
     private final static String JS_INTERFACE_NAME = JAVA_SCRIPT + "JNB._callbackInvoke('%s','%s')";// js callback function
 
+    private final SharedPreferences sp;
+
     private final View webView;
 
     private IBridgeImp hImp;
 
     public JSInterface(View webView) {
         this.webView = webView;
+        sp = webView.getContext().getSharedPreferences("web_store",Context.MODE_PRIVATE);
         addJavascriptInterface();
     }
 
     private void addJavascriptInterface() {
         try {
             if (webView == null) return;
-            Method m = webView.getClass().getDeclaredMethod("addJavascriptInterface",Object.class,String.class);
+            @SuppressLint("PrivateApi") Method m = webView.getClass().getDeclaredMethod("addJavascriptInterface",Object.class,String.class);
             m.setAccessible(true);
             m.invoke(webView,this,NAME);
 
@@ -108,7 +111,7 @@ public class JSInterface implements IJsBridge {
     public void loadUrl(String content) {
         try {
             if (webView == null) return;
-            Method m = webView.getClass().getDeclaredMethod("loadUrl",String.class);
+            @SuppressLint("PrivateApi") Method m = webView.getClass().getDeclaredMethod("loadUrl",String.class);
             m.setAccessible(true);
             m.invoke(webView,content);
         } catch (Exception e) {
@@ -139,7 +142,7 @@ public class JSInterface implements IJsBridge {
     @JavascriptInterface
     public void callbackInvoke(String callback_id,String data){
         try {
-            LLog.print("callback_id = "+ callback_id+" , "+ data);
+            if (isDebug) LLog.print("callback_id = "+ callback_id+" , "+ data);
             IJsBridge.JSCallback callback = jsCallbackMap.remove(callback_id);
             if (callback==null) throw new Exception(callback_id + " callback function doesn\'t exist!");
             callback.callback(data);
@@ -150,24 +153,28 @@ public class JSInterface implements IJsBridge {
 
    // 存储
     @JavascriptInterface
+    @Override
     public void putData(String key,String val){
-        LLog.print("web 存储 : " + key  + "=" + val);
+        if (isDebug)    LLog.print("web 存储 : " + key  + "=" + val);
         SharedPreferences sp = webView.getContext().getSharedPreferences("web_store",Context.MODE_PRIVATE);
         sp.edit().putString(key,val).apply();
     }
 
     //获取
     @JavascriptInterface
+    @Override
     public String getData(String key){
-        LLog.print("web 取值 : " + key );
-        SharedPreferences sp = webView.getContext().getSharedPreferences("web_store",Context.MODE_PRIVATE);
-        return sp.getString(key,"");
+
+        String val = sp.getString(key,"");
+        if (isDebug)    LLog.print("web 取值 : " + key +"="+val);
+        return val;
     }
 
     //移除
     @JavascriptInterface
+    @Override
     public void delData(String key){
-        LLog.print("web 删除 : " + key );
+        if (isDebug)    LLog.print("web 删除 : " + key );
         SharedPreferences sp = webView.getContext().getSharedPreferences("web_store",Context.MODE_PRIVATE);
         sp.edit().remove(key).apply();
     }

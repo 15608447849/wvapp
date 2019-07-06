@@ -30,7 +30,6 @@ import java.io.InputStream;
 import java.lang.ref.SoftReference;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -172,6 +171,7 @@ public class NativeServerImp implements IBridgeImp {
         //判断是否已存在
         int recode = sp.getInt("webPageVersion",-200);
 
+        LLog.print("本地记录的recode = " + recode);
         if (recode == webPageVersion) return;
 
         InputStream in = null;
@@ -180,9 +180,9 @@ public class NativeServerImp implements IBridgeImp {
                 //assets -> 本地缓存路径
                 in = app.getAssets().open("dist.zip");
             }else {
+                LLog.print("下载zip文件");
                 //下载最新zip
                 File file = HttpServerImp.downloadFile(config.zipLink, app.getFilesDir()+"/dist.zip",null);
-
                 if (file==null){
                     //assets -> 本地缓存路径
                     in = app.getAssets().open("dist.zip");
@@ -193,8 +193,7 @@ public class NativeServerImp implements IBridgeImp {
             //解压缩
             boolean flag = AppUtils.unZipToFolder(in,app.getCacheDir());
             if (flag){
-                LLog.print("解压缩文件到:" + app.getCacheDir() + Arrays.toString(app.getCacheDir().list()));
-                sp.edit().putInt("web_page_version",webPageVersion).apply();
+                sp.edit().putInt("webPageVersion",webPageVersion).apply();
             }
         } catch (IOException e) {
             e.printStackTrace();
@@ -241,6 +240,15 @@ public class NativeServerImp implements IBridgeImp {
         return getAreaFullName(Long.parseLong(areaCode));
     }
 
+    //效验环境
+    private boolean checkServerEnv() {
+        String recode = sp.getString("envInfo",null);
+        String current = ic.getEnvId();
+        if (current.equals(recode))return true;
+        sp.edit().putString("envInfo",current).apply();
+        return false;
+    }
+
     private static class UserInfo {
         public int userId; //用户ID
         public long roleCode; //角色复合码
@@ -251,14 +259,29 @@ public class NativeServerImp implements IBridgeImp {
 
     //获取公司码
     private int getCompId() {
-        String json = ic.setServerAndRequest(DEVID,"userServer","LoginRegistrationModule","appStoreInfo").execute();
+        boolean isNetwork = false;
+        String json = null;
+        //对比服务器环境信息指纹
+        if (checkServerEnv()){
+            //尝试本地缓存获取
+            json = jsBridgeImp.getData("USER_INFO");
+        }
+        if (StringUtils.isEmpty(json)){
+            //网络获取
+            json = ic.setServerAndRequest(DEVID,"userServer","LoginRegistrationModule","appStoreInfo").execute();
+            isNetwork = true;
+        }
         UserInfo info = GsonUtils.jsonToJavaBean(json,UserInfo.class);
-        if (info!=null) return info.compId;
+        if (info!=null) {
+            if (isNetwork) jsBridgeImp.putData("USER_INFO",json);
+            return info.compId;
+        }
         return 0;
     }
-    /**
-     * 根据企业码 获取 分库分表的订单服务的下标序列
-     */
+
+
+
+    //根据企业码 获取 分库分表的订单服务的下标序列
     private static int getOrderServerNo(int compid){
         return compid / 8192 % 65535;
     }
