@@ -3,7 +3,7 @@ apply plugin: 'kotlin-android'
 apply plugin: 'kotlin-android-extensions'
 
 def backVersion = "v1.0.0"
-def appVersion = 2
+def appVersion = 1
 def env = "测试环境(221)_升级测试包"
 
 static def releaseTime() {

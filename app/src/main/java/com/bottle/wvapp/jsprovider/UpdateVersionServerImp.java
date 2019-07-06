@@ -15,7 +15,7 @@ import lee.bottle.lib.toolset.log.LLog;
 import lee.bottle.lib.toolset.threadpool.IOUtils;
 import lee.bottle.lib.toolset.util.AppUtils;
 import lee.bottle.lib.toolset.util.DialogUtil;
-import lee.bottle.lib.toolset.util.FrontNotification;
+import lee.bottle.lib.toolset.os.FrontNotification;
 
 /**
  * Created by Leeping on 2019/7/5.
@@ -70,12 +70,13 @@ public class UpdateVersionServerImp extends HttpUtil.CallbackAbs implements Runn
 
     //打开进度条
     private void openProgress() {
-        notification = NotifyUer.createDownloadApkNotify(NativeServerImp.app.getApplicationContext());
-        notification.setProgress(100,0);
-
+        if (isAuto) return;
+            notification = NotifyUer.createDownloadApkNotify(NativeServerImp.app.getApplicationContext());
+            notification.setProgress(100,0);
     }
 
     private void closeProgress() {
+        if (isAuto) return;
         notification.cancelNotification();
         notification = null;
     }
@@ -138,10 +139,10 @@ public class UpdateVersionServerImp extends HttpUtil.CallbackAbs implements Runn
 
     @Override
     public void onProgress(File file, long progress, long total) {
+        if (isAuto) return;
         //打开进度指示条的通知栏
         int current = (int)( (progress * 100f) / total );
-
-        LLog.print("下载进度: " + progress+"/"+total+" - "+ current);
+//        LLog.print("下载进度: " + progress+"/"+total+" - "+ current);
         notification.setProgress(100, current);
 //        remoteViews.setTextViewText(R.id.notify_iv,"下载进度: "+format.format(0.5));
 //        remoteViews.setProgressBar(R.id.notify_progress,100, 50,false);

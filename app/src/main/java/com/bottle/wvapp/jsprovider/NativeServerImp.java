@@ -17,6 +17,7 @@ import com.alipay.sdk.app.PayTask;
 import com.bottle.wvapp.activitys.CitySelectActivity;
 import com.bottle.wvapp.activitys.ScanActivity;
 import com.bottle.wvapp.tool.GlideLoader;
+import com.bottle.wvapp.tool.NotifyUer;
 import com.onek.client.IceClient;
 import com.onek.server.inf.InterfacesPrx;
 import com.tencent.mm.opensdk.modelpay.PayReq;
@@ -116,7 +117,6 @@ public class NativeServerImp implements IBridgeImp {
         return INSTANCE;
     }
 
-
     public static class ServerConfig{
         int serverVersion;
         String updateMessage;
@@ -134,9 +134,9 @@ public class NativeServerImp implements IBridgeImp {
     //获取页面配置信息JSON
     public static RegisterCentre.Bean[] dynamicPageInformation(){
     if (app == null) throw new RuntimeException("应用初始化失败");
-        //网络获取
+    //网络获取
     String json = serverConfigJson();
-        //本地获取
+    //本地获取
     if (json == null) json = AppUtils.assetFileContentToText(app, "config.json");
 
     LLog.print(json);

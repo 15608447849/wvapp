@@ -8,7 +8,7 @@ import android.content.Intent;
 import com.bottle.wvapp.R;
 import com.bottle.wvapp.activitys.SingleActivity;
 
-import lee.bottle.lib.toolset.util.FrontNotification;
+import lee.bottle.lib.toolset.os.FrontNotification;
 
 /**
  * Created by Leeping on 2019/6/21.
@@ -17,32 +17,32 @@ import lee.bottle.lib.toolset.util.FrontNotification;
 public class NotifyUer {
     private static int currentId =  1;
     public static void createMessageNotify(Context context,String message) {
-        FrontNotification.Build build = new FrontNotification.Build(context, 4).setId(currentId++);
+        FrontNotification.Build build = new FrontNotification.Build(context).setId(currentId++);
         Intent intent = new Intent(context, SingleActivity.class);
 //        intent.setFlags(FLAG_ACTIVITY_NEW_TASK);
-        build.setFlags(new int[]{Notification.FLAG_INSISTENT,Notification.FLAG_AUTO_CANCEL});
+//        build.setFlags(new int[]{Notification.FLAG_INSISTENT,Notification.FLAG_AUTO_CANCEL});
+        build.setFlags(new int[]{Notification.FLAG_SHOW_LIGHTS,Notification.FLAG_AUTO_CANCEL});
         build.setActivityIntent(intent);
         build.setGroup("messageList");
         build.setDefaults(Notification.DEFAULT_ALL);
         build.setIcon(R.drawable.ic_message);
-        build.autoGenerateNotification(
-                "一块医药",
-                message,
-                "点击进入")
-                .showNotification();
+        build.setText( context.getString(R.string.app_name),message,"点击进入");
+        build.setWhen(System.currentTimeMillis());
+        build.setTicker(message);
+        build.generateNotification().showNotification();
     }
     public static FrontNotification createDownloadApkNotify(Context context){
         Intent intent = new Intent(context, SingleActivity.class);
-       return new FrontNotification.Build(context,3)
+       return new FrontNotification.Build(context).setLevel(3)
                 .setId(currentId++)
                 .setGroup("download")
-                .setFlags(new int[]{Notification.FLAG_INSISTENT,Notification.FLAG_AUTO_CANCEL})
+                .setFlags(new int[]{Notification.FLAG_FOREGROUND_SERVICE,Notification.FLAG_ONLY_ALERT_ONCE,
+                        Notification.FLAG_ONGOING_EVENT,Notification.FLAG_NO_CLEAR})
                 .setDefaults(Notification.DEFAULT_ALL)
                .setActivityIntent(intent)
                 .setSmallIcon(R.drawable.ic_update_version)
-                .autoGenerateNotification(
-                        context.getString(R.string.app_name),
-                        "正在下载","下载完成自动关闭");
+               .setText(context.getString(R.string.app_name),"正在下载" ,"下载完成自动关闭")
+                .generateNotification();
 
     }
 
