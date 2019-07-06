@@ -7,6 +7,7 @@ import java.io.File;
 import java.util.List;
 
 import lee.bottle.lib.toolset.http.HttpRequest;
+import lee.bottle.lib.toolset.http.HttpUtil;
 import lee.bottle.lib.toolset.util.ImageUtils;
 
 /**
@@ -46,5 +47,15 @@ class HttpServerImp {
             }
         }
         return  httpRequest.fileUploadUrl(bean.url).getRespondContent();
+    }
+
+    public static File downloadFile(String url, String storePath, final HttpUtil.Callback callback){
+        File file = new File(storePath);
+       return new HttpRequest(){
+           @Override
+           public void onProgress(File file, long progress, long total) {
+               if (callback!= null) callback.onProgress(file,progress,total);
+           }
+       }.download(url,file) ? file : null;
     }
 }

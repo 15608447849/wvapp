@@ -4,8 +4,10 @@ import com.onek.server.inf.IRequest;
 import com.onek.server.inf.InterfacesPrx;
 import com.onek.server.inf.InterfacesPrxHelper;
 
+import java.util.Arrays;
 import java.util.Locale;
 
+import lee.bottle.lib.toolset.log.LLog;
 import lee.bottle.lib.toolset.util.GsonUtils;
 
 /**
@@ -21,7 +23,12 @@ public class IceClient {
 
     private int timeout = 30000;
 
-    public IceClient(String tag,String serverAdds) {
+    public IceClient(String tag,String serverAdds,String argsStr) {
+        args = initParams(tag,serverAdds,argsStr.split(","));
+        LLog.print("当前连接服务器信息:" + Arrays.toString(args) );
+    }
+
+    private String[] initParams(String tag,String serverAdds,String... iceArgs) {
         StringBuffer sb = new StringBuffer("--Ice.Default.Locator="+tag+"/Locator");
         String str = ":tcp -h %s -p %s";
         String[] infos = serverAdds.split(";");
@@ -29,7 +36,15 @@ public class IceClient {
             String[] host_port = info.split(":");
             sb.append(String.format(Locale.CHINA,str, host_port[0],host_port[1]));
         }
-        args = new String[]{sb.toString(),"idleTimeOutSeconds=300","--Ice.MessageSizeMax=4096"};
+        String[] arr;
+        if (iceArgs == null) {
+            arr = new String[1];
+        }else{
+            arr = new String[iceArgs.length + 1];
+            System.arraycopy(iceArgs, 0, arr, 1, iceArgs.length);
+        }
+        arr[0] = sb.toString();
+        return arr;
     }
 
     public Ice.Communicator iceCommunication(){

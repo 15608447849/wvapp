@@ -172,4 +172,14 @@ public class HttpRequest extends HttpUtil.CallbackAbs  {
         this.text = e.toString();
     }
 
+    public boolean download(String url,File file){
+
+        if (file.exists()) file.delete();
+        HttpUtil.Request r = new HttpUtil.Request(url,this);
+        r.setDownloadFileLoc(file);
+        r.download();
+        r.execute();
+        return file.exists() && file.length() > 0;
+    }
+
 }

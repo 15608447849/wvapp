@@ -4,7 +4,9 @@ import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.Application;
 import android.content.ContentResolver;
+import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.net.Uri;
 import android.provider.ContactsContract;
@@ -21,9 +23,14 @@ import com.tencent.mm.opensdk.modelpay.PayReq;
 import com.tencent.mm.opensdk.openapi.IWXAPI;
 import com.tencent.mm.opensdk.openapi.WXAPIFactory;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.lang.ref.SoftReference;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -54,7 +61,9 @@ public class NativeServerImp implements IBridgeImp {
 
     private CommunicationServerImp notifyImp;
 
-    private static Application app;
+    static Application app;
+
+    private static SharedPreferences sp;
 
     private static String DEVID = null;
 
@@ -67,29 +76,33 @@ public class NativeServerImp implements IBridgeImp {
     static SoftReference<Fragment> fragment;
 
     public static void start(IceClient client) {
-        if (ic == null){
-            ic = client.startCommunication();
-            localAdapter = ic.iceCommunication().createObjectAdapter("");
-            localAdapter.activate();
+        if (ic != null){
+            ic.stopCommunication();
         }
+        ic = client.startCommunication();
+        localAdapter = ic.iceCommunication().createObjectAdapter("");
+        localAdapter.activate();
     }
 
     public static void bindApplication(Application application){
         app = application;
-        DEVID = AppUtils.devIMEI(app.getApplicationContext()) + "@PHONE" ;
-        settingServerInfo();
+        DEVID = AppUtils.devIMEI(app) + "@PHONE" ;
+        sp = app.getSharedPreferences("CONFIG", Context.MODE_PRIVATE);
+        initServerCommunication();
     }
 
+
     //设置,连接服务器
-    private static void settingServerInfo() {
-        try {
+    private static void initServerCommunication() {
+        try(InputStream in =
+                    app.getAssets().open("server.properties")){
             Properties properties = new Properties();
-            properties.load(app.getAssets().open("server.properties"));
+            properties.load(in);
             String tag = properties.getProperty("tag");
             String address = properties.getProperty("address");
-            NativeServerImp.start(new IceClient(tag,address));
-        } catch (Exception e) {
-            e.printStackTrace();
+            String args = properties.getProperty("args");
+            NativeServerImp.start(new IceClient(tag,address,args));
+        }catch (Exception e){
             throw new RuntimeException(e);
         }
     }
@@ -104,19 +117,113 @@ public class NativeServerImp implements IBridgeImp {
         return INSTANCE;
     }
 
+
+    public static class ServerConfig{
+        int serverVersion;
+        String updateMessage;
+        String apkLink;
+
+        boolean isUseServerProp;
+        Map<String,String> serverProp;
+
+        public int webPageVersion;
+        String zipLink;
+
+        public RegisterCentre.Bean page;
+    }
+    public static ServerConfig config;
     //获取页面配置信息JSON
     public static RegisterCentre.Bean[] dynamicPageInformation(){
-        if (app == null) throw new RuntimeException("应用初始化失败");
-        //本地获取
-        String json = AppUtils.assetFileContentToText(app.getApplicationContext(),"page.json");
+    if (app == null) throw new RuntimeException("应用初始化失败");
         //网络获取
-//String json = ic.setServerAndRequest("globalServer","WebAppModule","pageInfo").execute();
-        List<RegisterCentre.Bean> list = GsonUtils.json2List(json,RegisterCentre.Bean.class);
-        if (list == null || list.size() == 0){
-            //添加默认页面
-            list = new ArrayList<>();
+    String json = serverConfigJson();
+        //本地获取
+    if (json == null) json = AppUtils.assetFileContentToText(app, "config.json");
+
+    LLog.print(json);
+
+    config =  GsonUtils.jsonToJavaBean(json,ServerConfig.class);
+    if (config == null || config.page == null) throw new RuntimeException("没有配置信息");
+    //检查服务器信息
+    checkServerInfo();
+    //解压缩html文件到缓存目录
+    transferWebPageToDir();
+    //更新线程执行
+    UpdateVersionServerImp.execute(true);
+    return new RegisterCentre.Bean[]{ config.page };
+    }
+
+    static void updateServerConfigJson(){
+        //网络获取
+        String json = serverConfigJson();
+        if (json != null){
+            config =  GsonUtils.jsonToJavaBean(json,ServerConfig.class);
         }
-        return list.toArray(new RegisterCentre.Bean[list.size()]);
+    }
+
+    //转移html页面到缓存
+    private static void transferWebPageToDir() {
+
+        int webPageVersion = config.webPageVersion;
+
+        //判断是否使用网络url
+        if (webPageVersion <0 ) return;
+
+        //判断是否已存在
+        int recode = sp.getInt("webPageVersion",-200);
+
+        if (recode == webPageVersion) return;
+
+        InputStream in = null;
+        try {
+            if (webPageVersion == 0){
+                //assets -> 本地缓存路径
+                in = app.getAssets().open("dist.zip");
+            }else {
+                //下载最新zip
+                File file = HttpServerImp.downloadFile(config.zipLink, app.getFilesDir()+"/dist.zip",null);
+
+                if (file==null){
+                    //assets -> 本地缓存路径
+                    in = app.getAssets().open("dist.zip");
+                }else{
+                    in = new FileInputStream(file);
+                }
+            }
+            //解压缩
+            boolean flag = AppUtils.unZipToFolder(in,app.getCacheDir());
+            if (flag){
+                LLog.print("解压缩文件到:" + app.getCacheDir() + Arrays.toString(app.getCacheDir().list()));
+                sp.edit().putInt("web_page_version",webPageVersion).apply();
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }finally {
+            if (in!=null) try { in.close(); } catch (IOException ignored) { }
+        }
+
+    }
+
+    private static String serverConfigJson() {
+        String json = null;
+        try {
+            json = ic.setServerAndRequest("globalServer","WebAppModule","config").execute();
+            if (StringUtils.isEmpty(json) || json.equals("null")) return null;
+            if (json.contains("code") && json.contains("message")) return null;
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return json;
+    }
+
+    private static void checkServerInfo() {
+        if (config.isUseServerProp){
+            Map<String,String> map = config.serverProp;
+            String tag = map.get("tag");
+            String address = map.get("address");
+            String args = map.get("args");
+            NativeServerImp.start(new IceClient(tag,address,args));
+        }
     }
 
     //获取地区信息
@@ -397,6 +504,7 @@ public class NativeServerImp implements IBridgeImp {
         if (map.get("data") !=null ){
             map = (Map) map.get("data");
         }
+        LLog.print(map);
         return map;
     }
 
@@ -411,7 +519,6 @@ public class NativeServerImp implements IBridgeImp {
 
     /** 支付宝支付 */
     public int alipay(String json){
-        {}
         Activity activity = payPrevHandle();
         if (activity == null) return -1;
         //获取支付信息
@@ -463,5 +570,10 @@ public class NativeServerImp implements IBridgeImp {
         Intent i = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
         i.setFlags(FLAG_ACTIVITY_NEW_TASK);
         app.startActivity(i);
+    }
+
+    //版本更新
+    public void versionUpdate(){
+        UpdateVersionServerImp.execute(false);
     }
 }

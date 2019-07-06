@@ -72,7 +72,6 @@ public class JSInterface implements IJsBridge {
         IOUtils.run(new Runnable() {
             @Override
             public void run() {
-
                 //异步执行
                 Object value = null;
                 try {

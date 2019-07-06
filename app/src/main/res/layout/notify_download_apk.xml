@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="horizontal"
+    android:layout_width="match_parent"
+    android:layout_height="45dp">
+
+    <ImageView
+        android:id="@+id/notify_iv"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:src="@mipmap/ic_launcher"
+        android:layout_alignParentStart="true"
+        />
+
+    <TextView
+        android:id="@+id/notify_tv"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="当前下载进度: 50%"
+        android:layout_centerHorizontal="true"
+        android:layout_alignParentTop="true"
+        />
+
+    <ProgressBar
+        android:id="@+id/notify_progress"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        style="?android:attr/progressBarStyleHorizontal"
+        android:max="100"
+        android:progress="50"
+        android:layout_below="@+id/notify_tv"
+        android:layout_toEndOf="@+id/notify_iv"
+        />
+
+
+
+</RelativeLayout>

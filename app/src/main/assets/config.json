@@ -1,0 +1,23 @@
+{
+	"serverVersion":1,
+	"updateMessage": "尊敬的用户,我们为您准备了更好的服务,请同意安装",
+	"apkLink": "http://114.116.149.145:9999/onekdrug_android.apk",
+	"isUseServerProp": false,
+	"serverProp": {
+		"tag":"DemoIceGrid",
+		"address":"114.116.149.145:4061",
+		"args": "idleTimeOutSeconds=300,--Ice.MessageSizeMax=4096"
+	},
+	"webPageVersion": 0,
+	"zipLink": "",
+	"page":{
+		"container":"content", "name":"web",
+		"fragment":"com.bottle.wvapp.fragments.WebFragment",
+		"map":{
+			"core": "com.bottle.lib.tbsx5.X5Core",
+			"url":"/dist/index.html"
+		}
+	}
+}
+
+

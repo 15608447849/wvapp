@@ -10,7 +10,6 @@ import com.tencent.smtt.sdk.WebView;
 import com.tencent.smtt.sdk.WebViewClient;
 
 import lee.bottle.lib.toolset.jsbridge.JSUtils;
-import lee.bottle.lib.toolset.log.LLog;
 
 /**
  * Created by Leeping on 2019/6/10.
@@ -22,14 +21,14 @@ public class X5WebViewClient extends WebViewClient {
      */
     @Override
     public boolean shouldOverrideUrlLoading(WebView view, String url) {
-        LLog.print("shouldOverrideUrlLoading(WebView,String)" + url);
+//        LLog.print("shouldOverrideUrlLoading(WebView,String)" + url);
         view.loadUrl(url);
         return true;
     }
 
     @Override
     public boolean shouldOverrideUrlLoading(WebView webView, WebResourceRequest request) {
-        LLog.print("shouldOverrideUrlLoading(WebView,String)"+ request.getUrl());
+//        LLog.print("shouldOverrideUrlLoading(WebView,String)"+ request.getUrl());
         return super.shouldOverrideUrlLoading(webView, request);
     }
 
@@ -47,8 +46,9 @@ public class X5WebViewClient extends WebViewClient {
      */
     @Override
     public void onReceivedHttpError(WebView webView, WebResourceRequest request, WebResourceResponse errorResponse) {
+//        LLog.print("onReceivedHttpError\t" + GsonUtils.javaBeanToJson(errorResponse));
         super.onReceivedHttpError(webView, request, errorResponse);
-        LLog.print("onReceivedHttpError(WebView,WebResourceRequest,WebResourceResponse)\t");
+
     }
 
     @Override
@@ -58,7 +58,7 @@ public class X5WebViewClient extends WebViewClient {
 
     @Override
     public void onReceivedSslError(WebView webView, SslErrorHandler handler, SslError error) {
-        LLog.print("onReceivedSslError(WebView,SslErrorHandler,SslError)\t");
+//        LLog.print("onReceivedSslError(WebView,SslErrorHandler,SslError)\t");
         handler.proceed();// 接受所有网站的证书
         super.onReceivedSslError(webView, handler, error);
     }
@@ -67,7 +67,7 @@ public class X5WebViewClient extends WebViewClient {
 
     @Override
     public void onPageFinished(WebView webView, String url) {
-        LLog.print("onPageFinished()\t" + url +" ,x5 core = " + X5Core.isX5CoreUse(webView) );
+//        LLog.print("onPageFinished()\t" + url +" ,x5 core = " + X5Core.isX5CoreUse(webView) );
         super.onPageFinished(webView, url);
     }
 

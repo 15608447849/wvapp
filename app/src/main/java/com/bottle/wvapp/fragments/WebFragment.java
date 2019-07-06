@@ -25,7 +25,7 @@ import lee.bottle.lib.toolset.util.ObjectRefUtil;
  * Created by Leeping on 2019/5/17.
  * email: 793065165@qq.com
  */
-public class CosWebFragment extends SFragment {
+public class WebFragment extends SFragment {
 
     private View view;
     private NativeServerImp server;
@@ -51,6 +51,11 @@ public class CosWebFragment extends SFragment {
         if (bundle!=null) {
             this.loadUrl = bundle.getString("url");
             this.core = bundle.getString("core");
+            int type =NativeServerImp.config.webPageVersion;
+            if (type >= 0 ){
+                this.loadUrl = "file://" + getContext().getCacheDir().getPath() + this.loadUrl;
+                LLog.print("加载路径: "+ this.loadUrl);
+            }
             loadView();
 //            selectCoreDialog();
         }

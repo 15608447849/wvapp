@@ -26,13 +26,17 @@ public class FrontNotification {
     private FrontNotification(FrontNotification.Build build){
         this.build = build;
     }
-    private static final String NOTIFICATION_CHANNEL_ID = "bottle.foreground.notification";
-    private static final String NOTIFICATION_CHANNEL_NAME = "ANDROID CHANNEL";
 
+    public void setProgress(int max,int current) {
+        build.builder.setProgress(max,current,false);
+        build.buildAndroidNotify();
+        showNotification();
+    }
 
     public static class Build{
         Context context;
         int id = 1000;
+        NotificationCompat.Builder builder;
         Notification notification;
         NotificationManager notificationManager;
         Intent activityIntent;//点击打开指定Activity
@@ -43,23 +47,26 @@ public class FrontNotification {
         int smallIcon = -1;
         int bigIcon = -1;
         RemoteViews view;
-        public Build(Context context){
+        boolean isOngoing;
+        public Build(Context context,int android0_channel_level){
             this.context = context;
-            this.id = id;
             this.notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
             //android 8.0
             if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
                 NotificationChannel notificationChannel = new NotificationChannel(
-                        NOTIFICATION_CHANNEL_ID,
-                        NOTIFICATION_CHANNEL_NAME,
-                        NotificationManager.IMPORTANCE_HIGH);
-                notificationChannel.setDescription("android 8.0 消息通知");
+                        context.getPackageName(),
+                        context.getPackageName(),
+//                        NotificationManager.IMPORTANCE_HIGH);
+                        android0_channel_level);
+
+                notificationChannel.setDescription("android8.0 消息通知渠道");
                 notificationChannel.setShowBadge(true); //是否在久按桌面图标时显示此渠道的通知
                 notificationChannel.enableLights(true);//是否在桌面icon右上角展示小圆点
                 notificationChannel.setLightColor(Color.RED);//小圆点颜色
                 notificationChannel.enableVibration(true);//允许震动
                 notificationChannel.setVibrationPattern(new long[]{0, 1000, 500, 1000});
                 notificationChannel.setLockscreenVisibility(Notification.VISIBILITY_PRIVATE);
+                notificationChannel.setSound(null,null);
                 notificationManager.createNotificationChannel(notificationChannel);
             }
         }
@@ -135,6 +142,11 @@ public class FrontNotification {
             return this;
         }
 
+        public FrontNotification.Build setOngoing(boolean isOngoing){
+            this.isOngoing = isOngoing;
+            return this;
+        }
+
         public FrontNotification autoGenerateNotification(String title, String content, String info){
             PendingIntent pIntent = null;
             if (activityIntent !=null){
@@ -143,8 +155,15 @@ public class FrontNotification {
                 pIntent = PendingIntent.getService(context,0, serviceIntent,0);
             }
 
+            builder = geneNotify(pIntent,title,content,info,smallIcon,bigIcon,defaults,isOngoing);
 
-            notification = geneNotify(pIntent,title,content,info,smallIcon,bigIcon,defaults);
+            buildAndroidNotify();
+
+            return new FrontNotification(this);
+        }
+
+        private void buildAndroidNotify() {
+            notification = builder.build();
 
             if (flags!=null && flags.length>0){
                 for (int flag : flags){
@@ -154,36 +173,43 @@ public class FrontNotification {
 
             //如果你设置的高度大于通知栏的默认高度，需要设置bigContentView模式，否则，会内容会显示不全
             if (view!=null) notification.contentView = view;
-
-            return new FrontNotification(this);
         }
 
-        private Notification geneNotify(PendingIntent pIntent, String title, String content, String info, int smallIcon, int icon, int defaults) {
-            return new NotificationCompat.Builder(context, NOTIFICATION_CHANNEL_ID)
+        private NotificationCompat.Builder geneNotify(PendingIntent pIntent, String title, String content, String info, int smallIcon, int icon, int defaults,boolean isOngoing) {
+            return new NotificationCompat.Builder(context, context.getPackageName())
                      .setSmallIcon(smallIcon)
                      .setLargeIcon(BitmapFactory.decodeResource(context.getResources(),icon))
                      .setPriority(Notification.PRIORITY_MAX)
-                     .setOngoing(true)
+                     .setOngoing(isOngoing)
                      .setContentTitle(title)
                      .setContentText(content)
                      .setContentInfo(info)
                      .setContentIntent(pIntent)
                      .setDefaults(defaults!=0?defaults:Notification.DEFAULT_ALL)
-                     .setGroup(groupKey)
-                     .build();
+                     .setGroup(groupKey);
         }
+
+
     }
 
 
     public void showNotification() {
         build.notificationManager.notify(build.id, build.notification);
     }
+
     public void cancelNotification() {
         build.notificationManager.cancel(build.id);
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            //关闭通知通道
+            build.notificationManager.deleteNotificationChannel(build.context.getPackageName());
+        }
+
     }
+
     public void startForeground(Service service){
         service.startForeground(build.id, build.notification);
     }
+
     public void stopForeground(Service service){
         service.stopForeground(false);
     }

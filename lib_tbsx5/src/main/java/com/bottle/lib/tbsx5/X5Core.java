@@ -10,8 +10,6 @@ import lee.bottle.lib.toolset.jsbridge.IBridgeImp;
 import lee.bottle.lib.toolset.jsbridge.IWebViewInit;
 import lee.bottle.lib.toolset.log.LLog;
 
-import static lee.bottle.lib.toolset.util.AppUtils.toast;
-
 /**
  * Created by Leeping on 2019/6/11.
  * email: 793065165@qq.com
@@ -67,8 +65,8 @@ public class X5Core extends IWebViewInit<WebView> {
             @Override
             public void onViewInitFinished(boolean flag) {
                 //x5內核初始化完成的回调，为true表示x5内核加载成功，否则表示x5内核加载失败，会自动切换到系统内核。
-                LLog.print("X5内核使用: "+ flag);
-                toast(appContext,"当前使用X5内核: "+ flag);
+//                LLog.print("X5内核使用: "+ flag);
+//                toast(appContext,"当前使用X5内核: "+ flag);
             }
         });
     }

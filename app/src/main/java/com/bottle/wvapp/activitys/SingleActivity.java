@@ -104,8 +104,9 @@ public class SingleActivity extends SActivity implements PermissionApply.Callbac
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
+                        NativeServerImp.ServerConfig c = NativeServerImp.config;
                         //加载页面
-                        getSFOPage().skip("content","web");//跳转到web页面
+                        getSFOPage().skip(c.page.container,c.page.name);//跳转到web页面
                     }
                 });
             }

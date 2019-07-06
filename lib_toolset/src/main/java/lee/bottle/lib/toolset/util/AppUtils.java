@@ -35,6 +35,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.Arrays;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
+
+import lee.bottle.lib.toolset.log.LLog;
 
 import static android.Manifest.permission.READ_PHONE_STATE;
 import static android.content.Context.TELEPHONY_SERVICE;
@@ -120,6 +124,43 @@ public class AppUtils {
             e.printStackTrace();
         }
         return buffer;
+    }
+
+    public static boolean unZipToFolder(InputStream zipFileStream, File dir) {
+        try (ZipInputStream inZip = new ZipInputStream(zipFileStream)){
+
+            ZipEntry zipEntry;
+            String temp;
+            while ((zipEntry = inZip.getNextEntry()) != null) {
+                temp = zipEntry.getName();
+                if (zipEntry.isDirectory()) {
+                    //获取部件的文件夹名
+                    temp = temp.substring(0, temp.length() - 1);
+                    File folder = new File(dir,temp);
+                    folder.mkdirs();
+                }else{
+                    File file = new File(dir, temp);
+                    if (!file.exists()) {
+                        file.getParentFile().mkdirs();
+                        file.createNewFile();
+                    }
+                    // 获取文件的输出流
+                    try(FileOutputStream out = new FileOutputStream(file)){
+                        int len;
+                        byte[] buffer = new byte[1024];
+                        while ((len = inZip.read(buffer)) != -1) {
+                            out.write(buffer, 0, len);
+                            out.flush();
+                        }
+                    }
+                }
+
+            }
+            return true;
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return  false;
     }
 
     //检查无线网络有效
@@ -278,6 +319,7 @@ public class AppUtils {
     // 安装apk
     public static void installApk(Context context, File apkFile) {
         try {
+            LLog.print("安装: " + apkFile);
             Intent intent = new Intent();
             intent.setAction(Intent.ACTION_VIEW);
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);

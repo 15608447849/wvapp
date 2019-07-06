@@ -17,7 +17,7 @@ import lee.bottle.lib.toolset.util.FrontNotification;
 public class NotifyUer {
     private static int currentId =  1;
     public static void createMessageNotify(Context context,String message) {
-        FrontNotification.Build build = new FrontNotification.Build(context).setId(currentId++);
+        FrontNotification.Build build = new FrontNotification.Build(context, 4).setId(currentId++);
         Intent intent = new Intent(context, SingleActivity.class);
 //        intent.setFlags(FLAG_ACTIVITY_NEW_TASK);
         build.setFlags(new int[]{Notification.FLAG_INSISTENT,Notification.FLAG_AUTO_CANCEL});
@@ -31,4 +31,19 @@ public class NotifyUer {
                 "点击进入")
                 .showNotification();
     }
+    public static FrontNotification createDownloadApkNotify(Context context){
+        Intent intent = new Intent(context, SingleActivity.class);
+       return new FrontNotification.Build(context,3)
+                .setId(currentId++)
+                .setGroup("download")
+                .setFlags(new int[]{Notification.FLAG_INSISTENT,Notification.FLAG_AUTO_CANCEL})
+                .setDefaults(Notification.DEFAULT_ALL)
+               .setActivityIntent(intent)
+                .setSmallIcon(R.drawable.ic_update_version)
+                .autoGenerateNotification(
+                        context.getString(R.string.app_name),
+                        "正在下载","下载完成自动关闭");
+
+    }
+
 }
