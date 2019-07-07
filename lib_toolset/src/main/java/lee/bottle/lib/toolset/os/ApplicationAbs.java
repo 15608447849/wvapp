@@ -123,6 +123,10 @@ public abstract class ApplicationAbs extends Application implements Application.
         if (isPrintLifeLog) LLog.format("---%s :: %s",activity,"onCreated");
         //竖屏锁定
         activity.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+        //没有title
+        //activity.getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
+        //硬件加速
+        activity.getWindow().addFlags(WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED);
         //应用运行时，保持屏幕高亮,不锁屏
         activity.getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         //设定软键盘的输入法模式 覆盖在图层上 不会改变布局

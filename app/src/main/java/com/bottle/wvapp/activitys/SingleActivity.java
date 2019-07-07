@@ -2,8 +2,13 @@ package com.bottle.wvapp.activitys;
 
 import android.Manifest;
 import android.content.Intent;
+import android.media.MediaPlayer;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.PersistableBundle;
+import android.view.View;
+import android.view.WindowManager;
+import android.widget.Button;
 import android.widget.FrameLayout;
 
 import androidx.annotation.NonNull;
@@ -15,8 +20,10 @@ import com.bottle.wvapp.jsprovider.NativeServerImp;
 import lee.bottle.lib.singlepageframwork.anno.SLayoutId;
 import lee.bottle.lib.singlepageframwork.base.SActivity;
 import lee.bottle.lib.singlepageframwork.use.RegisterCentre;
+import lee.bottle.lib.toolset.jsbridge.JSUtils;
 import lee.bottle.lib.toolset.log.LLog;
 import lee.bottle.lib.toolset.os.PermissionApply;
+import lee.bottle.lib.toolset.os.VideoView;
 
 /**
  * Created by Leeping on 2019/5/17.
@@ -41,11 +48,50 @@ public class SingleActivity extends SActivity implements PermissionApply.Callbac
     @SLayoutId("content")
     private FrameLayout layout;
 
+    private VideoView video;
+
+    private Button passBtn;
+
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_single);
         layout = findViewById(R.id.container);
+        video = findViewById(R.id.video);
+        passBtn = findViewById(R.id.rl_btn_pass);
+        passBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                closeAdVideo();
+            }
+        });
+
+        JSUtils.openCallback = new JSUtils.WebPageOneOpen() {
+            @Override
+            public void pageFinish() {
+               //显示跳过按钮
+                passBtn.setVisibility(View.VISIBLE);
+            }
+        };
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
+//        Uri path = Uri.parse("http://114.116.155.221:9999/loading.mp4");
+        String uri = "android.resource://" + getPackageName() + "/" + R.raw.loading;
+        Uri path = Uri.parse(uri);
+        video.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
+            @Override
+            public void onCompletion(MediaPlayer mp) {
+              closeAdVideo();
+            }
+        });
+        video.setVideoURI(path,false);
+    }
+
+    private void closeAdVideo() {
+        getWindow().clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
+        video.pause();
+        video.stopPlayback();
+        video.setVisibility(View.GONE);
+        passBtn.setVisibility(View.GONE);
     }
 
     /* 权限审核回调 */

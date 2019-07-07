@@ -1,10 +1,10 @@
-package com.bottle.lib.tbsx5;
+package lee.bottle.lib.toolset.web;
 
-import com.tencent.smtt.export.external.interfaces.ConsoleMessage;
-import com.tencent.smtt.export.external.interfaces.GeolocationPermissionsCallback;
-import com.tencent.smtt.export.external.interfaces.JsResult;
-import com.tencent.smtt.sdk.WebChromeClient;
-import com.tencent.smtt.sdk.WebView;
+import android.webkit.ConsoleMessage;
+import android.webkit.GeolocationPermissions;
+import android.webkit.JsResult;
+import android.webkit.WebChromeClient;
+import android.webkit.WebView;
 
 import lee.bottle.lib.toolset.log.LLog;
 import lee.bottle.lib.toolset.util.DialogUtil;
@@ -12,24 +12,15 @@ import lee.bottle.lib.toolset.util.DialogUtil;
 import static lee.bottle.lib.toolset.jsbridge.JSUtils.progressHandler;
 
 /**
- * Created by Leeping on 2019/6/10.
+ * Created by Leeping on 2019/7/7.
  * email: 793065165@qq.com
  */
-public class X5WebChromeClient extends WebChromeClient {
-
-
+public class SysWebChromeClient extends WebChromeClient {
     //进度状态
     @Override
     public void onProgressChanged(WebView view, int newProgress) {
         progressHandler(view.getContext(),newProgress);
     }
-
-   @Override
-    public void onGeolocationPermissionsShowPrompt(String origin, GeolocationPermissionsCallback callback) {
-        callback.invoke(origin, true, false);
-    }
-
-
     @Override
     public boolean onJsAlert(WebView view, String url, String message,final JsResult result) {
         DialogUtil.dialogSimple(view.getContext(), message, "确认", new DialogUtil.Action0() {
@@ -45,7 +36,8 @@ public class X5WebChromeClient extends WebChromeClient {
     public boolean onConsoleMessage(ConsoleMessage consoleMessage) {
         String fileName =  consoleMessage.sourceId();
         LLog.print(
-                "浏览器控制台输出 - ["+consoleMessage.messageLevel()+"]\t"+consoleMessage.message()
+                "浏览器控制台输出 - ["+consoleMessage.messageLevel()+"]\t"+consoleMessage.message() +
+                        (consoleMessage.messageLevel().name().equalsIgnoreCase("error") ? "\n" + fileName +":"+consoleMessage.lineNumber():"")
         );
         return true;
     }
@@ -63,6 +55,12 @@ public class X5WebChromeClient extends WebChromeClient {
                 result.cancel();
             }
         });
-    return true;
+        return true;
     }
+
+    @Override
+    public void onGeolocationPermissionsShowPrompt(String origin, GeolocationPermissions.Callback callback) {
+        callback.invoke(origin, true, false);
+    }
+
 }

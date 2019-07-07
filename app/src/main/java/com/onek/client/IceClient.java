@@ -7,8 +7,10 @@ import com.onek.server.inf.InterfacesPrxHelper;
 import java.util.Arrays;
 import java.util.Locale;
 
+import Ice.Communicator;
+import Ice.ObjectPrx;
+import Ice.Util;
 import lee.bottle.lib.toolset.log.LLog;
-import lee.bottle.lib.toolset.util.GsonUtils;
 
 /**
  * @Author: leeping
@@ -17,7 +19,18 @@ import lee.bottle.lib.toolset.util.GsonUtils;
  */
 public class IceClient {
 
-    private  Ice.Communicator ic = null;
+    private static class ReqStore{
+        InterfacesPrx currentPrx;
+        IRequest request;
+
+        private ReqStore(InterfacesPrx currentPrx) {
+            this.currentPrx = currentPrx;
+            this.request = new IRequest();
+        }
+    }
+    private static final ThreadLocal<ReqStore> threadLocalStore = new ThreadLocal<>();
+
+    private Communicator ic = null;
 
     private final String[] args ;
 
@@ -47,7 +60,7 @@ public class IceClient {
         return arr;
     }
 
-    public Ice.Communicator iceCommunication(){
+    public Communicator iceCommunication(){
         return ic;
     }
 
@@ -63,7 +76,7 @@ public class IceClient {
     synchronized
     public IceClient startCommunication() {
         if (ic == null) {
-            ic = Ice.Util.initialize(args);
+            ic = Util.initialize(args);
         }
         return this;
     }
@@ -76,25 +89,26 @@ public class IceClient {
         return this;
     }
 
-    public InterfacesPrx curPrx;
-
     public IceClient settingProxy(String serverName){
-        Ice.ObjectPrx base = ic.stringToProxy(serverName);
-        curPrx =  InterfacesPrxHelper.checkedCast(base);
-        curPrx.ice_invocationTimeout(timeout);
+        ObjectPrx base = ic.stringToProxy(serverName).ice_invocationTimeout(timeout);
+        InterfacesPrx curPrx =  InterfacesPrxHelper.checkedCast(base);
+        threadLocalStore.set(new ReqStore(curPrx));
         return this;
     }
 
     public InterfacesPrx getProxy(){
-        return curPrx;
+        ReqStore store = threadLocalStore.get();
+        return store == null? null : store.currentPrx;
     }
-    private IRequest request;
+
 
     public IceClient settingReq(String token,String cls,String med){
-        request = new IRequest();
-        request.cls = cls;
-        request.method = med;
-        request.param.token = token;
+        ReqStore store = threadLocalStore.get();
+        if (store!=null  && store.request!=null){
+            store.request.cls = cls;
+            store.request.method = med;
+            store.request.param.token = token;
+        }
         return this;
     }
 
@@ -114,51 +128,43 @@ public class IceClient {
         return settingParam(arr);
     }
 
-    public IceClient setJsonParams(Object obj){
-        return settingParam(GsonUtils.javaBeanToJson(obj));
+
+
+    public IceClient settingParam(String json){
+        ReqStore store = threadLocalStore.get();
+        if (store!=null  && store.request!=null){
+            store. request.param.json = json;
+        }
+        return this;
     }
 
-    public IceClient settingParam(String json, int index, int number){
-        request.param.json = json;
-        request.param.pageIndex = index;
-        request.param.pageNumber = number;
-        return this;
-    }
-    public IceClient settingParam(String json){
-        request.param.json = json;
-        return this;
-    }
     public IceClient setPageInfo(int index, int number) {
-        request.param.pageIndex = index;
-        request.param.pageNumber = number;
+        ReqStore store = threadLocalStore.get();
+        if (store!=null  && store.request!=null){
+            store.request.param.pageIndex = index;
+            store.request.param.pageNumber = number;
+        }
         return this;
     }
-    public IceClient settingParam(String[] array, int index, int number){
-        request.param.arrays = array;
-        request.param.pageIndex = index;
-        request.param.pageNumber = number;
-        return this;
-    }
+
     public IceClient settingParam(String[] array){
-        request.param.arrays = array;
+        ReqStore store = threadLocalStore.get();
+        if (store!=null  && store.request!=null){
+            store.request.param.arrays = array;
+        }
         return this;
     }
 
     public String execute() {
-        if (curPrx!=null && request!=null){
-            String res = curPrx.accessService(request);
-            curPrx = null;
-            request = null;
-            return res;
+        ReqStore store = threadLocalStore.get();
+        if (store!=null  && store.currentPrx!=null && store.request!=null){
+            threadLocalStore.remove();
+            return store.currentPrx.accessService(store.request);
         }
-        throw new RuntimeException("ICE 未开始连接或找不到远程代理或请求参数异常");
+        throw new IllegalStateException("ICE 未开始连接或找不到远程代理或请求参数异常");
     }
 
-    public void sendMessageToClient(String identity,String message){
-        if (curPrx!=null){
-             curPrx.sendMessageToClient(identity,message);
-        }
-    }
+
 
 
 }

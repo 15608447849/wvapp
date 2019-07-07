@@ -54,7 +54,7 @@ public class GsonUtils {
             if (json==null || json.length()==0) return null;
             return new Gson().fromJson(json, cls);//对于javabean直接给出class实例
         } catch (JsonSyntaxException e) {
-            e.printStackTrace();
+//            e.printStackTrace();
         }
         return null;
     }

@@ -11,10 +11,10 @@
 	"webPageVersion": 0,
 	"zipLink": "",
 	"page":{
-		"container":"content", "name":"web",
+		"container":"content",
+		"name":"web",
 		"fragment":"com.bottle.wvapp.fragments.WebFragment",
 		"map":{
-			"core": "com.bottle.lib.tbsx5.X5Core",
 			"url":"/dist/index.html"
 		}
 	}

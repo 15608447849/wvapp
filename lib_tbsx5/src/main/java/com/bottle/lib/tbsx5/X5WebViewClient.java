@@ -48,7 +48,6 @@ public class X5WebViewClient extends WebViewClient {
     public void onReceivedHttpError(WebView webView, WebResourceRequest request, WebResourceResponse errorResponse) {
 //        LLog.print("onReceivedHttpError\t" + GsonUtils.javaBeanToJson(errorResponse));
         super.onReceivedHttpError(webView, request, errorResponse);
-
     }
 
     @Override

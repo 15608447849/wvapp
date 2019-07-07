@@ -17,7 +17,6 @@ import com.alipay.sdk.app.PayTask;
 import com.bottle.wvapp.activitys.CitySelectActivity;
 import com.bottle.wvapp.activitys.ScanActivity;
 import com.bottle.wvapp.tool.GlideLoader;
-import com.bottle.wvapp.tool.NotifyUer;
 import com.onek.client.IceClient;
 import com.onek.server.inf.InterfacesPrx;
 import com.tencent.mm.opensdk.modelpay.PayReq;
@@ -269,6 +268,7 @@ public class NativeServerImp implements IBridgeImp {
         if (StringUtils.isEmpty(json)){
             //网络获取
             json = ic.setServerAndRequest(DEVID,"userServer","LoginRegistrationModule","appStoreInfo").execute();
+            LLog.print(json);
             isNetwork = true;
         }
         UserInfo info = GsonUtils.jsonToJavaBean(json,UserInfo.class);
@@ -285,7 +285,6 @@ public class NativeServerImp implements IBridgeImp {
     private static int getOrderServerNo(int compid){
         return compid / 8192 % 65535;
     }
-
     /********************************************************************************************************/
     @Override
     public void setIJsBridge(IJsBridge bridge) {
@@ -347,24 +346,21 @@ public class NativeServerImp implements IBridgeImp {
                 scanRes = data.getStringExtra( ScanActivity.CONST.getSCAN_RES());
             }
         }
-
         exeNotify();
     }
 
     //转发
     private String transfer(String serverName, String cls, String method,int page,int count,String json) {
-
-        IceClient client = NativeServerImp.ic.settingProxy(serverName).settingReq(DEVID,cls,method);
-        client.setPageInfo(page,count);
+        IceClient client =
+                NativeServerImp.ic.settingProxy(serverName).
+                        settingReq(DEVID,cls,method).
+                        setPageInfo(page,count);
         String[] arrays = null;
-        if (GsonUtils.checkJsonIsArray(json)) {
-            arrays = GsonUtils.jsonToJavaBean(json,String[].class);
-        }
-        if (arrays != null){
-            client.settingParam(arrays);
-        }else{
-            client.settingParam(json);
-        }
+        if (GsonUtils.checkJsonIsArray(json)) arrays = GsonUtils.jsonToJavaBean(json,String[].class);
+
+        if (arrays != null) client.settingParam(arrays);
+        else client.settingParam(json);
+
         return client.execute();
     }
 

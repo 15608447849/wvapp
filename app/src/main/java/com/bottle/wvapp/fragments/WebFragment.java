@@ -1,6 +1,5 @@
 package com.bottle.wvapp.fragments;
 
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.LayoutInflater;
@@ -17,8 +16,6 @@ import lee.bottle.lib.singlepageframwork.base.SFragment;
 import lee.bottle.lib.toolset.jsbridge.IBridgeImp;
 import lee.bottle.lib.toolset.jsbridge.IWebViewInit;
 import lee.bottle.lib.toolset.log.LLog;
-import lee.bottle.lib.toolset.util.AppUtils;
-import lee.bottle.lib.toolset.util.DialogUtil;
 import lee.bottle.lib.toolset.util.ObjectRefUtil;
 
 /**
@@ -38,7 +35,7 @@ public class WebFragment extends SFragment {
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
             if (view == null){
-                view = inflater.inflate(R.layout.fragment_cosweb,null);
+                view = inflater.inflate(R.layout.fragment_web,null);
                 server = NativeServerImp.createServer(this);
             }
         return view;
@@ -50,7 +47,7 @@ public class WebFragment extends SFragment {
         LLog.print(bundle);
         if (bundle!=null) {
             this.loadUrl = bundle.getString("url");
-            this.core = bundle.getString("core");
+            this.core = "lee.bottle.lib.toolset.web.SysCore";
             int type =NativeServerImp.config.webPageVersion;
             if (type >= 0 ){
                 this.loadUrl = "file://" + getContext().getCacheDir().getPath() + this.loadUrl;
@@ -59,18 +56,6 @@ public class WebFragment extends SFragment {
             loadView();
 //            selectCoreDialog();
         }
-    }
-
-    private void selectCoreDialog() {
-        DialogUtil.createSimpleListDialog(getContext(), "选择内核",
-                new CharSequence[]{"腾讯X5", "CROSSWALK"}, true, new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialog, int which) {
-                        AppUtils.toast(getContext(),"选择: "+ which);
-                        core =   "com.bottle.lib." + ( which == 0 ? "tbsx5.X5Core":"crosswalk.CKCore" );
-                        loadView();
-                    }
-                });
     }
 
     private void loadView() {

@@ -22,7 +22,13 @@ import static lee.bottle.lib.toolset.util.ImageUtils.imageCompression;
  */
 public class JSUtils {
 
+    public interface WebPageOneOpen{
+        void pageFinish();
+    }
+
     public static ProgressDialog dialog;
+
+    public static WebPageOneOpen openCallback;
 
     /** 对媒体文件拦截 */
     public static <T> T mediaUriIntercept(Context context, String url,Class clazz){
@@ -53,22 +59,30 @@ public class JSUtils {
     public static void progressHandler(Context context,int progress){
         if (progress<100){
             openProgressDialog(context);
-            dialog.setMessage("应用加载进度:"+ progress);
+            if (dialog!=null) dialog.setMessage("应用加载进度:"+ progress);
         }else{
             closeProgressDialog();
         }
     }
 
     public static void openProgressDialog(Context context){
+        if (openCallback!=null) return;
         if (dialog == null){
             dialog = DialogUtil.createSimpleProgressDialog(context,"应用加载中...");
             dialog.show();
         }
     }
+
     public static void closeProgressDialog(){
         if (dialog!=null){
             dialog.cancel();
             dialog = null;
         }
+        if (openCallback != null){
+            openCallback.pageFinish();
+            openCallback = null;
+        }
     }
+
+
 }

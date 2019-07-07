@@ -1,95 +1,29 @@
-package com.bottle.lib.tbsx5;
+package lee.bottle.lib.toolset.web;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.view.View;
 import android.view.ViewGroup;
-
-import com.tencent.smtt.sdk.QbSdk;
-import com.tencent.smtt.sdk.WebView;
+import android.webkit.WebSettings;
+import android.webkit.WebView;
 
 import lee.bottle.lib.toolset.jsbridge.IBridgeImp;
 import lee.bottle.lib.toolset.jsbridge.IWebViewInit;
-import lee.bottle.lib.toolset.log.LLog;
 
 /**
- * Created by Leeping on 2019/6/11.
+ * Created by Leeping on 2019/7/7.
  * email: 793065165@qq.com
  */
-public class X5Core extends IWebViewInit<WebView> {
-
-    public static void tbsInit(final Context appContext) {
-
-     /*   QbSdk.setTbsListener(new TbsListener() {
-            @Override
-            public void onDownloadFinish(int i) {
-                LLog.print("onDownloadFinish " + i);
-            }
-
-            @Override
-            public void onInstallFinish(int i) {
-                LLog.print("onInstallFinish " + i);
-            }
-
-            @Override
-            public void onDownloadProgress(int i) {
-                LLog.print("onDownloadProgress " + i);
-            }
-        });
-
-        TbsDownloader.needDownload(appContext, false);
-
-        LLog.print("QbSdk.isTbsCoreInited() = " + QbSdk.isTbsCoreInited());*/
-
-        QbSdk.setDownloadWithoutWifi(true);
-
-      /*  if (!QbSdk.isTbsCoreInited()){
-            QbSdk.preInit(appContext, new QbSdk.PreInitCallback() {
-                @Override
-                public void onCoreInitFinished() {
-                    LLog.print("X5 onCoreInitFinished");
-                }
-
-                @Override
-                public void onViewInitFinished(boolean b) {
-                    LLog.print("X5 preInit onViewInitFinished = " + b);
-                }
-            });
-        } */
-
-        //x5内核初始化接口
-        QbSdk.initX5Environment(appContext,   new QbSdk.PreInitCallback() {
-            @Override
-            public void onCoreInitFinished() {
-                LLog.print("X5内核初始化完成");
-            }
-            @Override
-            public void onViewInitFinished(boolean flag) {
-                //x5內核初始化完成的回调，为true表示x5内核加载成功，否则表示x5内核加载失败，会自动切换到系统内核。
-//                LLog.print("X5内核使用: "+ flag);
-//                toast(appContext,"当前使用X5内核: "+ flag);
-            }
-        });
-    }
-
-    public static boolean isX5CoreUse(com.tencent.smtt.sdk.WebView webView){
-        return webView.getX5WebViewExtension() != null;
-    }
-
-    public X5Core(ViewGroup group, IBridgeImp bridge) throws Exception {
+public class SysCore extends IWebViewInit<WebView> {
+    public SysCore(ViewGroup group, IBridgeImp bridge) throws Exception {
         super(group, bridge);
     }
 
-    @Override
-    protected void initPrev(ViewGroup group) {
-        tbsInit(group.getContext());
-    }
-
+    @SuppressLint("SetJavaScriptEnabled")
     @Override
     public void initSetting(WebView webview) {
-        com.tencent.smtt.sdk.WebSettings settings = webview.getSettings();
         Context context = webview.getContext();
-        //https://blog.csdn.net/a2241076850/article/details/52983939
-
+        WebSettings settings = webview.getSettings();
         //设置WebView是否允许执行JavaScript脚本，默认false
         settings.setJavaScriptEnabled(true);
         //设置js可以直接打开窗口，如window.open()，默认为false
@@ -105,7 +39,7 @@ public class X5Core extends IWebViewInit<WebView> {
         //是否允许运行在一个file schema URL环境下的JavaScript访问来自其他任何来源的内容
         settings.setAllowUniversalAccessFromFileURLs(false);
 
-        settings.setLayoutAlgorithm(com.tencent.smtt.sdk.WebSettings.LayoutAlgorithm.NARROW_COLUMNS);
+        settings.setLayoutAlgorithm(WebSettings.LayoutAlgorithm.NARROW_COLUMNS);
 
         //不支持使用屏幕上的缩放控件和手势进行缩放
         settings.setSupportZoom(false);
@@ -148,19 +82,14 @@ public class X5Core extends IWebViewInit<WebView> {
         //不禁止网络图片加载
         settings.setBlockNetworkImage(false);
 
-        webview.setWebChromeClient(new X5WebChromeClient());
-        webview.setWebViewClient(new X5WebViewClient());
+        webview.setWebChromeClient(new SysWebChromeClient());
+        webview.setWebViewClient(new SysWebViewClient());
 
         webview.setScrollBarStyle(View.SCROLLBARS_INSIDE_OVERLAY);
         //去除滚动条
         webview.setHorizontalFadingEdgeEnabled(false);
         webview.setVerticalScrollBarEnabled(false);
-        if (isX5CoreUse(webview)){
-            //禁用滑动按钮
-            webview.getX5WebViewExtension().setScrollBarFadingEnabled(false);
-            webview.getX5WebViewExtension().setHorizontalScrollBarEnabled(false);//水平不显示滚动按钮
-            webview.getX5WebViewExtension().setVerticalScrollBarEnabled(false); //垂直不显示滚动按钮
-        }
+
     }
 
     @Override
@@ -178,7 +107,6 @@ public class X5Core extends IWebViewInit<WebView> {
     public void clear() {
         getWebView().clearCache(true);
         getWebView().clearFormData();
-
     }
 
     @Override

@@ -34,6 +34,17 @@ public class CKWebChromeClient extends XWalkUIClient{
         }, "取消", new DialogUtil.Action0() {
             @Override
             public void onAction0() {
+                result.cancel();
+            }
+        });
+        return true;
+    }
+
+    @Override
+    public boolean onJsAlert(XWalkView view, String url, String message,final XWalkJavascriptResult result) {
+        DialogUtil.dialogSimple(view.getContext(), message, "确认", new DialogUtil.Action0() {
+            @Override
+            public void onAction0() {
                 result.confirm();
             }
         });
