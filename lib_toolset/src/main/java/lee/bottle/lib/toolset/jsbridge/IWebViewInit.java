@@ -31,8 +31,8 @@ public abstract class IWebViewInit<V extends View> {
         return new JSInterface(webview);
     }
 
-    public IWebViewInit(ViewGroup group, IBridgeImp bridge) throws Exception{
-        initPrev(group);
+    public IWebViewInit(Context appContext,ViewGroup group, IBridgeImp bridge) throws Exception{
+        initPrev(appContext);
         ParameterizedType parameterizedType = (ParameterizedType)this.getClass().getGenericSuperclass();
         Type[] typeArr = parameterizedType.getActualTypeArguments();
         webView = (V)ObjectRefUtil.createObject((Class) typeArr[0],new Class[]{Context.class},group.getContext());
@@ -41,7 +41,7 @@ public abstract class IWebViewInit<V extends View> {
         proxy = genJSInterface(webView).setIBridgeImp(bridge);
     }
 
-    protected  void initPrev(ViewGroup group){
+    protected  void initPrev(Context appContext){
 
     }
 

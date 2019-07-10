@@ -75,6 +75,24 @@ public class RecyclerUtil {
             }
         });
     }
+    /**
+     * 网格布局
+     * 水平
+     * 占指定个数
+     * 不翻转
+     */
+    public static void gridLayoutManagerSettingHorSpanSpcNorev(Context context, RecyclerView recyclerView,int spcGrid_horizontal){
+        recyclerView.setLayoutManager(new GridLayoutManager(context,spcGrid_horizontal, LinearLayoutManager.HORIZONTAL,false){
+            @Override
+            public void onLayoutChildren(RecyclerView.Recycler recycler, RecyclerView.State state) {
+                try {
+                    super.onLayoutChildren(recycler, state);
+                } catch (IndexOutOfBoundsException e) {
+                    e.printStackTrace();
+                }
+            }
+        });
+    }
     //添加子项 item分割线
     public static void addDefaultItemDecoration(Context context,RecyclerView recyclerView,int orientation) {
         DividerItemDecoration decoration = new DividerItemDecoration(context,orientation);
@@ -91,6 +109,30 @@ public class RecyclerUtil {
             animator = new DefaultItemAnimator();
         }
         recyclerView.setItemAnimator(animator);
+    }
+
+
+    public static void smoothMoveToPosition(RecyclerView mRecyclerView, final int position) {
+
+        // 第一个可见位置
+        int firstItem = mRecyclerView.getChildLayoutPosition(mRecyclerView.getChildAt(0));
+        // 最后一个可见位置
+        int lastItem = mRecyclerView.getChildLayoutPosition(mRecyclerView.getChildAt(mRecyclerView.getChildCount() - 1));
+        if (position < firstItem) {
+            // 第一种可能:跳转位置在第一个可见位置之前
+            mRecyclerView.smoothScrollToPosition(position);
+        } else if (position <= lastItem) {
+            // 第二种可能:跳转位置在第一个可见位置之后
+            int movePosition = position - firstItem;
+            if (movePosition >= 0 && movePosition < mRecyclerView.getChildCount()) {
+                int top = mRecyclerView.getChildAt(movePosition).getTop();
+                mRecyclerView.smoothScrollBy(0, top);
+            }
+        } else {
+            // 第三种可能:跳转位置在最后可见项之后
+            mRecyclerView.smoothScrollToPosition(position);
+
+        }
     }
 
 

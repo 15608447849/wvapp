@@ -37,9 +37,14 @@ public abstract class ApplicationAbs extends Application implements Application.
         isPrintLifeLog = flag;
     }
 
+    public void setCrashCallback(CrashHandler.Callback callback){
+        CrashHandler.getInstance().setCallback(callback);
+    }
+
     @Override
     public void onCreate() {
         super.onCreate();
+        CrashHandler.getInstance().init(getApplicationContext());
         String progressName = AppUtils.getCurrentProcessName(getApplicationContext());
         onCreateByAllProgress(progressName);
         if ( isRegisterActivityLifecycleCallbacks ) registerActivityLifecycleCallbacks(this);//注册 activity 生命周期管理

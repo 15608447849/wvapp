@@ -4,7 +4,6 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.Color
 import android.os.Bundle
-import android.util.Log
 import android.view.KeyEvent
 import android.view.View
 import android.view.ViewGroup
@@ -15,8 +14,10 @@ import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.DefaultItemAnimator
 import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import com.bottle.wvapp.R
 import com.bottle.wvapp.jsprovider.NativeServerImp.areaJson
+import com.bottle.wvapp.tool.GaoDeMapUtil
 import com.leezp.lib.recycles.BaseViewHolderDataModel
 import com.leezp.lib.recycles.RecyclerUtil
 import com.leezp.lib.recycles.more_view_adapter.AutomaticViewBaseViewHolder
@@ -58,7 +59,7 @@ private class AutoCompAdapter(val context : Context, val dataSource:MutableList<
         }else{
             mList.get(position).label
         }
-        LLog.print("getview - " +   mList.get(position))
+        /*LLog.print("getview - " +   mList.get(position))*/
         return tv
     }
      //搜索过滤
@@ -88,17 +89,31 @@ private class AutoCompAdapter(val context : Context, val dataSource:MutableList<
 
 }
 
+/**
+ * recycle view item 模板
+ */
+public class RecycleViewItemTemp(): ItemViewTemplateManage(){
+    override fun initItemLayout() {
+        addAttr(ItemViewTemplateAttribute(RecycleViewItemHolder::class.java, R.layout.listitem_text))
+        addAttr(ItemViewTemplateAttribute(RecycleViewItemHolder::class.java, R.layout.listitem_text_grid))
+        addAttr(ItemViewTemplateAttribute(RecycleViewItemHolder::class.java, R.layout.listitem_arealist))
+    }
+}
 
 /**
  * recycle view data model
  */
-public class RecycleViewDataModel(val item : AreaDataItem): BaseViewHolderDataModel {
+public class RecycleViewDataModel(val item : AreaDataItem,var citySelectActivity: CitySelectActivity? = null): BaseViewHolderDataModel {
     override fun <DATA : Any?> convert(): DATA {
         return item as DATA
     }
 
     override fun getViewTemplateType(): Int {
-        return R.layout.listitem_text
+        return when(item.type){
+            -1 -> R.layout.listitem_arealist
+            2 -> R.layout.listitem_text_grid
+            else -> R.layout.listitem_text
+        }
     }
 
 }
@@ -114,33 +129,32 @@ public class RecycleViewItemHolder(itemView:View): AutomaticViewBaseViewHolder<R
     override fun automaticView(rootView: View?) {}
 
     /**
-     * 关联data listTime 样式显示
+     * 关联data list 样式显示
      */
     override fun bindData(dataModel: RecycleViewDataModel?) {
-        if (itemView is TextView){
-            val data = dataModel?.convert<AreaDataItem>()
-            itemView.text = when (data?.type){
+        val data = dataModel?.convert<AreaDataItem>()
+        if (data!!.type<0){
+            val tv = itemView.findViewById<TextView>(R.id.list_item_area_text)
+            val rv = itemView.findViewById<RecyclerView>(R.id.list_item_area_recycler)
+            val citySelectActivity = dataModel.citySelectActivity ?: return
+            tv.text =  data.letter
+            citySelectActivity.setAreaRecycleView(rv)
+        }else{
+            val tv = itemView as TextView
+            tv.text = when (data.type){
                 0 -> {
-                    itemView.setBackgroundColor(Color.WHITE)
-                    itemView.setTextColor(Color.BLACK)
+                    tv.setBackgroundColor(Color.WHITE)
+                    tv.setTextColor(Color.BLACK)
                     data.letter
                 }else -> {
-                    itemView.setBackgroundColor(Color.WHITE)
-                    itemView.setTextColor(Color.GRAY)
-                    data!!.label
+                    tv.setBackgroundColor(Color.WHITE)
+                    tv.setTextColor(Color.GRAY)
+                    data.label
                 }
             }
         }
     }
-}
 
-/**
- * recycle view item 模板
- */
-public class RecycleViewItemTemp: ItemViewTemplateManage(){
-    override fun initItemLayout() {
-        addAttr(ItemViewTemplateAttribute(RecycleViewItemHolder::class.java, R.layout.listitem_text))
-    }
 }
 
 public class CitySelectActivity  : AppCompatActivity(){
@@ -149,35 +163,63 @@ public class CitySelectActivity  : AppCompatActivity(){
         val AREA_CODE = "areacode"
     }
 
-    var adapter: MultiTypeAdapter? = null
+    private var cityListAdapter: MultiTypeAdapter? = null
+    //当前选中城市
+    private var curItem:AreaDataItem? = null;
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         setContentView(R.layout.activity_city_select)
 
+        //返回按钮
         iv_title_back.setOnClickListener {
                 returnResult();
         }
 
-        initRecycleView()
+        tv_auto_reset
 
-        asyncArea()
+        //初始化城市列表
+        initCityRecycleView()
+
+        //异步加载城市数据
+        asyncCityData()
+
+    }
+
+    private fun ipLoc() {
+        IOUtils.run {
+            val bean = GaoDeMapUtil.ipConvertAddress();
+            if(bean!=null && bean.city!=null){
+                runOnUiThread {
+                    tv_auto_city.text = bean.city
+                }
+                //搜索
+                for(index in 0 until cityListAdapter?.dataList?.size!!){
+                    val item = cityListAdapter?.dataList!![index].convert<AreaDataItem>()
+                    //判断类型是否是字母
+                    if (item?.type!! == 1 && item.label == bean.city){
+                        curItem = item
+                        asyncAreaData()
+                        break
+                    }
+                }
+            }
+        }
+
     }
 
     private fun returnResult() {
         //返回按钮并且回传结果
         val intent = Intent();
-        val result =  if (curerntItem != null && curerntItem?.value!! > 0) curerntItem?.value else 0
+        val result =  if (curItem != null && curItem?.value!! > 0) curItem?.value else 0
         LLog.print("返回数据: "+ result)
         //把返回数据存入Intent
         intent.putExtra(AREA_CODE,result);
         //设置返回数据
         setResult(RESULT_OK, intent);
-
         finish()
     }
-
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
         if(keyCode== KeyEvent.KEYCODE_BACK) return true;//不执行父类点击事件
@@ -188,12 +230,12 @@ public class CitySelectActivity  : AppCompatActivity(){
 
         //侧边栏事件监听
         wave_side_bar.setOnTouchLetterChangeListener { letter ->
-            for(index in 0 until adapter?.dataList?.size!!){
-                val item = adapter?.dataList!![index].convert<AreaDataItem>()
+            for(index in 0 until cityListAdapter?.dataList?.size!!){
+                val item = cityListAdapter?.dataList!![index].convert<AreaDataItem>()
                 //判断类型是否是字母
                 if (item?.type!! == 0 && item.letter == letter){
-                    recycler.scrollToPosition(index);
-                    val mLayoutManager = recycler.getLayoutManager()
+                    recycler_city.scrollToPosition(index);
+                    val mLayoutManager = recycler_city.getLayoutManager()
                     if ( mLayoutManager is LinearLayoutManager){
                         mLayoutManager.scrollToPositionWithOffset(index, 0);
                     }
@@ -212,92 +254,102 @@ public class CitySelectActivity  : AppCompatActivity(){
         auto_complete.setOnItemClickListener { parent, view, position, id ->
             auto_complete.clearFocus()
             AppUtils.hideSoftInputFromWindow(CitySelectActivity@this)
-            curerntItem = adapter.getItem(position);
-            auto_complete.setText(curerntItem?.label);
-            LLog.print("自动匹配:"+curerntItem)
-            checkTo2page();
+            curItem = adapter.getItem(position);
+            auto_complete.setText(curItem?.label);
+            LLog.print("自动匹配城市:"+curItem)
+            recycler_city.smoothScrollToPosition(0)
+            val mLayoutManager = recycler_city.getLayoutManager()
+            if ( mLayoutManager is LinearLayoutManager){
+                mLayoutManager.scrollToPositionWithOffset(0, 0);
+            }
+            asyncAreaData()
         }
     }
 
-    private fun initRecycleView() {
-        adapter = MultiTypeAdapter(this, RecycleViewItemTemp())
-        RecyclerUtil.gridLayoutManagerSettingVerSpan1Norev(this, recycler)
-        RecyclerUtil.associationAdapter(recycler, adapter)
-        RecyclerUtil.setItemAnimator(recycler, DefaultItemAnimator())
-        adapter?.setItemClickListener { vh, data, position ->
-            curerntItem = data!!.convert<AreaDataItem>()
-            if (curerntItem?.type == 0) return@setItemClickListener
-            auto_complete.setText(curerntItem?.label);
-            LLog.print("列表选择: "+ curerntItem)
-            checkTo2page();
+    private fun initCityRecycleView() {
+        cityListAdapter = MultiTypeAdapter(this, RecycleViewItemTemp())
+        RecyclerUtil.gridLayoutManagerSettingVerSpan1Norev(this, recycler_city)
+        RecyclerUtil.associationAdapter(recycler_city, cityListAdapter)
+        RecyclerUtil.setItemAnimator(recycler_city, DefaultItemAnimator())
+        cityListAdapter?.setItemClickListener { vh, data, position ->
+            curItem = data!!.convert<AreaDataItem>()
+            if (curItem?.type!! > 0){
+                auto_complete.setText(curItem?.label);
+                LLog.print("城市列表选择: "+ curItem)
+                recycler_city.smoothScrollToPosition(0)
+                val mLayoutManager = recycler_city.getLayoutManager()
+                if ( mLayoutManager is LinearLayoutManager){
+                    mLayoutManager.scrollToPositionWithOffset(0, 0);
+                }
+                asyncAreaData()
+            }
         }
     }
-
-
-    private fun checkTo2page() {
-        if (isOpen2Page && curerntItem!=null && curerntItem!!.value>0){
-            val intent = Intent(this@CitySelectActivity, CitySelectActivity::class.java)
-            intent.putExtra(AREA_CODE,curerntItem!!.value)
-            startActivityForResult(intent, REQUEST_SELECT_AREA_CODE)
-        }
-    }
-
-
-    //当前选中
-    var curerntItem:AreaDataItem? = null;
 
     private fun getDataSource(areaCode:Long): MutableList<AreaDataItem> {
         val json = areaJson(areaCode);
         return GsonUtils.json2List(json,AreaDataItem::class.java)
     }
 
-
-
-    private var isOpen2Page: Boolean = false
-
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
-        if (resultCode == RESULT_OK) {
-            if (requestCode == REQUEST_SELECT_AREA_CODE) {
-                val areacode = data!!.getLongExtra(AREA_CODE, 0)
-                if(areacode > 0){
-                    LLog.print("二级页面传递过来的数据" + areacode)
-                    curerntItem = AreaDataItem(value = areacode)
-                    returnResult()
-                }
-            }
-        }
-    }
-
     //异步加载数据
-    private fun asyncArea() {
+    private fun asyncCityData() {
         IOUtils.run {
-            val areaCode = intent.getLongExtra(AREA_CODE,0)
-            if (areaCode == 0L) isOpen2Page = true;
-            LLog.print("初始化_是否打开二级页面:$isOpen2Page")
-            val dataList = getDataSource(areaCode)
-            addLetter(dataList)
+            val dataList = getDataSource(0)
+            dataList.add(AreaDataItem("#","",0,-1)) // 区域显示区占位
+            //添加字母
+            val A = 'A'
+            for (i in 0 until 26){
+                dataList.add(AreaDataItem((A + i).toString()))
+            }
             //对数据进行排序
-            dataList!!.sortWith(Comparator sort@{ o1, o2 ->
+            dataList.sortWith(Comparator sort@{ o1, o2 ->
                 return@sort o1.letter.compareTo(o2.letter)
             })
             dataList.forEach {
-                Log.d("加载数据"," adp = ${adapter} - $it")
-                adapter?.addData(RecycleViewDataModel(it))
+                cityListAdapter?.addData(RecycleViewDataModel(it,this))
             }
             runOnUiThread {
-                adapter?.notifyDataSetChanged()
+                cityListAdapter?.notifyDataSetChanged()
                 initAutoComplete(dataList)
+            }
+            //IP定位
+            ipLoc()
+        }
+    }
+
+
+    private var areaAdapter:MultiTypeAdapter? = null;
+
+    fun setAreaRecycleView(rv: RecyclerView) {
+        if (areaAdapter == null){
+            areaAdapter =  MultiTypeAdapter(citySelectActivity@this, RecycleViewItemTemp());
+            //2.设置关联
+            RecyclerUtil.gridLayoutManagerSettingHorSpanSpcNorev(citySelectActivity@this, rv,3)
+            RecyclerUtil.associationAdapter(rv, areaAdapter)
+            RecyclerUtil.setItemAnimator(rv, DefaultItemAnimator())
+            areaAdapter!!.setItemClickListener{ vh, data, position ->
+                val curArea = data!!.convert<AreaDataItem>()
+                LLog.print("区域列表选择: "+ curArea)
+                curItem = curArea
+                returnResult()
+            }
+        }
+    }
+
+    fun asyncAreaData(){
+        if (curItem == null || curItem!!.type <= 0) return
+        IOUtils.run {
+            areaAdapter!!.clearAll()
+            val dataList = getDataSource(curItem!!.value)
+            dataList.forEach {
+                areaAdapter!!.addData(RecycleViewDataModel(it,this))
+            }
+            runOnUiThread {
+                areaAdapter!!.notifyDataSetChanged()
             }
         }
     }
 
 
-    private fun addLetter(dataList: MutableList<AreaDataItem>?) {
-        val A = 'A'
-        for (i in 0 until 26){
-            dataList?.add(AreaDataItem((A + i).toString()))
-        }
-    }
 
 }

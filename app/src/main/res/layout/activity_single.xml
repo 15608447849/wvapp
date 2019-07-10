@@ -13,22 +13,31 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
 
-    <RelativeLayout
+
+    <lee.bottle.lib.toolset.os.VideoView
+        android:id="@+id/video"
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
-        <Button
+        android:layout_height="match_parent"
+        android:background="@android:color/transparent"/>
+
+    <RelativeLayout
+        android:id="@+id/rl"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@android:color/transparent"
+        android:visibility="gone">
+        <ImageView
             android:id="@+id/rl_btn_pass"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="跳过"
             android:layout_alignParentEnd="true"
-            android:visibility="gone"
-            />
-        <lee.bottle.lib.toolset.os.VideoView
-            android:id="@+id/video"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent" />
+            android:padding="5dp"
+            android:layout_margin="15dp"
+            android:background="@null"
+            android:src="@drawable/ic_ad_pass"
+        />
     </RelativeLayout>
+
 
 
 </FrameLayout>

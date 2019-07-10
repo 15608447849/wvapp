@@ -1,6 +1,8 @@
 package com.bottle.wvapp.fragments;
 
+import android.content.Context;
 import android.content.Intent;
+import android.os.Build;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -47,26 +49,30 @@ public class WebFragment extends SFragment {
         LLog.print(bundle);
         if (bundle!=null) {
             this.loadUrl = bundle.getString("url");
-            this.core = "lee.bottle.lib.toolset.web.SysCore";
+            this.core =
+                    android.os.Build.VERSION.SDK_INT > Build.VERSION_CODES.N ?
+                            "lee.bottle.lib.toolset.web.SysCore" :
+                            "com.bottle.lib.tbsx5.X5Core" ;
             int type =NativeServerImp.config.webPageVersion;
             if (type >= 0 ){
-                this.loadUrl = "file://" + getContext().getCacheDir().getPath() + this.loadUrl;
+                this.loadUrl = "file://" + getContext().getFilesDir().getPath() + this.loadUrl;
                 LLog.print("加载路径: "+ this.loadUrl);
             }
             loadView();
-//            selectCoreDialog();
         }
     }
 
     private void loadView() {
         if (core!= null){
             try {
-                iWebViewInit = (IWebViewInit) ObjectRefUtil.createObject(core,new Class[]{ViewGroup.class, IBridgeImp.class},view,server);
+                iWebViewInit = (IWebViewInit) ObjectRefUtil.createObject(core,
+                        new Class[]{Context.class,ViewGroup.class, IBridgeImp.class},
+                        getActivity().getApplicationContext(),view,server);
             } catch (Exception e) {
                 e.printStackTrace();
             }
         }
-        LLog.print("准备加载页面: "+ loadUrl);
+        LLog.print(this.core + " 准备加载页面 "+ loadUrl);
         if (iWebViewInit!=null) iWebViewInit.getProxy().loadUrl(loadUrl);
     }
 

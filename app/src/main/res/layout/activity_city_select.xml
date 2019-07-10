@@ -4,8 +4,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@android:color/background_light"
-    android:fitsSystemWindows="true">
+    android:background="@android:color/background_light">
     <!-- 头部 -->
     <RelativeLayout
         android:id="@+id/rl_title"
@@ -27,41 +26,71 @@
             android:text="城市选择"
             android:textColor="@android:color/background_light"
             android:textSize="18sp" />
-
     </RelativeLayout>
+
     <!-- 输入搜索 -->
     <RelativeLayout
-        android:layout_below="@id/rl_title"
         android:id="@+id/rl_content_input"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:focusable="true"
-        android:focusableInTouchMode="true">
+        android:focusableInTouchMode="true"
+        android:layout_below="@id/rl_title">
         <AutoCompleteTextView
             android:id="@+id/auto_complete"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:completionThreshold="2"
             android:singleLine="true"
-            android:hint="城市名/拼音"
+            android:hint="请输入 城市名/拼音"
             />
-
     </RelativeLayout>
-    <!-- 列表 -->
-    <FrameLayout
-        android:layout_below="@id/rl_content_input"
-        android:id="@+id/fl_content_list"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent">
 
+    <!-- 当前定位城市及重新定位-->
+    <RelativeLayout
+        android:id="@+id/rl_text"
+        android:layout_below="@id/rl_content_input"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:focusable="true"
+        android:focusableInTouchMode="true">
+        <TextView
+            android:id="@+id/tv_auto_tab"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentStart="true"
+            android:text="当前定位城市: "/>
+        <TextView
+            android:id="@+id/tv_auto_city"
+            android:layout_toEndOf="@+id/tv_auto_tab"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textStyle="bold"
+            android:text=""
+            />
+        <TextView
+            android:id="@+id/tv_auto_reset"
+            android:layout_alignParentEnd="true"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="重新定位"
+            android:paddingEnd="10dp"
+            />
+    </RelativeLayout>
+
+    <!-- 城市列表 -->
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_below="@id/rl_text">
         <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/recycler"
+            android:id="@+id/recycler_city"
             android:layout_width="match_parent"
             android:layout_height="match_parent"/>
-
         <lee.bottle.lib.toolset.ware.WaveSideBarView
             android:id="@+id/wave_side_bar"
             android:layout_width="match_parent"
             android:layout_height="match_parent" />
     </FrameLayout>
+
 </RelativeLayout>

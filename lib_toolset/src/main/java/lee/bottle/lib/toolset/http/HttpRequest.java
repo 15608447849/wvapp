@@ -62,11 +62,15 @@ public class HttpRequest extends HttpUtil.CallbackAbs  {
      * 上传文件
      */
     public HttpRequest addFile(File file, String remotePath, String remoteFileName){
-        if (remotePath==null) remotePath = "/java/";
-        if (remoteFileName==null) remoteFileName = file.getName();
-        pathList.add(remotePath);
-        nameList.add(remoteFileName);
-        formItems.add(new HttpUtil.FormItem("file", file.getName(), file));
+        try {
+            if (remotePath==null) remotePath = "/java/";
+            if (remoteFileName==null) remoteFileName = file.getName();
+            pathList.add(URLEncoder.encode(remotePath,"UTF-8"));
+            nameList.add(URLEncoder.encode(remoteFileName,"UTF-8"));
+            formItems.add(new HttpUtil.FormItem("file", file.getName(), file));
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+        }
         return this;
     }
 

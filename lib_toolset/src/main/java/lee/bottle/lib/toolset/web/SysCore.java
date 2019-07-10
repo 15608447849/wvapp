@@ -15,8 +15,8 @@ import lee.bottle.lib.toolset.jsbridge.IWebViewInit;
  * email: 793065165@qq.com
  */
 public class SysCore extends IWebViewInit<WebView> {
-    public SysCore(ViewGroup group, IBridgeImp bridge) throws Exception {
-        super(group, bridge);
+    public SysCore(Context appContext,ViewGroup group, IBridgeImp bridge) throws Exception {
+        super(appContext,group, bridge);
     }
 
     @SuppressLint("SetJavaScriptEnabled")

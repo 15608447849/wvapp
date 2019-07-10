@@ -10,6 +10,7 @@ import com.tencent.smtt.sdk.WebView;
 import com.tencent.smtt.sdk.WebViewClient;
 
 import lee.bottle.lib.toolset.jsbridge.JSUtils;
+import lee.bottle.lib.toolset.log.LLog;
 
 /**
  * Created by Leeping on 2019/6/10.
@@ -37,6 +38,13 @@ public class X5WebViewClient extends WebViewClient {
      */
     @Override
     public WebResourceResponse shouldInterceptRequest(WebView webView, String url) {
+        if (X5Core.isX5CoreUse(webView)){
+            //禁用滑动按钮
+            webView.getX5WebViewExtension().setScrollBarFadingEnabled(false);
+            webView.getX5WebViewExtension().setHorizontalScrollBarEnabled(false);//水平不显示滚动按钮
+            webView.getX5WebViewExtension().setVerticalScrollBarEnabled(false); //垂直不显示滚动按钮
+            LLog.print("腾讯X5 设置滚动条不显示完成");
+        }
         WebResourceResponse webResourceResponse = JSUtils.mediaUriIntercept(webView.getContext(),url,WebResourceResponse.class);
         return webResourceResponse != null ? webResourceResponse : super.shouldInterceptRequest(webView,url);
     }
@@ -66,7 +74,7 @@ public class X5WebViewClient extends WebViewClient {
 
     @Override
     public void onPageFinished(WebView webView, String url) {
-//        LLog.print("onPageFinished()\t" + url +" ,x5 core = " + X5Core.isX5CoreUse(webView) );
+        LLog.print("onPageFinished()\t" + url +" ,x5 core = " + X5Core.isX5CoreUse(webView) );
         super.onPageFinished(webView, url);
     }
 

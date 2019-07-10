@@ -1,6 +1,7 @@
 package com.bottle.lib.crosswalk;
 
 import android.annotation.SuppressLint;
+import android.content.Context;
 import android.view.ViewGroup;
 
 import org.xwalk.core.XWalkNavigationHistory;
@@ -27,8 +28,8 @@ import static org.xwalk.core.internal.XWalkSettingsInternal.LayoutAlgorithmInter
 public class CKCore extends IWebViewInit<XWalkView> {
 
 
-    public CKCore(ViewGroup group, IBridgeImp bridge) throws Exception{
-        super(group, bridge);
+    public CKCore(Context appContext,ViewGroup group, IBridgeImp bridge) throws Exception{
+        super(appContext,group, bridge);
     }
 
     @Override

@@ -1,10 +1,10 @@
 package com.bottle.lib.tbsx5;
 
 import android.content.Context;
-import android.view.View;
 import android.view.ViewGroup;
 
 import com.tencent.smtt.sdk.QbSdk;
+import com.tencent.smtt.sdk.TbsDownloader;
 import com.tencent.smtt.sdk.WebView;
 
 import lee.bottle.lib.toolset.jsbridge.IBridgeImp;
@@ -19,6 +19,7 @@ public class X5Core extends IWebViewInit<WebView> {
 
     public static void tbsInit(final Context appContext) {
 
+        LLog.print(appContext);
      /*   QbSdk.setTbsListener(new TbsListener() {
             @Override
             public void onDownloadFinish(int i) {
@@ -35,10 +36,10 @@ public class X5Core extends IWebViewInit<WebView> {
                 LLog.print("onDownloadProgress " + i);
             }
         });
+*/
+        TbsDownloader.needDownload(appContext, true);
 
-        TbsDownloader.needDownload(appContext, false);
-
-        LLog.print("QbSdk.isTbsCoreInited() = " + QbSdk.isTbsCoreInited());*/
+        LLog.print("X5 QbSdk.isTbsCoreInited() = " + QbSdk.isTbsCoreInited());
 
         QbSdk.setDownloadWithoutWifi(true);
 
@@ -58,15 +59,17 @@ public class X5Core extends IWebViewInit<WebView> {
 
         //x5内核初始化接口
         QbSdk.initX5Environment(appContext,   new QbSdk.PreInitCallback() {
-            @Override
-            public void onCoreInitFinished() {
-                LLog.print("X5内核初始化完成");
-            }
+
             @Override
             public void onViewInitFinished(boolean flag) {
                 //x5內核初始化完成的回调，为true表示x5内核加载成功，否则表示x5内核加载失败，会自动切换到系统内核。
-//                LLog.print("X5内核使用: "+ flag);
+                LLog.print("X5内核使用: "+ flag);
 //                toast(appContext,"当前使用X5内核: "+ flag);
+
+            }
+            @Override
+            public void onCoreInitFinished() {
+                LLog.print("X5内核初始化完成");
             }
         });
     }
@@ -75,13 +78,13 @@ public class X5Core extends IWebViewInit<WebView> {
         return webView.getX5WebViewExtension() != null;
     }
 
-    public X5Core(ViewGroup group, IBridgeImp bridge) throws Exception {
-        super(group, bridge);
+    public X5Core(Context appContext,ViewGroup group, IBridgeImp bridge) throws Exception {
+        super(appContext,group, bridge);
     }
 
     @Override
-    protected void initPrev(ViewGroup group) {
-        tbsInit(group.getContext());
+    protected void initPrev(Context appContext) {
+        tbsInit(appContext);
     }
 
     @Override
@@ -151,16 +154,18 @@ public class X5Core extends IWebViewInit<WebView> {
         webview.setWebChromeClient(new X5WebChromeClient());
         webview.setWebViewClient(new X5WebViewClient());
 
-        webview.setScrollBarStyle(View.SCROLLBARS_INSIDE_OVERLAY);
         //去除滚动条
-        webview.setHorizontalFadingEdgeEnabled(false);
-        webview.setVerticalScrollBarEnabled(false);
+//        webview.setScrollBarStyle(View.SCROLLBARS_INSIDE_OVERLAY);
+//        webview.setHorizontalFadingEdgeEnabled(false);
+//        webview.setVerticalScrollBarEnabled(false);
         if (isX5CoreUse(webview)){
             //禁用滑动按钮
             webview.getX5WebViewExtension().setScrollBarFadingEnabled(false);
             webview.getX5WebViewExtension().setHorizontalScrollBarEnabled(false);//水平不显示滚动按钮
             webview.getX5WebViewExtension().setVerticalScrollBarEnabled(false); //垂直不显示滚动按钮
+            LLog.print("腾讯X5 设置滚动条不显示完成");
         }
+        LLog.print("浏览器OK");
     }
 
     @Override

@@ -40,6 +40,7 @@ import lee.bottle.lib.singlepageframwork.use.RegisterCentre;
 import lee.bottle.lib.toolset.jsbridge.IBridgeImp;
 import lee.bottle.lib.toolset.jsbridge.IJsBridge;
 import lee.bottle.lib.toolset.log.LLog;
+import lee.bottle.lib.toolset.threadpool.IOUtils;
 import lee.bottle.lib.toolset.util.AppUtils;
 import lee.bottle.lib.toolset.util.GsonUtils;
 import lee.bottle.lib.toolset.util.StringUtils;
@@ -87,6 +88,8 @@ public class NativeServerImp implements IBridgeImp {
         app = application;
         DEVID = AppUtils.devIMEI(app) + "@PHONE" ;
         sp = app.getSharedPreferences("CONFIG", Context.MODE_PRIVATE);
+        wxapi = WXAPIFactory.createWXAPI(app,null);
+        wxapi.registerApp("wx76c27555c5ebeb6d");
         initServerCommunication();
     }
 
@@ -167,39 +170,61 @@ public class NativeServerImp implements IBridgeImp {
         //判断是否使用网络url
         if (webPageVersion <0 ) return;
 
-        //判断是否已存在
-        int recode = sp.getInt("webPageVersion",-200);
-
-        LLog.print("本地记录的recode = " + recode);
-        if (recode == webPageVersion) return;
-
-        InputStream in = null;
-        try {
-            if (webPageVersion == 0){
-                //assets -> 本地缓存路径
-                in = app.getAssets().open("dist.zip");
-            }else {
-                LLog.print("下载zip文件");
-                //下载最新zip
-                File file = HttpServerImp.downloadFile(config.zipLink, app.getFilesDir()+"/dist.zip",null);
-                if (file==null){
-                    //assets -> 本地缓存路径
-                    in = app.getAssets().open("dist.zip");
-                }else{
-                    in = new FileInputStream(file);
-                }
-            }
-            //解压缩
-            boolean flag = AppUtils.unZipToFolder(in,app.getCacheDir());
-            if (flag){
-                sp.edit().putInt("webPageVersion",webPageVersion).apply();
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }finally {
-            if (in!=null) try { in.close(); } catch (IOException ignored) { }
+        if (webPageVersion == 0){
+            checkWebPageByAssets();
+            return;
         }
+        //判断是否已存在
+        int recode = sp.getInt("webPageVersion",0);
+        if (recode<webPageVersion){
+            // 后台执行更新页面操作
+            checkWebPageUpdate(true);
+        }
+    }
 
+    private static void checkWebPageByAssets() {
+        //直接解压缩access中的文件到缓存目录
+        try(InputStream in = app.getAssets().open("dist.zip");){
+            //解压缩
+            boolean flag = AppUtils.unZipToFolder(in,app.getFilesDir());
+            if (!flag) throw new IOException("无法解压缩页面资源");
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+        sp.edit().remove("webPageVersion").apply();
+    }
+
+    private static boolean isUpdateWebPageIng = false;
+
+    private static void checkWebPageUpdate(final boolean isAuto) {
+        if (isUpdateWebPageIng) return;
+
+        IOUtils.run(new Runnable() {
+            @Override
+            public void run() {
+                isUpdateWebPageIng = true;
+                if (!isAuto) {
+                    NativeServerImp.updateServerConfigJson();
+                }
+                //下载最新zip
+                File file = HttpServerImp.downloadFile(config.zipLink, app.getCacheDir()+"/dist.zip",null);
+                if (file != null) {
+                    try(InputStream in = new FileInputStream(file)){
+                        //解压缩
+                        boolean flag = AppUtils.unZipToFolder(in,app.getFilesDir());
+                        if (flag){
+                            sp.edit().putInt("webPageVersion",config.webPageVersion).apply();
+                        }else{
+                            throw new IOException("web页面升级失败,无法解压缩页面资源");
+                        }
+                    }catch (Exception e){
+                        e.printStackTrace();
+                        checkWebPageByAssets();
+                    }
+                }
+                isUpdateWebPageIng = false;
+            }
+        });
     }
 
     private static String serverConfigJson() {
@@ -268,11 +293,10 @@ public class NativeServerImp implements IBridgeImp {
         if (StringUtils.isEmpty(json)){
             //网络获取
             json = ic.setServerAndRequest(DEVID,"userServer","LoginRegistrationModule","appStoreInfo").execute();
-            LLog.print(json);
             isNetwork = true;
         }
         UserInfo info = GsonUtils.jsonToJavaBean(json,UserInfo.class);
-        if (info!=null) {
+        if (info!=null && info.compId>0) {
             if (isNetwork) jsBridgeImp.putData("USER_INFO",json);
             return info.compId;
         }
@@ -355,11 +379,12 @@ public class NativeServerImp implements IBridgeImp {
                 NativeServerImp.ic.settingProxy(serverName).
                         settingReq(DEVID,cls,method).
                         setPageInfo(page,count);
-        String[] arrays = null;
-        if (GsonUtils.checkJsonIsArray(json)) arrays = GsonUtils.jsonToJavaBean(json,String[].class);
-
-        if (arrays != null) client.settingParam(arrays);
-        else client.settingParam(json);
+        if (json!=null){
+            String[] arrays = null;
+            if (GsonUtils.checkJsonIsArray(json)) arrays = GsonUtils.jsonToJavaBean(json,String[].class);
+            if (arrays != null) client.settingParam(arrays);
+            else client.settingParam(json);
+        }
 
         return client.execute();
     }
@@ -549,15 +574,16 @@ public class NativeServerImp implements IBridgeImp {
         return  map.get("resultStatus").toString().equals("9000") ? 0 : -1;
     }
 
-    public IWXAPI wxapi;
+    public static IWXAPI wxapi;
     public int wxpayRes = -1;
     /** 微信支付 */
     public int wxpay(String json){
+        wxpayRes = -1;
         Activity activity = payPrevHandle();
-        if (activity == null) return -1;
+        if (activity == null) return wxpayRes;
         //获取支付信息 https://www.jianshu.com/p/84eac713f007
         Map map = payHandle(json,"wxpay");
-        if (wxapi==null) wxapi = WXAPIFactory.createWXAPI(activity, map.get("appid").toString());
+
         PayReq req = new PayReq();
             req.appId = map.get("appid").toString(); //微信appid
             req.partnerId = map.get("partnerid").toString(); //商户号
@@ -567,9 +593,9 @@ public class NativeServerImp implements IBridgeImp {
             req.timeStamp= map.get("timestamp").toString();//时间戳
             req.sign= map.get("sign").toString();//签名
         boolean isSuccess = wxapi.sendReq(req);
-        if (!isSuccess) return -1;
+        if (!isSuccess) return wxpayRes;
         exeWait();
-        return -1;
+        return wxpayRes;
     }
 
     private String scanRes;
@@ -593,6 +619,19 @@ public class NativeServerImp implements IBridgeImp {
 
     //版本更新
     public void versionUpdate(){
+        checkWebPageUpdate(false);
         UpdateVersionServerImp.execute(false);
+    }
+
+    public String fileUploadUrl(){
+        try {
+            String json = transfer("globalServer","FileInfoModule","fileServerInfo",0,0,null);
+            Map map = GsonUtils.jsonToJavaBean(json,Map.class);
+            map = (Map)map.get("data");
+            return map.get("upUrl").toString();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 }

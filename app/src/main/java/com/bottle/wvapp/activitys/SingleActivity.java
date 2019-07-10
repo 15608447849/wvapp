@@ -8,7 +8,9 @@ import android.os.Bundle;
 import android.os.PersistableBundle;
 import android.view.View;
 import android.view.WindowManager;
-import android.widget.Button;
+import android.view.animation.AlphaAnimation;
+import android.view.animation.Animation;
+import android.view.animation.LinearInterpolator;
 import android.widget.FrameLayout;
 
 import androidx.annotation.NonNull;
@@ -49,19 +51,29 @@ public class SingleActivity extends SActivity implements PermissionApply.Callbac
     private FrameLayout layout;
 
     private VideoView video;
+    private View rLayout;
+    private View passBtn;
 
-    private Button passBtn;
+
+    private boolean isLaunch = false;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_single);
         layout = findViewById(R.id.container);
+        launchPage();
+    }
+
+    private void launchPage() {
         video = findViewById(R.id.video);
+        rLayout = findViewById(R.id.rl);
         passBtn = findViewById(R.id.rl_btn_pass);
+        setAnimation();
         passBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                v.clearAnimation();
                 closeAdVideo();
             }
         });
@@ -69,29 +81,43 @@ public class SingleActivity extends SActivity implements PermissionApply.Callbac
         JSUtils.openCallback = new JSUtils.WebPageOneOpen() {
             @Override
             public void pageFinish() {
-               //显示跳过按钮
-                passBtn.setVisibility(View.VISIBLE);
+                isLaunch = true;
+                closeAdVideo();
+                //显示跳过按钮
+//                rLayout.setVisibility(View.VISIBLE);
+
             }
         };
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
-//        Uri path = Uri.parse("http://114.116.155.221:9999/loading.mp4");
-        String uri = "android.resource://" + getPackageName() + "/" + R.raw.loading;
+        String uri = "android.resource://" + getPackageName() + "/" + R.raw.launch;
         Uri path = Uri.parse(uri);
         video.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
             @Override
             public void onCompletion(MediaPlayer mp) {
-              closeAdVideo();
+                closeAdVideo();
             }
         });
+        video.setVisibility(View.VISIBLE);
         video.setVideoURI(path,false);
     }
 
+    private void setAnimation() {
+        final Animation animation = new AlphaAnimation(1, 0); // Change alpha from fully visible to invisible
+        animation.setDuration(500); // duration - half a second
+        animation.setInterpolator(new LinearInterpolator()); // do not alter animation rate
+        animation.setRepeatCount(Animation.INFINITE); // Repeat animation infinitely
+        animation.setRepeatMode(Animation.REVERSE); // Reverse animation at the end so the button will fade back in
+        passBtn.startAnimation(animation);
+    }
+
     private void closeAdVideo() {
-        getWindow().clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
-        video.pause();
-        video.stopPlayback();
-        video.setVisibility(View.GONE);
-        passBtn.setVisibility(View.GONE);
+        if (isLaunch){
+            getWindow().clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
+            video.pause();
+            video.stopPlayback();
+            video.setVisibility(View.GONE);
+            rLayout.setVisibility(View.GONE);
+        }
     }
 
     /* 权限审核回调 */
@@ -127,6 +153,12 @@ public class SingleActivity extends SActivity implements PermissionApply.Callbac
     //忽略电源回调
     @Override
     public void onPowerIgnoreGranted() {
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        closeAdVideo();
     }
 
     //界面显示

@@ -3,7 +3,7 @@ apply plugin: 'kotlin-android'
 apply plugin: 'kotlin-android-extensions'
 
 def backVersion = "v1.0.0"
-def appVersion = 3
+def appVersion = 11
 def env = "测试环境(221)"
 
 static def releaseTime() {
@@ -55,7 +55,7 @@ dependencies {
     implementation project(':lib_singlepageframwork')
     implementation project(':lib_toolset')
     implementation project(':lib_recycleviews')
-//   implementation project(':lib_tbsx5')
+   implementation project(':lib_tbsx5')
 //  implementation project(':lib_crosswalk')
     ////图片选择器
     implementation project(':lib_imagepick')

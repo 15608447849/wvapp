@@ -1,7 +1,7 @@
 {
-	"serverVersion":1,
-	"updateMessage": "尊敬的用户,我们为您准备了更好的服务,请同意安装",
-	"apkLink": "http://114.116.149.145:9999/onekdrug_android.apk",
+	"serverVersion":0,
+	"updateMessage": "",
+	"apkLink": "",
 	"isUseServerProp": false,
 	"serverProp": {
 		"tag":"DemoIceGrid",

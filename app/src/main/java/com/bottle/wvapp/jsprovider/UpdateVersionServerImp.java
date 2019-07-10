@@ -11,11 +11,10 @@ import com.bottle.wvapp.tool.NotifyUer;
 import java.io.File;
 
 import lee.bottle.lib.toolset.http.HttpUtil;
-import lee.bottle.lib.toolset.log.LLog;
+import lee.bottle.lib.toolset.os.FrontNotification;
 import lee.bottle.lib.toolset.threadpool.IOUtils;
 import lee.bottle.lib.toolset.util.AppUtils;
 import lee.bottle.lib.toolset.util.DialogUtil;
-import lee.bottle.lib.toolset.os.FrontNotification;
 
 /**
  * Created by Leeping on 2019/7/5.
@@ -96,7 +95,7 @@ public class UpdateVersionServerImp extends HttpUtil.CallbackAbs implements Runn
 
         if (!isAuto) tryToast("正在下载新版本,请稍等");
         //下载apk
-        final File file = HttpServerImp.downloadFile(c.apkLink,NativeServerImp.app.getFilesDir() + "/temp.apk",this);
+        final File file = HttpServerImp.downloadFile(c.apkLink,NativeServerImp.app.getCacheDir() + "/temp.apk",this);
         if (file == null) {
             if (!isAuto) tryToast("无法下载最新版本app,请重新尝试");
             return;
@@ -142,9 +141,6 @@ public class UpdateVersionServerImp extends HttpUtil.CallbackAbs implements Runn
         if (isAuto) return;
         //打开进度指示条的通知栏
         int current = (int)( (progress * 100f) / total );
-//        LLog.print("下载进度: " + progress+"/"+total+" - "+ current);
         notification.setProgress(100, current);
-//        remoteViews.setTextViewText(R.id.notify_iv,"下载进度: "+format.format(0.5));
-//        remoteViews.setProgressBar(R.id.notify_progress,100, 50,false);
     }
 }
