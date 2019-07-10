@@ -21,13 +21,13 @@ public class WXPayEntryActivity extends Activity implements IWXAPIEventHandler {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        NativeServerImp.wxapi.handleIntent(getIntent(), this);
+        NativeServerImp.INSTANCE.caller.wxapi.handleIntent(getIntent(), this);
     }
     @Override
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
         setIntent(intent);
-        NativeServerImp.wxapi.handleIntent(intent, this);
+        NativeServerImp.INSTANCE.caller.wxapi.handleIntent(intent, this);
     }
     @Override
     public void onReq(BaseReq req) {
@@ -35,8 +35,8 @@ public class WXPayEntryActivity extends Activity implements IWXAPIEventHandler {
     @Override
     public void onResp(BaseResp resp) {
         LLog.print("微信支付结果: " + GsonUtils.javaBeanToJson(resp));
-        NativeServerImp.INSTANCE.wxpayRes = resp.errCode;
-        NativeServerImp.INSTANCE.exeNotify();
+        NativeServerImp.INSTANCE.caller.wxpayRes = resp.errCode;
+        NativeServerImp.INSTANCE.threadNotify();
         finish();
     }
 }

@@ -1,5 +1,6 @@
 package lee.bottle.lib.toolset.os;
 
+import android.Manifest;
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.pm.PackageInfo;
@@ -21,6 +22,8 @@ import java.util.Map;
 import lee.bottle.lib.toolset.util.AppUtils;
 import lee.bottle.lib.toolset.util.ErrorUtil;
 import lee.bottle.lib.toolset.util.TimeUtils;
+
+import static android.Manifest.permission.READ_PHONE_STATE;
 
 /**
  * Created by user on 2018/3/6.
@@ -61,10 +64,10 @@ public class CrashHandler implements Thread.UncaughtExceptionHandler {
     public void init(Context context) {
         if (context == null) throw new NullPointerException("app context is null.");
         contextRef = new SoftReference<>(context);
-        try{
+        try {
             //收集设备参数信息
             collectDeviceInfo();
-        }catch (Exception e){
+        } catch (Exception e) {
             e.printStackTrace();
         }
 
@@ -74,7 +77,7 @@ public class CrashHandler implements Thread.UncaughtExceptionHandler {
 
     public void setCallback(Callback callback) {
         this.callback = callback;
-        if (callback != null) callback.devInfo(devInfoMap,printDevInfo().toString());
+        if (callback != null) callback.devInfo(devInfoMap, printDevInfo().toString());
     }
 
     @SuppressLint("HardwareIds")
@@ -98,6 +101,14 @@ public class CrashHandler implements Thread.UncaughtExceptionHandler {
         devInfoMap.put("cpu", Arrays.toString(Build.SUPPORTED_ABIS));
         devInfoMap.put("指纹", Build.FINGERPRINT);
         devInfoMap.put("序列号", Build.SERIAL);
+
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O){
+            int hasPermission = mContext.checkSelfPermission(READ_PHONE_STATE);
+            //没有授权
+             if (hasPermission == PackageManager.PERMISSION_GRANTED){
+                 devInfoMap.put("序列号", Build.getSerial());
+             };
+        }
         devInfoMap.put("系统时间", TimeUtils.formatUTC(Build.TIME,null));
         devInfoMap.put("安卓系统版本号",Build.VERSION.RELEASE);
         devInfoMap.put("安卓SDK",Build.VERSION.SDK_INT+"");

@@ -3,6 +3,7 @@ package lee.bottle.lib.toolset.util;
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.ActivityManager;
+import android.app.Application;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -12,6 +13,7 @@ import android.graphics.Bitmap;
 import android.location.LocationManager;
 import android.net.ConnectivityManager;
 import android.net.Uri;
+import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.os.Build;
 import android.os.Looper;
@@ -56,7 +58,6 @@ public class AppUtils {
         //判断是否存在文件写入权限
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M){
             int hasPermission = context.checkSelfPermission(permissionName);
-            //没有授权写权限
             return hasPermission != PackageManager.PERMISSION_DENIED;
         }
         return true;
@@ -163,6 +164,8 @@ public class AppUtils {
         return  false;
     }
 
+
+
     //检查无线网络有效
     private boolean isWirelessNetworkValid(Context context) {
         return AppUtils.isOpenWifi(context) && AppUtils.isNetworkAvailable(context);
@@ -236,10 +239,6 @@ public class AppUtils {
     public static void toast(@NonNull Context context, @NonNull String message){
         if (!checkUIThread() ) return;
         Toast.makeText(context,message, Toast.LENGTH_SHORT).show();
-    }
-    //获取CPU型号
-    public static String getCpuType(@NonNull Context context){
-        return Arrays.toString(Build.SUPPORTED_ABIS);
     }
     //把bitmap 转file
     public static boolean bitmap2File(Bitmap bitmap, File file){
@@ -338,17 +337,39 @@ public class AppUtils {
     }
 
     /**
+     * <uses-permission android:name="android.permission.ACCESS_WIFI_STATE"/>
+     */
+    @SuppressLint("HardwareIds")
+    public static String devMAC(Context context){
+        WifiManager wifiManager = (WifiManager) context.getSystemService(Context.WIFI_SERVICE);
+        if (wifiManager!=null){
+            WifiInfo info = wifiManager.getConnectionInfo();
+            if (info!=null){
+                return info.getMacAddress();
+            }
+        }
+        return "";
+    }
+
+    /**
      *  获取设备IMEI
      * <uses-permission android:name="android.permission.READ_PHONE_STATE"/>
      */
     @SuppressLint({"MissingPermission", "HardwareIds"})
-    public static String devIMEI(Context context){
+    public static String devOnlyCode(Context context){
+        StringBuffer sb = new StringBuffer();
+        sb.append(Build.FINGERPRINT);
+        sb.append("-").append( Arrays.toString(Build.SUPPORTED_ABIS) ).append("-");
         if (checkPermissionExist(context,READ_PHONE_STATE)){
-            TelephonyManager TelephonyMgr = (TelephonyManager)context.getSystemService(TELEPHONY_SERVICE);
-            assert TelephonyMgr != null;
-            return TelephonyMgr.getDeviceId();
+            TelephonyManager telephonyMgr = (TelephonyManager)context.getSystemService(TELEPHONY_SERVICE);
+            if (telephonyMgr != null){
+                sb.append("-").append( telephonyMgr.getDeviceId()).append("-");
+            }
+            String sel = android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O ? Build.getSerial() : Build.SERIAL;
+            sb.append(sel);
         }
-      return "";
+        sb.append(devMAC(context));
+        return sb.toString();
     }
 
 

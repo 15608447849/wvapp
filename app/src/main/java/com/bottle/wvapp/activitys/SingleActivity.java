@@ -148,6 +148,7 @@ public class SingleActivity extends SActivity implements PermissionApply.Callbac
     //授权成功回调
     @Override
     public void onPermissionsGranted() {
+        NativeServerImp.initDEVID();
     }
 
     //忽略电源回调
