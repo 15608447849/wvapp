@@ -1,10 +1,12 @@
 package lee.bottle.lib.toolset.util;
 
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
 import com.google.gson.JsonSyntaxException;
+import com.google.gson.LongSerializationPolicy;
 import com.google.gson.reflect.TypeToken;
 
 import org.json.JSONArray;
@@ -12,6 +14,7 @@ import org.json.JSONException;
 import org.json.JSONTokener;
 
 import java.lang.reflect.Type;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -21,6 +24,11 @@ import java.util.List;
  * email: 793065165@qq.com
  */
 public class GsonUtils {
+    public static Gson newGson(){
+        return new GsonBuilder()
+                .setLongSerializationPolicy(LongSerializationPolicy.STRING)
+                .create();
+    }
     /**
      * json to javabean
      *new TypeToken<List<xxx>>(){}.getType()
@@ -29,7 +37,7 @@ public class GsonUtils {
     public static <T> T jsonToJavaBean(String json,Type type) {
         try {
             if (json==null || json.length()==0) return null;
-            return new Gson().fromJson(json, type);//对于javabean直接给出class实例
+            return newGson().fromJson(json, type);//对于javabean直接给出class实例
         } catch (JsonSyntaxException e) {
             e.printStackTrace();
         }
@@ -42,7 +50,7 @@ public class GsonUtils {
      */
     public static String javaBeanToJson(Object object){
         if (object instanceof String) return object.toString(); //如果是String类型
-        return new Gson().toJson(object);
+        return newGson().toJson(object);
     }
     /**
      * json to javabean
@@ -52,7 +60,7 @@ public class GsonUtils {
     public static <T> T jsonToJavaBean(String json,Class<T> cls) {
         try {
             if (json==null || json.length()==0) return null;
-            return new Gson().fromJson(json, cls);//对于javabean直接给出class实例
+            return newGson().fromJson(json, cls);//对于javabean直接给出class实例
         } catch (JsonSyntaxException e) {
 //            e.printStackTrace();
         }
@@ -72,7 +80,7 @@ public class GsonUtils {
     public static <T> List<T> json2List(String json, Class<T> clazz){
         List<T> list = new ArrayList<>();
         try {
-            Gson gson = new Gson();
+            Gson gson = newGson();
             JsonArray array = new JsonParser().parse(json).getAsJsonArray();
             for (JsonElement element : array) {
                 list.add(gson.fromJson(element, clazz));
@@ -94,6 +102,10 @@ public class GsonUtils {
             }
         } catch (JSONException ignored) { }
         return false;
+    }
+
+    public static int convertInt(Object val){
+        return Integer.parseInt(new BigDecimal(String.valueOf(val)).toString());
     }
 
 }

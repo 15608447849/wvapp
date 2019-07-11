@@ -1,6 +1,7 @@
 package com.bottle.lib.tbsx5;
 
 import android.content.Context;
+import android.view.View;
 import android.view.ViewGroup;
 
 import com.tencent.smtt.sdk.QbSdk;
@@ -10,6 +11,8 @@ import com.tencent.smtt.sdk.WebView;
 import lee.bottle.lib.toolset.jsbridge.IBridgeImp;
 import lee.bottle.lib.toolset.jsbridge.IWebViewInit;
 import lee.bottle.lib.toolset.log.LLog;
+
+import static android.webkit.WebSettings.LOAD_CACHE_ELSE_NETWORK;
 
 /**
  * Created by Leeping on 2019/6/11.
@@ -151,13 +154,16 @@ public class X5Core extends IWebViewInit<WebView> {
         //不禁止网络图片加载
         settings.setBlockNetworkImage(false);
 
+        settings.setCacheMode(LOAD_CACHE_ELSE_NETWORK);
+
         webview.setWebChromeClient(new X5WebChromeClient());
         webview.setWebViewClient(new X5WebViewClient());
 
+
         //去除滚动条
-//        webview.setScrollBarStyle(View.SCROLLBARS_INSIDE_OVERLAY);
-//        webview.setHorizontalFadingEdgeEnabled(false);
-//        webview.setVerticalScrollBarEnabled(false);
+        webview.setScrollBarStyle(View.SCROLLBARS_INSIDE_OVERLAY);
+        webview.setHorizontalFadingEdgeEnabled(false);
+        webview.setVerticalScrollBarEnabled(false);
         if (isX5CoreUse(webview)){
             //禁用滑动按钮
             webview.getX5WebViewExtension().setScrollBarFadingEnabled(false);

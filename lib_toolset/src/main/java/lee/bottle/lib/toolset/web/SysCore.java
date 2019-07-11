@@ -80,7 +80,10 @@ public class SysCore extends IWebViewInit<WebView> {
         //图片自动下载
         settings.setLoadsImagesAutomatically(true);
         //不禁止网络图片加载
-        settings.setBlockNetworkImage(false);
+//        settings.setBlockNetworkImage(false);
+//        settings.setCacheMode(LOAD_CACHE_ELSE_NETWORK);
+        settings.setRenderPriority(WebSettings.RenderPriority.HIGH);
+//        settings.setBlockNetworkImage(true);
 
         webview.setWebChromeClient(new SysWebChromeClient());
         webview.setWebViewClient(new SysWebViewClient());
@@ -89,6 +92,7 @@ public class SysCore extends IWebViewInit<WebView> {
         //去除滚动条
         webview.setHorizontalFadingEdgeEnabled(false);
         webview.setVerticalScrollBarEnabled(false);
+
 
     }
 

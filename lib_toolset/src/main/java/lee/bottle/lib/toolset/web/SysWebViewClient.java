@@ -1,5 +1,6 @@
 package lee.bottle.lib.toolset.web;
 
+import android.content.Context;
 import android.graphics.Bitmap;
 import android.net.http.SslError;
 import android.os.Message;
@@ -15,7 +16,15 @@ import android.webkit.WebResourceResponse;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
+
 import lee.bottle.lib.toolset.jsbridge.JSUtils;
+import lee.bottle.lib.toolset.log.LLog;
+
+import static lee.bottle.lib.toolset.http.HttpUtil.closeIo;
 
 /**
  * Created by Leeping on 2019/7/7.
@@ -34,13 +43,69 @@ public class SysWebViewClient extends WebViewClient {
     }
 
     /**
-     * 通知应用程序内核即将加载url制定的资源，应用程序可以返回本地的资源提供给内核，若本地处理返回数据，内核不从网络上获取数据
+     * 通知应用程序内核即将加载url制定的资源，应用程序可以返回本地的资源提供给内核，
+     * 若本地处理返回数据，内核不从网络上获取数据
      */
     @Override
     public WebResourceResponse shouldInterceptRequest(WebView webView, String url) {
         WebResourceResponse webResourceResponse = JSUtils.mediaUriIntercept(webView.getContext(),url,WebResourceResponse.class);
-        return webResourceResponse != null ? webResourceResponse : super.shouldInterceptRequest(webView,url);
+        return resourceLocalStore(webView.getContext(),url,webResourceResponse) != null ? webResourceResponse : super.shouldInterceptRequest(webView,url);
     }
+
+
+
+    private WebResourceResponse resourceLocalStore(Context context, String url, WebResourceResponse webResourceResponse) {
+//        LLog.print(Thread.currentThread() + " 资源拦截: " + url+" ,webResourceResponse = " + webResourceResponse);
+//        if (url.startsWith("http") || url.startsWith("https")){
+//            File file = context.getFilesDir()+"/webResource";
+//            return webResourceResponseDownload(url);
+//        }
+        return webResourceResponse;
+    }
+
+    private WebResourceResponse webResourceResponseDownload(String url) {
+
+        //从软缓存拿
+        //软缓存找不到->硬盘缓存拿
+        //还是没有,下载资源->设置软存->设置硬存
+
+        WebResourceResponse webResourceResponse = null;
+        HttpURLConnection con = null;
+        OutputStream out = null;//本地文件输出流
+        InputStream in = null; //服务器下载输入流
+        try {
+            if (url.contains("localhost")) return null;
+            LLog.print("下载: " + url);
+            con = (HttpURLConnection) new URL(url).openConnection();
+            con.setRequestMethod("GET");// GET POST
+            con .setUseCaches(false);
+            con.setDefaultUseCaches(false);
+            con.setConnectTimeout(30000);
+            con.setReadTimeout(5000);
+            con.setRequestProperty("Charset", "UTF-8");
+            con.setRequestProperty("Connection", "keep-alive");  //设置连接的状态
+            con.setDoInput(true);
+            con.setRequestProperty("Accept-Encoding", "identity");
+
+            con.setRequestProperty("Content-Type", "application/octet-stream");//传输数据类型,流传输
+            con.connect();//连接
+            int code = con.getResponseCode();
+            String message = con.getResponseMessage();
+            String contentType = con.getContentType();
+            if ( code == HttpURLConnection.HTTP_OK || code == HttpURLConnection.HTTP_PARTIAL) {
+                in = con.getInputStream();
+                webResourceResponse = new WebResourceResponse(contentType,"UTF-8",in);
+            }
+        }catch (Exception e){
+          e.printStackTrace();
+        }finally {
+            closeIo(out,in);
+            if (con!=null) con.disconnect();//断开连接
+        }
+        LLog.print("返回: " + webResourceResponse);
+        return webResourceResponse;
+    }
+
 
     /**
      * http加载错误
@@ -79,6 +144,7 @@ public class SysWebViewClient extends WebViewClient {
 
     /** 在加载页面资源时会调用，每一个资源（比如图片）的加载都会调用一次*/
     public void onLoadResource(WebView view, String url) {
+//        LLog.print("加载资源: " + url);
         super.onLoadResource(view, url);
     }
 
@@ -103,14 +169,16 @@ public class SysWebViewClient extends WebViewClient {
 
     /** 在页面加载开始时调用*/
     @Override
-    public void onPageStarted(WebView view, String url, Bitmap favicon) {
-        super.onPageStarted(view, url, favicon);
+    public void onPageStarted(WebView webView, String url, Bitmap favicon) {
+        webView.getSettings().setBlockNetworkImage(true);
+        super.onPageStarted(webView, url, favicon);
     }
 
     /** 在页面加载结束时调用 */
     @Override
     public void onPageFinished(WebView webView, String url) {
         super.onPageFinished(webView, url);
+        webView.getSettings().setBlockNetworkImage(false);
     }
 
     /** 通知应用程序webview 要被scale。应用程序可以处理改事件，比如调整适配屏幕 */

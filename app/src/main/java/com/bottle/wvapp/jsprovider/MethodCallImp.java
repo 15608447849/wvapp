@@ -47,7 +47,9 @@ public class MethodCallImp {
         return nsi.getAreaFullName(Long.parseLong(areaCode));
     }
 
-    /** 读取手机通讯录 */
+    /** 读取手机通讯录
+     * <uses-permission android:name="android.permission.READ_CONTACTS"/>
+     * */
     private List<String> readContacts(){
         List<String> list = new ArrayList<>();
         ContentResolver resolver  = nsi.app.getContentResolver();
@@ -74,6 +76,7 @@ public class MethodCallImp {
     private ArrayList<String> imagePaths;
 
     private static int REQUEST_SELECT_IMAGES_CODE = 255;
+
     /** 打开图片选择器 */
     private String openImageSelect(){
         if (nsi.fragment.get() == null) throw new NullPointerException("fragment is null");
@@ -101,7 +104,8 @@ public class MethodCallImp {
         private long code;
         private String fullName = "";
     }
-    private AreaBean area = new AreaBean();
+
+    private final AreaBean area = new AreaBean();
 
     /** 打开地区选择器 */
     private AreaBean areaSelect(){
@@ -126,11 +130,12 @@ public class MethodCallImp {
     /** 拨号 */
     private void callPhone(String phone){
         if (nsi.fragment.get()==null || nsi.fragment.get().getContext()==null) return;
-        AppUtils.callPhoneNo(nsi.app,phone);
+        AppUtils.callPhoneNo(nsi.fragment.get().getActivity(),phone);
     }
 
     private String scanRes;
 
+    /** 扫码 */
     private String scan(){
         Fragment f  = nsi.fragment.get();
         if (f == null) return "-1";
@@ -142,6 +147,7 @@ public class MethodCallImp {
     }
 
 
+    /** 打开qq */
     private void openTel(String qq){
         String url="mqqwpa://im/chat?chat_type=wpa&uin="+qq;
         Intent i = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
@@ -149,7 +155,7 @@ public class MethodCallImp {
         nsi.app.startActivity(i);
     }
 
-    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+    public void onActivityResultHandle(int requestCode, int resultCode, Intent data) {
         if (resultCode == RESULT_OK){
             if (requestCode == REQUEST_SELECT_IMAGES_CODE) {
                 imagePaths = data.getStringArrayListExtra(ImagePicker.EXTRA_SELECT_IMAGES);
@@ -161,12 +167,11 @@ public class MethodCallImp {
         }
     }
 
-    //版本更新
+    /**版本更新*/
     private void versionUpdate(){
         nsi.checkWebPageUpdate(false);
         UpdateVersionServerImp.execute(false);
     }
-
 
     /** 支付宝支付 */
     public int alipay(String json){

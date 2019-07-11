@@ -36,9 +36,9 @@ public class SingleActivity extends SActivity implements PermissionApply.Callbac
 
     //权限数组
     private String[] permissionArray = new String[]{
-            Manifest.permission.CAMERA, // 相机和闪光灯
-            Manifest.permission.READ_CONTACTS,//读取联系人
             Manifest.permission.WRITE_EXTERNAL_STORAGE, // 写sd卡
+            Manifest.permission.CAMERA, // 相机和闪光灯
+//            Manifest.permission.READ_CONTACTS,//读取联系人
             Manifest.permission.READ_PHONE_STATE, // 获取手机状态
             Manifest.permission.CALL_PHONE // 拨号
     };
@@ -128,14 +128,12 @@ public class SingleActivity extends SActivity implements PermissionApply.Callbac
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        LLog.print("activity","onActivityResult");
         if (permissionApply != null) permissionApply.onActivityResult(requestCode, resultCode, data);
         super.onActivityResult(requestCode,resultCode,data);
     }
 
     @Override
     protected void onSaveInstanceState(Bundle outState) {
-        LLog.print("onSaveInstanceState","onSaveInstanceState(Bundle outState)");
         super.onSaveInstanceState(outState);
     }
 
@@ -148,7 +146,6 @@ public class SingleActivity extends SActivity implements PermissionApply.Callbac
     //授权成功回调
     @Override
     public void onPermissionsGranted() {
-        NativeServerImp.initDEVID();
     }
 
     //忽略电源回调

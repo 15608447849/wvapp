@@ -9,7 +9,6 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.InputStream;
 
-import lee.bottle.lib.toolset.log.LLog;
 import lee.bottle.lib.toolset.util.DialogUtil;
 import lee.bottle.lib.toolset.util.ObjectRefUtil;
 
@@ -21,6 +20,8 @@ import static lee.bottle.lib.toolset.util.ImageUtils.imageCompression;
  * email: 793065165@qq.com
  */
 public class JSUtils {
+
+
 
     public interface WebPageOneOpen{
         void pageFinish();
@@ -38,10 +39,10 @@ public class JSUtils {
             if ("image".equalsIgnoreCase(scheme)
                     || "audio".equalsIgnoreCase(scheme)
                     || "video".equalsIgnoreCase(scheme)){
-                LLog.print("拦截URL处理\t" + uri);
+
                 String path = uri.getPath();
                 File file = new File(path);
-                LLog.print("加载本地文件:" + path+" , " + file.exists());
+
                 if (!file.exists()) throw new FileNotFoundException(path);
                 if ("image".equalsIgnoreCase(uri.getScheme())){
                     file = imageCompression(context,file,1000);//图片压缩
@@ -54,7 +55,6 @@ public class JSUtils {
         } catch (Exception e) { e.printStackTrace(); }
         return null;
     }
-
 
     public static void progressHandler(Context context,int progress){
         if (progress<100){
@@ -83,6 +83,8 @@ public class JSUtils {
             openCallback = null;
         }
     }
+
+
 
 
 }

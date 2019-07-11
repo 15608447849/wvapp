@@ -25,7 +25,6 @@ import com.leezp.lib.recycles.more_view_adapter.ItemViewTemplateAttribute
 import com.leezp.lib.recycles.more_view_adapter.ItemViewTemplateManage
 import com.leezp.lib.recycles.more_view_adapter.MultiTypeAdapter
 import kotlinx.android.synthetic.main.activity_city_select.*
-import lee.bottle.lib.toolset.log.LLog
 import lee.bottle.lib.toolset.threadpool.IOUtils
 import lee.bottle.lib.toolset.util.AppUtils
 import lee.bottle.lib.toolset.util.GsonUtils
@@ -177,7 +176,10 @@ public class CitySelectActivity  : AppCompatActivity(){
                 returnResult();
         }
 
-        tv_auto_reset
+        tv_auto_reset.setOnClickListener {
+            ipLoc()
+            AppUtils.toast(CitySelectActivity@this,"已重新定位")
+        }
 
         //初始化城市列表
         initCityRecycleView()
@@ -193,6 +195,7 @@ public class CitySelectActivity  : AppCompatActivity(){
             if(bean!=null && bean.city!=null){
                 runOnUiThread {
                     tv_auto_city.text = bean.city
+                    auto_complete.setText(bean.city)
                 }
                 //搜索
                 for(index in 0 until cityListAdapter?.dataList?.size!!){
@@ -213,7 +216,7 @@ public class CitySelectActivity  : AppCompatActivity(){
         //返回按钮并且回传结果
         val intent = Intent();
         val result =  if (curItem != null && curItem?.value!! > 0) curItem?.value else 0
-        LLog.print("返回数据: "+ result)
+//        LLog.print("返回数据: "+ result)
         //把返回数据存入Intent
         intent.putExtra(AREA_CODE,result);
         //设置返回数据
@@ -256,7 +259,7 @@ public class CitySelectActivity  : AppCompatActivity(){
             AppUtils.hideSoftInputFromWindow(CitySelectActivity@this)
             curItem = adapter.getItem(position);
             auto_complete.setText(curItem?.label);
-            LLog.print("自动匹配城市:"+curItem)
+//            LLog.print("自动匹配城市:"+curItem)
             recycler_city.smoothScrollToPosition(0)
             val mLayoutManager = recycler_city.getLayoutManager()
             if ( mLayoutManager is LinearLayoutManager){
@@ -275,7 +278,7 @@ public class CitySelectActivity  : AppCompatActivity(){
             curItem = data!!.convert<AreaDataItem>()
             if (curItem?.type!! > 0){
                 auto_complete.setText(curItem?.label);
-                LLog.print("城市列表选择: "+ curItem)
+//                LLog.print("城市列表选择: "+ curItem)
                 recycler_city.smoothScrollToPosition(0)
                 val mLayoutManager = recycler_city.getLayoutManager()
                 if ( mLayoutManager is LinearLayoutManager){
@@ -329,7 +332,7 @@ public class CitySelectActivity  : AppCompatActivity(){
             RecyclerUtil.setItemAnimator(rv, DefaultItemAnimator())
             areaAdapter!!.setItemClickListener{ vh, data, position ->
                 val curArea = data!!.convert<AreaDataItem>()
-                LLog.print("区域列表选择: "+ curArea)
+//                LLog.print("区域列表选择: "+ curArea)
                 curItem = curArea
                 returnResult()
             }

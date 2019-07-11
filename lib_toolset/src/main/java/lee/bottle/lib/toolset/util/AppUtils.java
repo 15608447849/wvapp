@@ -3,7 +3,6 @@ package lee.bottle.lib.toolset.util;
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.ActivityManager;
-import android.app.Application;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -36,7 +35,10 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.net.NetworkInterface;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
@@ -345,10 +347,41 @@ public class AppUtils {
         if (wifiManager!=null){
             WifiInfo info = wifiManager.getConnectionInfo();
             if (info!=null){
-                return info.getMacAddress();
+                String mac =  info.getMacAddress();
+                if (mac.equalsIgnoreCase("02:00:00:00:00:00")) return getNewMac();
             }
         }
         return "";
+    }
+    /**
+     * 通过网络接口取
+     * @return
+     */
+    private static String getNewMac() {
+        try {
+            List<NetworkInterface> all = Collections.list(NetworkInterface.getNetworkInterfaces());
+            for (NetworkInterface nif : all) {
+                if (!nif.getName().equalsIgnoreCase("wlan0")) continue;
+
+                byte[] macBytes = nif.getHardwareAddress();
+                if (macBytes == null) {
+                    return null;
+                }
+
+                StringBuilder res1 = new StringBuilder();
+                for (byte b : macBytes) {
+                    res1.append(String.format("%02X:", b));
+                }
+
+                if (res1.length() > 0) {
+                    res1.deleteCharAt(res1.length() - 1);
+                }
+                return res1.toString();
+            }
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+        return null;
     }
 
     /**
@@ -366,7 +399,7 @@ public class AppUtils {
                 sb.append("-").append( telephonyMgr.getDeviceId()).append("-");
             }
             String sel = android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O ? Build.getSerial() : Build.SERIAL;
-            sb.append(sel);
+            sb.append(sel).append("-");
         }
         sb.append(devMAC(context));
         return sb.toString();
@@ -377,11 +410,11 @@ public class AppUtils {
      * 拨打电话
      *<uses-permission android:name="android.permission.CALL_PHONE" />
      */
-    public static void callPhoneNo(Context context,String phoneNo){
+    public static void callPhoneNo(Activity activity,String phoneNo){
         Intent intent = new Intent();
         intent.setAction(Intent.ACTION_CALL);
         intent.setData(Uri.parse("tel:"+phoneNo));
-        context.startActivity(intent);
+        activity.startActivity(intent);
     }
 
 }

@@ -38,7 +38,7 @@ public class WebFragment extends SFragment {
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
             if (view == null){
                 view = inflater.inflate(R.layout.fragment_web,null);
-                server = NativeServerImp.createServer(this);
+                server = NativeServerImp.buildServer(this);
             }
         return view;
     }
@@ -73,12 +73,14 @@ public class WebFragment extends SFragment {
             }
         }
         LLog.print(this.core + " 准备加载页面 "+ loadUrl);
-        if (iWebViewInit!=null) iWebViewInit.getProxy().loadUrl(loadUrl);
+        if (iWebViewInit!=null) {
+            iWebViewInit.clear();
+            iWebViewInit.getProxy().loadUrl(loadUrl);
+        }
     }
 
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
-        LLog.print("fragment","onActivityResult");
         server.onActivityResult(requestCode,resultCode,data);
     }
 

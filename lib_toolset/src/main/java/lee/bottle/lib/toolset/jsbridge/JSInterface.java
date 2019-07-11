@@ -83,7 +83,7 @@ public class JSInterface implements IJsBridge {
                     }
                 } catch (Exception e) {
                     e.printStackTrace();
-                    LLog.print("methodName = "+ methodName +" , data = " +data);
+                    LLog.print("js调用native错误("+e+") -> methodName = "+ methodName +" , data = " +data);
                     value = "bridge execute error:\t"+ e;
                 }
 
