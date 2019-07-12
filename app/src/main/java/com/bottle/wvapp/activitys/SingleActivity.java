@@ -2,15 +2,8 @@ package com.bottle.wvapp.activitys;
 
 import android.Manifest;
 import android.content.Intent;
-import android.media.MediaPlayer;
-import android.net.Uri;
 import android.os.Bundle;
 import android.os.PersistableBundle;
-import android.view.View;
-import android.view.WindowManager;
-import android.view.animation.AlphaAnimation;
-import android.view.animation.Animation;
-import android.view.animation.LinearInterpolator;
 import android.widget.FrameLayout;
 
 import androidx.annotation.NonNull;
@@ -18,14 +11,13 @@ import androidx.annotation.Nullable;
 
 import com.bottle.wvapp.R;
 import com.bottle.wvapp.jsprovider.NativeServerImp;
+import com.bottle.wvapp.tool.LaunchPage;
 
 import lee.bottle.lib.singlepageframwork.anno.SLayoutId;
 import lee.bottle.lib.singlepageframwork.base.SActivity;
 import lee.bottle.lib.singlepageframwork.use.RegisterCentre;
-import lee.bottle.lib.toolset.jsbridge.JSUtils;
 import lee.bottle.lib.toolset.log.LLog;
 import lee.bottle.lib.toolset.os.PermissionApply;
-import lee.bottle.lib.toolset.os.VideoView;
 
 /**
  * Created by Leeping on 2019/5/17.
@@ -50,75 +42,15 @@ public class SingleActivity extends SActivity implements PermissionApply.Callbac
     @SLayoutId("content")
     private FrameLayout layout;
 
-    private VideoView video;
-    private View rLayout;
-    private View passBtn;
-
-
-    private boolean isLaunch = false;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_single);
         layout = findViewById(R.id.container);
-        launchPage();
+        LaunchPage.start(this);
     }
 
-    private void launchPage() {
-        video = findViewById(R.id.video);
-        rLayout = findViewById(R.id.rl);
-        passBtn = findViewById(R.id.rl_btn_pass);
-        setAnimation();
-        passBtn.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                v.clearAnimation();
-                closeAdVideo();
-            }
-        });
-
-        JSUtils.openCallback = new JSUtils.WebPageOneOpen() {
-            @Override
-            public void pageFinish() {
-                isLaunch = true;
-                closeAdVideo();
-                //显示跳过按钮
-//                rLayout.setVisibility(View.VISIBLE);
-
-            }
-        };
-        getWindow().addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
-        String uri = "android.resource://" + getPackageName() + "/" + R.raw.launch;
-        Uri path = Uri.parse(uri);
-        video.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
-            @Override
-            public void onCompletion(MediaPlayer mp) {
-                closeAdVideo();
-            }
-        });
-        video.setVisibility(View.VISIBLE);
-        video.setVideoURI(path,false);
-    }
-
-    private void setAnimation() {
-        final Animation animation = new AlphaAnimation(1, 0); // Change alpha from fully visible to invisible
-        animation.setDuration(500); // duration - half a second
-        animation.setInterpolator(new LinearInterpolator()); // do not alter animation rate
-        animation.setRepeatCount(Animation.INFINITE); // Repeat animation infinitely
-        animation.setRepeatMode(Animation.REVERSE); // Reverse animation at the end so the button will fade back in
-        passBtn.startAnimation(animation);
-    }
-
-    private void closeAdVideo() {
-        if (isLaunch){
-            getWindow().clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
-            video.pause();
-            video.stopPlayback();
-            video.setVisibility(View.GONE);
-            rLayout.setVisibility(View.GONE);
-        }
-    }
 
     /* 权限审核回调 */
     @Override
@@ -156,7 +88,7 @@ public class SingleActivity extends SActivity implements PermissionApply.Callbac
     @Override
     protected void onResume() {
         super.onResume();
-        closeAdVideo();
+        LaunchPage.stop();
     }
 
     //界面显示

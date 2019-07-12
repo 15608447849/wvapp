@@ -1,6 +1,5 @@
 package lee.bottle.lib.toolset.os;
 
-import android.Manifest;
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.pm.PackageInfo;
@@ -143,7 +142,7 @@ public class CrashHandler implements Thread.UncaughtExceptionHandler {
         try {
             //保存文件
             String progressName = AppUtils.getCurrentProcessName(mContext);
-            String fileName = TimeUtils.formatUTC(new Date().getTime(),null) + ".log";
+            String fileName = TimeUtils.formatUTC(new Date().getTime(),"yyyy_MM_dd_HH_mm_ss") + ".log";
             String filePath = mContext.getFilesDir()+File.separator+"crash"+File.separator+progressName;
             File dirFile = new File(filePath);
             if (!dirFile.exists()) dirFile.mkdirs();

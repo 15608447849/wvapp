@@ -266,7 +266,7 @@ public class NativeServerImp implements IBridgeImp {
     }
 
     //获取公司码
-    private int getCompId(boolean passLocal) {
+    public int getCompId(boolean passLocal) {
         boolean isNetwork = false;
         String json = null;
         //不跳过本地,并且检测服务器环境信息指纹

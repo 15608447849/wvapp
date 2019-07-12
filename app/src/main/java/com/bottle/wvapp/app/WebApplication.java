@@ -55,6 +55,7 @@ public class WebApplication extends ApplicationAbs implements CrashHandler.Callb
         IOUtils.run(new Runnable() {
             @Override
             public void run() {
+                LLog.print("报错日志文件: " + crashFilePath);
                 HttpServerImp.JSFileItem item = new HttpServerImp.JSFileItem();
                 item.remotePath = "/app/crash";
                 item.fileName = crashFilePath.substring(crashFilePath.lastIndexOf("/")+1);

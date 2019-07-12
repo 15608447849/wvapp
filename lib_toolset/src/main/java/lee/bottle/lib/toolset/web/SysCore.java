@@ -81,7 +81,7 @@ public class SysCore extends IWebViewInit<WebView> {
         settings.setLoadsImagesAutomatically(true);
         //不禁止网络图片加载
 //        settings.setBlockNetworkImage(false);
-//        settings.setCacheMode(LOAD_CACHE_ELSE_NETWORK);
+        settings.setCacheMode(WebSettings.LOAD_CACHE_ELSE_NETWORK);
         settings.setRenderPriority(WebSettings.RenderPriority.HIGH);
 //        settings.setBlockNetworkImage(true);
 
