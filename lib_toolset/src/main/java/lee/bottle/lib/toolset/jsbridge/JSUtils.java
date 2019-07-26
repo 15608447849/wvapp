@@ -27,9 +27,13 @@ public class JSUtils {
         void pageFinish();
     }
 
-    public static ProgressDialog dialog;
+    private static ProgressDialog dialog;
 
-    public static WebPageOneOpen openCallback;
+    private static WebPageOneOpen openCallback;
+
+    public static void setCallback(WebPageOneOpen callback){
+        openCallback = callback;
+    }
 
     /** 对媒体文件拦截 */
     public static <T> T mediaUriIntercept(Context context, String url,Class clazz){
@@ -59,7 +63,7 @@ public class JSUtils {
     public static void progressHandler(Context context,int progress){
         if (progress<100){
             openProgressDialog(context);
-            if (dialog!=null) dialog.setMessage("应用加载进度:"+ progress);
+            if (dialog!=null) dialog.setMessage("应用加载中,已完成"+ progress);
         }else{
             closeProgressDialog();
         }
@@ -68,7 +72,7 @@ public class JSUtils {
     public static void openProgressDialog(Context context){
         if (openCallback!=null) return;
         if (dialog == null){
-            dialog = DialogUtil.createSimpleProgressDialog(context,"应用加载中...");
+            dialog = DialogUtil.createSimpleProgressDialog(context,"应用加载中");
             dialog.show();
         }
     }

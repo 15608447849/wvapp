@@ -34,19 +34,21 @@ public class CommunicationServerImp extends _PushMessageClientDisp {
         IOUtils.run(new Runnable() {
             @Override
             public void run() {
-                LLog.print("服务器推送消息:" + message);
-                String msg = message.substring(4);
-                //解析
-                if (message.startsWith("sys")){
-                    //刷新用户/企业信息
+                try {
+                    LLog.print("服务器推送消息:" + message);
+                    //刷新用户/ 企业信息
                     int compid = bridgeImp.getCompId(true);
-                    if (compid > 0){
-                        bridgeImp.pushMessageToJs(msg);
-                        NotifyUer.createMessageNotify(bridgeImp.fragment.get().getContext(), msg); //打开广播
+                    if (compid == 0) return ;
+                    String msg = message.substring(4);
+                    //解析
+                    if (message.startsWith("sys")){
+                            bridgeImp.pushMessageToJs(msg);
+                            NotifyUer.createMessageNotify(bridgeImp.fragment.get().getContext(), msg); //打开广播
+                    } else if (message.startsWith("pay")){
+                        bridgeImp.pushPaySuccessMessageToJs(msg);
                     }
-                }
-                else if (message.startsWith("pay")){
-                    bridgeImp.pushPaySuccessMessageToJs(msg);
+                } catch (Exception e) {
+                    e.printStackTrace();
                 }
             }
         });

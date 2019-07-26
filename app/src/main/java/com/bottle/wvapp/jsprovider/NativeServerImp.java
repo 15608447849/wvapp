@@ -8,6 +8,8 @@ import android.content.SharedPreferences;
 
 import androidx.fragment.app.Fragment;
 
+import com.bottle.wvapp.BuildConfig;
+import com.bottle.wvapp.fragments.WebFragment;
 import com.onek.client.IceClient;
 import com.onek.server.inf.InterfacesPrx;
 
@@ -18,7 +20,6 @@ import java.io.InputStream;
 import java.lang.ref.SoftReference;
 import java.lang.reflect.Method;
 import java.util.Map;
-import java.util.Properties;
 
 import lee.bottle.lib.singlepageframwork.use.RegisterCentre;
 import lee.bottle.lib.toolset.jsbridge.IBridgeImp;
@@ -48,8 +49,6 @@ public class NativeServerImp implements IBridgeImp {
 
     public static Application app;
 
-    private static SharedPreferences sp;
-
     private static String DEVID = "unknown@PHONE";
 
     private static IceClient ic = null;
@@ -58,13 +57,15 @@ public class NativeServerImp implements IBridgeImp {
 
     private IJsBridge jsBridgeImp;
 
+    static SharedPreferences sp ;
+
     static SoftReference<Fragment> fragment;
 
     private CommunicationServerImp notifyImp; //长连接
 
     public static void bindApplication(Application application){
         app = application;
-        sp = app.getSharedPreferences("CONFIG", Context.MODE_PRIVATE);
+        sp = NativeServerImp.app.getSharedPreferences("CONFIG", Context.MODE_PRIVATE);
         initDEVID();
         initServerCommunication();
     }
@@ -93,17 +94,10 @@ public class NativeServerImp implements IBridgeImp {
 
     //设置,连接服务器
     private static void initServerCommunication() {
-        try(InputStream in =
-                    app.getAssets().open("server.properties")){
-            Properties properties = new Properties();
-            properties.load(in);
-            String tag = properties.getProperty("tag");
-            String address = properties.getProperty("address");
-            String args = properties.getProperty("args");
-            launchICE(new IceClient(tag,address,args));
-        }catch (Exception e){
-            throw new RuntimeException(e);
-        }
+        String tag = BuildConfig._ICE_TAG;
+        String address = BuildConfig._ADDRESS;
+        String args = BuildConfig._ARGS;
+        launchICE(new IceClient(tag,address,args));
     }
 
     public static NativeServerImp buildServer(Fragment fragmentInstance){
@@ -112,19 +106,64 @@ public class NativeServerImp implements IBridgeImp {
         return INSTANCE;
     }
 
+    public static void reopenWeb() {
+        if (fragment.get() !=null && fragment.get() instanceof WebFragment) {
+            WebFragment wf = (WebFragment) fragment.get();
+            wf.loadView();
+        }
+    }
+    private final static String LAUNCH_IMAGE = "launch.png";
+    //获取启动页图片
+    public static InputStream getLaunchImage() {
+        try {
+            File image = new File(app.getFilesDir(),LAUNCH_IMAGE);
+            if (image.exists()){
+                return new FileInputStream(image);
+            }
+            return app.getAssets().open(LAUNCH_IMAGE);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    //更新启动页图片
+    public static void updateLaunchImage(){
+        IOUtils.run(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    String url = fileDownloadUrl()+"/" +LAUNCH_IMAGE;
+                    LLog.print("更新启动页: " + url);
+                    HttpServerImp.downloadFile(url, new File(app.getFilesDir(),LAUNCH_IMAGE).toString(),null);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        });
+    }
+
     /** 服务配置 */
     public static class ServerConfig{
+        String backVersion="v1.0.0";
         int serverVersion;
         String updateMessage;
         String apkLink;
-
-        boolean isUseServerProp;
-        Map<String,String> serverProp;
-
         public int webPageVersion;
         String zipLink;
-
         public RegisterCentre.Bean page;
+        @Override
+        public String toString() {
+            return "{" +
+                    "backVersion='" + backVersion + '\'' +
+                    ", serverVersion=" + serverVersion +
+                    ", updateMessage='" + updateMessage + '\'' +
+                    ", apkLink='" + apkLink + '\'' +
+                    ", webPageVersion=" + webPageVersion +
+                    ", zipLink='" + zipLink + '\'' +
+                    ", page=" + page +
+                    '}';
+        }
     }
 
     public static ServerConfig config;
@@ -132,90 +171,32 @@ public class NativeServerImp implements IBridgeImp {
     //获取页面配置信息JSON
     public static RegisterCentre.Bean[] dynamicPageInformation(){
     if (app == null) throw new RuntimeException("应用初始化失败");
-   updateServerConfigJson();
+    updateServerConfigJson();
     if (config == null || config.page == null) throw new RuntimeException("没有配置信息");
-    //检查服务器信息
-    checkServerInfo();
-    //解压缩html文件到缓存目录
-    transferWebPageToDir();
+    UpdateWebPageImp.transferWebPageToDir(true);
     //更新线程执行
     UpdateVersionServerImp.execute(true);
+
     return new RegisterCentre.Bean[]{ config.page };
     }
 
     //更新服务配置
     static void updateServerConfigJson(){
         String json = loadServerConfigJson();
-        LLog.print(json);
         if (json != null){
+            json = json.trim().replaceAll("\\s*","");
             config =  GsonUtils.jsonToJavaBean(json,ServerConfig.class);
-        }
-    }
-
-    //转移html页面到缓存
-    private static void transferWebPageToDir() {
-
-        int webPageVersion = config.webPageVersion;
-
-        //判断是否使用网络url
-        if (webPageVersion <0 ) return;
-
-        if (webPageVersion == 0){
-            checkWebPageByAssets();
-            return;
-        }
-        //判断是否已存在
-        int recode = sp.getInt("webPageVersion",0);
-        if (recode<webPageVersion){
-            // 后台执行更新页面操作
-            checkWebPageUpdate(true);
-        }
-    }
-
-    private static void checkWebPageByAssets() {
-        //直接解压缩access中的文件到缓存目录
-        try(InputStream in = app.getAssets().open("dist.zip");){
-            //解压缩
-            boolean flag = AppUtils.unZipToFolder(in,app.getFilesDir());
-            if (!flag) throw new IOException("无法解压缩页面资源");
-        }catch (Exception e){
-            e.printStackTrace();
-        }
-        sp.edit().remove("webPageVersion").apply();
-    }
-
-    private static boolean isUpdateWebPageIng = false;
-
-    public static void checkWebPageUpdate(final boolean isAuto) {
-        if (isUpdateWebPageIng) return;
-
-        IOUtils.run(new Runnable() {
-            @Override
-            public void run() {
-                isUpdateWebPageIng = true;
-                if (!isAuto) {
-                    NativeServerImp.updateServerConfigJson();
-                }
-                //下载最新zip
-                File file = HttpServerImp.downloadFile(config.zipLink, app.getCacheDir()+"/dist.zip",null);
-                if (file != null) {
-                    try(InputStream in = new FileInputStream(file)){
-                        //解压缩
-                        boolean flag = AppUtils.unZipToFolder(in,app.getFilesDir());
-                        if (flag){
-                            sp.edit().putInt("webPageVersion",config.webPageVersion).apply();
-                        }else{
-                            throw new IOException("web页面升级失败,无法解压缩页面资源");
-                        }
-                    }catch (Exception e){
-                        e.printStackTrace();
-                        checkWebPageByAssets();
-                    }
-                }
-                isUpdateWebPageIng = false;
+            if (config == null) config = new ServerConfig();
+            if (!StringUtils.isEmpty(config.apkLink) && !config.apkLink.startsWith("http")){
+                config.apkLink = fileDownloadUrl()+"/"+ config.apkLink;
             }
-        });
+            if (!StringUtils.isEmpty(config.zipLink) && !config.zipLink.startsWith("http")){
+                config.apkLink = fileDownloadUrl()+"/"+ config.zipLink;
+            }
+            LLog.print("应用配置信息:\n"+config);
+        }
     }
+
 
     private static String loadServerConfigJson() {
         String json;
@@ -230,16 +211,6 @@ public class NativeServerImp implements IBridgeImp {
         }
 
         return json;
-    }
-
-    private static void checkServerInfo() {
-        if (config.isUseServerProp){
-            Map<String,String> map = config.serverProp;
-            String tag = map.get("tag");
-            String address = map.get("address");
-            String args = map.get("args");
-            NativeServerImp.launchICE(new IceClient(tag,address,args));
-        }
     }
 
     //获取地区信息
@@ -264,28 +235,46 @@ public class NativeServerImp implements IBridgeImp {
         }
         return null;
     }
+    //文件下载地址
+    public static String fileDownloadUrl(){
+        try {
+            String json = ic.setServerAndRequest("globalServer","FileInfoModule","fileServerInfo").execute();
+            Map map = GsonUtils.jsonToJavaBean(json,Map.class);
+            map = (Map)map.get("data");
+            return map.get("downPrev").toString();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
 
     //获取公司码
     public int getCompId(boolean passLocal) {
-        boolean isNetwork = false;
-        String json = null;
-        //不跳过本地,并且检测服务器环境信息指纹
-        if (!passLocal && checkServerEnv()){
-            //尝试本地缓存获取
-            json = jsBridgeImp.getData("USER_INFO");
-        }
-        if (StringUtils.isEmpty(json)){
-            //网络获取
-            json = ic.setServerAndRequest(DEVID,"userServer","LoginRegistrationModule","appStoreInfo").execute();
-            isNetwork = true;
-        }
-        Map map = GsonUtils.jsonToJavaBean(json,Map.class);
-        Object _compId = map.get("compId");
-        if (_compId!=null) {
-            int compId = GsonUtils.convertInt(_compId);
-            if (compId > 0){
-                if (isNetwork) jsBridgeImp.putData("USER_INFO",json);
-                return compId;
+        if (jsBridgeImp != null){
+
+            boolean isNetwork = false;
+            String json = null;
+            //不跳过本地,并且检测服务器环境信息指纹
+            if (!passLocal && checkServerEnv()){
+                //尝试本地缓存获取
+                json = jsBridgeImp.getData("USER_INFO");
+            }
+            if (StringUtils.isEmpty(json)){
+                //网络获取
+                json = ic.setServerAndRequest(DEVID,"userServer","LoginRegistrationModule","appStoreInfo").execute();
+                LLog.print("网络获取用户信息完成: "+ json);
+                isNetwork = true;
+            }
+            Map map = GsonUtils.jsonToJavaBean(json,Map.class);
+            if (map!=null){
+                Object _compId = map.get("compId");
+                if (_compId!=null) {
+                    int compId = GsonUtils.convertInt(_compId);
+                    if (compId > 0){
+                        if (isNetwork) jsBridgeImp.putData("USER_INFO",json);
+                        return compId;
+                    }
+                }
             }
         }
         return 0;
@@ -325,12 +314,12 @@ public class NativeServerImp implements IBridgeImp {
     @Override
     public void setIJsBridge(IJsBridge bridge) {
         this.jsBridgeImp = bridge;
+        getCompId(true);
     }
 
     @Override
     public Object invoke(String methodName, String data) throws Exception{
         if (isDebug) LLog.print("本地方法: "+ methodName +" ,数据: "+ data );
-
         if (methodName.startsWith("ts:")){
             //转发协议  ts:服务名@类名@方法名@分页页码@分页条数
             String temp = methodName.replace("ts:","");
@@ -412,11 +401,13 @@ public class NativeServerImp implements IBridgeImp {
 
     /** 推送消息 */
     void pushMessageToJs(final String message){
+        if (jsBridgeImp == null) return;
         jsBridgeImp.requestJs("communicationSysReceive",message, null);
     }
 
     /** 推送支付结果 */
     void pushPaySuccessMessageToJs(final String message){
+        if (jsBridgeImp == null) return;
         jsBridgeImp.requestJs("communicationPayReceive",message, null);
     }
 

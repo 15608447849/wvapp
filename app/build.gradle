@@ -2,9 +2,13 @@ apply plugin: 'com.android.application'
 apply plugin: 'kotlin-android'
 apply plugin: 'kotlin-android-extensions'
 
-def backVersion = "v1.0.0"
-def appVersion = 13
-def env = "测试环境(221)"
+def appVersion = 20
+def iceTag = "DemoIceGrid"
+//def address = "114.116.155.221:4061"
+//def address = "114.116.145.149:4061"
+def address = "47.106.100.121:4061"
+def args = "idleTimeOutSeconds=300,--Ice.MessageSizeMax=4096"
+def env = "[${address.replace(':', '@')}]"
 
 static def releaseTime() {
     return new Date().format("yyyyMMdd", TimeZone.getTimeZone("UTC"))
@@ -17,7 +21,10 @@ android {
         minSdkVersion 23
         targetSdkVersion 28
         versionCode appVersion
-        versionName "${appVersion}"
+        versionName "B-${appVersion}-W-${releaseTime()}-${address}"
+        buildConfigField("String", "_ICE_TAG", "\"${iceTag}\"")
+        buildConfigField("String", "_ADDRESS", "\"${address}\"")
+        buildConfigField("String", "_ARGS", "\"${args}\"")
     }
     dexOptions {
         javaMaxHeapSize "4g"
@@ -27,6 +34,7 @@ android {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+
         }
     }
 
@@ -38,8 +46,8 @@ android {
     android.applicationVariants.all {
         variant ->
             variant.outputs.all {
-                //后台版本 + 环境标识 + app版本
-                outputFileName ="${backVersion}_${env}_${appVersion}_${releaseTime()}.apk"
+                //环境 + 时间 + 后台版本 + app版本
+                outputFileName ="${env}_${releaseTime()}_${appVersion}.apk"
             }
     }
 
@@ -55,7 +63,7 @@ dependencies {
     implementation project(':lib_singlepageframwork')
     implementation project(':lib_toolset')
     implementation project(':lib_recycleviews')
-   implementation project(':lib_tbsx5')
+//   implementation project(':lib_tbsx5')
 //  implementation project(':lib_crosswalk')
     ////图片选择器
     implementation project(':lib_imagepick')

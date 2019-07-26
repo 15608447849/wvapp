@@ -27,6 +27,16 @@ public class RegisterCentre {
         String fragment;//fragment路径
         public String name;//fragment名字
         HashMap<String,String> map;//携带的参数
+
+        @Override
+        public String toString() {
+            return "{" +
+                    "container='" + container + '\'' +
+                    ", fragment='" + fragment + '\'' +
+                    ", name='" + name + '\'' +
+                    ", map=" + map +
+                    '}';
+        }
     }
 
     static Map<String,HashSet<SFAttribute>> map = new LinkedHashMap<>();

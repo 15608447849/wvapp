@@ -31,17 +31,17 @@ public class NotifyUer {
         build.setTicker(message);
         build.generateNotification().showNotification();
     }
-    public static FrontNotification createDownloadApkNotify(Context context){
+    public static FrontNotification createDownloadApkNotify(Context context,String title){
         Intent intent = new Intent(context, SingleActivity.class);
        return new FrontNotification.Build(context).setLevel(3)
                 .setId(currentId++)
-                .setGroup("download")
+                .setGroup("download-"+title)
                 .setFlags(new int[]{Notification.FLAG_FOREGROUND_SERVICE,Notification.FLAG_ONLY_ALERT_ONCE,
                         Notification.FLAG_ONGOING_EVENT,Notification.FLAG_NO_CLEAR})
                 .setDefaults(Notification.DEFAULT_ALL)
                .setActivityIntent(intent)
                 .setSmallIcon(R.drawable.ic_update_version)
-               .setText(context.getString(R.string.app_name),"正在下载" ,"下载完成自动关闭")
+               .setText(context.getString(R.string.app_name),title ,"下载完成自动关闭")
                 .generateNotification();
 
     }

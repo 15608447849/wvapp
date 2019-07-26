@@ -29,6 +29,7 @@ import lee.bottle.lib.toolset.util.StringUtils;
 
 import static android.app.Activity.RESULT_OK;
 import static android.content.Intent.FLAG_ACTIVITY_NEW_TASK;
+import static lee.bottle.lib.toolset.util.AppUtils.getVersionName;
 import static lee.bottle.lib.toolset.util.StringUtils.mapToString;
 
 /**
@@ -169,7 +170,7 @@ public class MethodCallImp {
 
     /**版本更新*/
     private void versionUpdate(){
-        nsi.checkWebPageUpdate(false);
+        UpdateWebPageImp.transferWebPageToDir(false);
         UpdateVersionServerImp.execute(false);
     }
 
@@ -220,4 +221,10 @@ public class MethodCallImp {
         nsi.communication(type);
     }
 
+    /** 版本信息 */
+    public String versionInfo(){
+        return getVersionName(NativeServerImp.app)
+                .replace("B", NativeServerImp.config.backVersion)
+                .replace("W",NativeServerImp.sp.getInt("webPageVersion",0)+"");
+    }
 }

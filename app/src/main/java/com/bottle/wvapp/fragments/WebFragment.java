@@ -2,7 +2,6 @@ package com.bottle.wvapp.fragments;
 
 import android.content.Context;
 import android.content.Intent;
-import android.os.Build;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -48,11 +47,14 @@ public class WebFragment extends SFragment {
         Bundle bundle = getArguments();
         LLog.print(bundle);
         if (bundle!=null) {
+            if (NativeServerImp.config==null) return;
+
             this.loadUrl = bundle.getString("url");
-            this.core =
-                    android.os.Build.VERSION.SDK_INT > Build.VERSION_CODES.N ?
-                            "lee.bottle.lib.toolset.web.SysCore" :
-                            "com.bottle.lib.tbsx5.X5Core" ;
+            this.core = "lee.bottle.lib.toolset.web.SysCore";
+//                    android.os.Build.VERSION.SDK_INT > Build.VERSION_CODES.N ?
+//                            "lee.bottle.lib.toolset.web.SysCore" :
+//                            "com.bottle.lib.tbsx5.X5Core" ;
+
             int type =NativeServerImp.config.webPageVersion;
             if (type >= 0 ){
                 this.loadUrl = "file://" + getContext().getFilesDir().getPath() + this.loadUrl;
@@ -62,21 +64,28 @@ public class WebFragment extends SFragment {
         }
     }
 
-    private void loadView() {
-        if (core!= null){
-            try {
-                iWebViewInit = (IWebViewInit) ObjectRefUtil.createObject(core,
-                        new Class[]{Context.class,ViewGroup.class, IBridgeImp.class},
-                        getActivity().getApplicationContext(),view,server);
-            } catch (Exception e) {
-                e.printStackTrace();
+    public void loadView() {
+        mHandler.ui(new Runnable() {
+            @Override
+            public void run() {
+
+                if (core!= null){
+                    try {
+                        iWebViewInit = (IWebViewInit) ObjectRefUtil.createObject(core,
+                                new Class[]{Context.class,ViewGroup.class, IBridgeImp.class},
+                                getActivity().getApplicationContext(),view,server);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+                LLog.print(core + " 准备加载页面 "+ loadUrl);
+                if (iWebViewInit!=null) {
+                    iWebViewInit.clear();
+                    iWebViewInit.getProxy().loadUrl(loadUrl);
+                }
+
             }
-        }
-        LLog.print(this.core + " 准备加载页面 "+ loadUrl);
-        if (iWebViewInit!=null) {
-            iWebViewInit.clear();
-            iWebViewInit.getProxy().loadUrl(loadUrl);
-        }
+        });
     }
 
     @Override
@@ -88,6 +97,4 @@ public class WebFragment extends SFragment {
     protected boolean onBackPressed() {
         return iWebViewInit != null && iWebViewInit.onBackPressed();
     }
-
-
 }

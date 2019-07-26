@@ -19,6 +19,7 @@ import lee.bottle.lib.toolset.util.DialogUtil;
 /**
  * Created by Leeping on 2019/7/5.
  * email: 793065165@qq.com
+ * 更新APP版本
  */
 public class UpdateVersionServerImp extends HttpUtil.CallbackAbs implements Runnable{
 
@@ -69,13 +70,11 @@ public class UpdateVersionServerImp extends HttpUtil.CallbackAbs implements Runn
 
     //打开进度条
     private void openProgress() {
-        if (isAuto) return;
-            notification = NotifyUer.createDownloadApkNotify(NativeServerImp.app.getApplicationContext());
+            notification = NotifyUer.createDownloadApkNotify(NativeServerImp.app.getApplicationContext(),"下载apk文件");
             notification.setProgress(100,0);
     }
 
     private void closeProgress() {
-        if (isAuto) return;
         notification.cancelNotification();
         notification = null;
     }
@@ -138,7 +137,6 @@ public class UpdateVersionServerImp extends HttpUtil.CallbackAbs implements Runn
 
     @Override
     public void onProgress(File file, long progress, long total) {
-        if (isAuto) return;
         //打开进度指示条的通知栏
         int current = (int)( (progress * 100f) / total );
         notification.setProgress(100, current);
