@@ -43,7 +43,7 @@ class UpdateWebPageImp {
             boolean flag = AppUtils.unZipToFolder(in,NativeServerImp.app.getFilesDir());
             if (!flag) throw new IOException("无法解压缩页面资源");
         }catch (Exception e){
-            e.printStackTrace();
+            LLog.print("从asset文件中解压zip时错误,"+e);
         }
        NativeServerImp.sp.edit().remove("webPageVersion").apply();
     }

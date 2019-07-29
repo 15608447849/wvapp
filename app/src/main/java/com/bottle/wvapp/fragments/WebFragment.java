@@ -68,7 +68,6 @@ public class WebFragment extends SFragment {
         mHandler.ui(new Runnable() {
             @Override
             public void run() {
-
                 if (core!= null){
                     try {
                         iWebViewInit = (IWebViewInit) ObjectRefUtil.createObject(core,

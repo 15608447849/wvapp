@@ -262,17 +262,21 @@ public class NativeServerImp implements IBridgeImp {
             if (StringUtils.isEmpty(json)){
                 //网络获取
                 json = ic.setServerAndRequest(DEVID,"userServer","LoginRegistrationModule","appStoreInfo").execute();
-                LLog.print("网络获取用户信息完成: "+ json);
+//                LLog.print("网络获取用户信息完成: "+ json);
                 isNetwork = true;
             }
             Map map = GsonUtils.jsonToJavaBean(json,Map.class);
             if (map!=null){
                 Object _compId = map.get("compId");
+                Object _roleCode = map.get("roleCode");
                 if (_compId!=null) {
                     int compId = GsonUtils.convertInt(_compId);
                     if (compId > 0){
                         if (isNetwork) jsBridgeImp.putData("USER_INFO",json);
-                        return compId;
+                        int roleCode = GsonUtils.convertInt(_roleCode);
+                        if ((roleCode & 2) > 0){
+                            return compId;
+                        }
                     }
                 }
             }

@@ -2,10 +2,9 @@ apply plugin: 'com.android.application'
 apply plugin: 'kotlin-android'
 apply plugin: 'kotlin-android-extensions'
 
-def appVersion = 20
+def appVersion = 21
 def iceTag = "DemoIceGrid"
 //def address = "114.116.155.221:4061"
-//def address = "114.116.145.149:4061"
 def address = "47.106.100.121:4061"
 def args = "idleTimeOutSeconds=300,--Ice.MessageSizeMax=4096"
 def env = "[${address.replace(':', '@')}]"
@@ -21,7 +20,7 @@ android {
         minSdkVersion 23
         targetSdkVersion 28
         versionCode appVersion
-        versionName "B-${appVersion}-W-${releaseTime()}-${address}"
+        versionName "B-${appVersion}-W-${releaseTime()}"
         buildConfigField("String", "_ICE_TAG", "\"${iceTag}\"")
         buildConfigField("String", "_ADDRESS", "\"${address}\"")
         buildConfigField("String", "_ARGS", "\"${args}\"")
@@ -46,7 +45,7 @@ android {
     android.applicationVariants.all {
         variant ->
             variant.outputs.all {
-                //环境 + 时间 + 后台版本 + app版本
+                //环境 + 时间  + app版本
                 outputFileName ="${env}_${releaseTime()}_${appVersion}.apk"
             }
     }
