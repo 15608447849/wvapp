@@ -146,12 +146,14 @@ public class NativeServerImp implements IBridgeImp {
     /** 服务配置 */
     public static class ServerConfig{
         String backVersion="v1.0.0";
-        int serverVersion;
-        String updateMessage;
-        String apkLink;
-        public int webPageVersion;
-        String zipLink;
-        public RegisterCentre.Bean page;
+        int serverVersion = 0;
+        String updateMessage = "发现新版本,请更新";
+        String apkLink = "";
+        public int webPageVersion = 0;
+        String zipLink = "";
+        public RegisterCentre.Bean page =
+                new RegisterCentre.Bean("com.bottle.wvapp.fragments.WebFragment","web","content")
+                        .addParam("url","/dist/index.html");
         @Override
         public String toString() {
             return "{" +
@@ -183,18 +185,15 @@ public class NativeServerImp implements IBridgeImp {
     //更新服务配置
     static void updateServerConfigJson(){
         String json = loadServerConfigJson();
-        if (json != null){
-            json = json.trim().replaceAll("\\s*","");
-            config =  GsonUtils.jsonToJavaBean(json,ServerConfig.class);
-            if (config == null) config = new ServerConfig();
-            if (!StringUtils.isEmpty(config.apkLink) && !config.apkLink.startsWith("http")){
-                config.apkLink = fileDownloadUrl()+"/"+ config.apkLink;
-            }
-            if (!StringUtils.isEmpty(config.zipLink) && !config.zipLink.startsWith("http")){
-                config.apkLink = fileDownloadUrl()+"/"+ config.zipLink;
-            }
-            LLog.print("应用配置信息:\n"+config);
+        config  =  GsonUtils.jsonToJavaBean(json,ServerConfig.class);
+        if (config == null) config = new ServerConfig();
+        if (!StringUtils.isEmpty(config.apkLink) && !config.apkLink.startsWith("http")){
+            config.apkLink = fileDownloadUrl()+"/"+ config.apkLink;
         }
+        if (!StringUtils.isEmpty(config.zipLink) && !config.zipLink.startsWith("http")){
+            config.apkLink = fileDownloadUrl()+"/"+ config.zipLink;
+        }
+        LLog.print("配置信息:\n"+config);
     }
 
 
@@ -203,13 +202,13 @@ public class NativeServerImp implements IBridgeImp {
         try {
             //网络获取
             json = ic.setServerAndRequest("globalServer","WebAppModule","config").execute();
+            json = json.trim().replaceAll("\\s*","");
             if (StringUtils.isEmpty(json) || json.equals("null")) throw new NullPointerException();
             if (json.contains("code") && json.contains("message")) throw new NullPointerException();
         } catch (Exception e) {
-            //本地获取
-           json = AppUtils.assetFileContentToText(app, "config.json");
+            LLog.print("加载服务器配置信息错误,没有服务器没有配置信息");
+           json = null;
         }
-
         return json;
     }
 
@@ -247,6 +246,18 @@ public class NativeServerImp implements IBridgeImp {
         }
         return null;
     }
+    //文件删除地址
+    public static String fileDeleteUrl(){
+        try {
+            String json = ic.setServerAndRequest("globalServer","FileInfoModule","fileServerInfo").execute();
+            Map map = GsonUtils.jsonToJavaBean(json,Map.class);
+            map = (Map)map.get("data");
+            return map.get("deleteUrl").toString();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
 
     //获取公司码
     public int getCompId(boolean passLocal) {
@@ -271,6 +282,7 @@ public class NativeServerImp implements IBridgeImp {
                 Object _roleCode = map.get("roleCode");
                 if (_compId!=null) {
                     int compId = GsonUtils.convertInt(_compId);
+                    LLog.print("公司码 "+ compId);
                     if (compId > 0){
                         if (isNetwork) jsBridgeImp.putData("USER_INFO",json);
                         int roleCode = GsonUtils.convertInt(_roleCode);

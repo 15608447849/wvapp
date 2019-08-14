@@ -54,13 +54,19 @@ public class HttpServerImp {
             try {
                 Uri uri = Uri.parse(item.uri);
                 String path = uri.getPath();
-                File file = new File(path);
-                if (file.exists()){
-                    if ("image".equals(uri.getScheme())){
-                        file = ImageUtils.imageCompression(context,file,1000);
+                if (path!=null){
+                    File file = new File(path);
+                    if (file.exists()){
+                        if ("image".equals(uri.getScheme())){
+                            file = ImageUtils.imageCompression(context,file,500);
+                            httpRequest.setCompress(true);//服务器压缩
+                            httpRequest.setLogo(true);//图片水印
+                            httpRequest.setCompressLimitSieze(5*1024*1024L);
+                        }
+                        httpRequest.addFile(file,item.remotePath ,item.fileName);
                     }
-                    httpRequest.addFile(file,item.remotePath ,item.fileName);
                 }
+
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -68,6 +74,7 @@ public class HttpServerImp {
         return  httpRequest.fileUploadUrl(bean.url).getRespondContent();
     }
 
+    //文件下载
     public static File downloadFile(String url, String storePath, final HttpUtil.Callback callback){
         File file = new File(storePath);
        return new HttpRequest(){
@@ -76,5 +83,20 @@ public class HttpServerImp {
                if (callback!= null) callback.onProgress(file,progress,total);
            }
        }.download(url,file) ? file : null;
+    }
+
+    //文件删除
+    public static String deleteFileOnRemoteServer(String url,List<String> pathList){
+        List<String> paths = new ArrayList<>();
+        for (String path : pathList){
+            Uri uri = Uri.parse(path);
+            if ("http".equals(uri.getScheme()) || "https".equals(uri.getScheme())){
+                paths.add(uri.getPath());
+            }
+        }
+        if (paths.size() > 0){
+            return new HttpRequest().deleteFile(url,paths).getRespondContent();
+        }
+        return null;
     }
 }

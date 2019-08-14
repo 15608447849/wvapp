@@ -70,13 +70,17 @@ public class UpdateVersionServerImp extends HttpUtil.CallbackAbs implements Runn
 
     //打开进度条
     private void openProgress() {
+        if (notification == null){
             notification = NotifyUer.createDownloadApkNotify(NativeServerImp.app.getApplicationContext(),"下载apk文件");
             notification.setProgress(100,0);
+        }
     }
 
     private void closeProgress() {
-        notification.cancelNotification();
-        notification = null;
+        if(notification != null){
+            notification.cancelNotification();
+            notification = null;
+        }
     }
 
     private void checkVersionAndDownload() {

@@ -34,6 +34,7 @@ public class ObjectRefUtil {
      * @return 反射对象
      */
     public static Object createObject(String classPath,Class[] parameterTypes,Object... parameters) throws Exception{
+//            Log.w("反射对象",classPath+" - "+ Arrays.toString(parameterTypes) +" - " + Arrays.toString(parameters));
             Class cls = Class.forName(classPath);
             return createObject(cls,parameterTypes,parameters);
     }

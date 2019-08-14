@@ -21,11 +21,16 @@ class UpdateWebPageImp {
     //解压缩html文件到缓存目录
     static void transferWebPageToDir(boolean isAuto) {
         if (NativeServerImp.config == null) return;
+
+        //判断是否已存在
+        int recode = NativeServerImp.sp.getInt("webPageVersion",0);
+
+        if (!checkAppVersionMatch(NativeServerImp.config.serverVersion,recode)) return;
+
         int webPageVersion = NativeServerImp.config.webPageVersion;
         //判断是否使用网络url
         if (webPageVersion <0 ) return;
-        //判断是否已存在
-        int recode = NativeServerImp.sp.getInt("webPageVersion",0);
+
         LLog.print("当前服务器web page 版本: " + webPageVersion+" , 当前记录的web page 版本: "+ recode);
         if (webPageVersion == 0 || recode == 0){
             unzipWebPageByAssets(); //从assets解压缩
@@ -35,7 +40,26 @@ class UpdateWebPageImp {
             updateWebPage(isAuto);
         }
     }
-    //从assets中解压缩
+
+    private static boolean checkAppVersionMatch(int remote,int recode) {
+        //如果当前app版本与服务器版本不一致
+        if (AppUtils.getVersionCode(NativeServerImp.app)<remote){
+            //检查是否存在已记录得版本
+            if (recode == 0){
+                unzipWebPageByAssets();
+            }else {
+                //如果存在,检查本地文件是否存在, 存在不做任何操作,不存在解压缩
+                File file = new File(NativeServerImp.app.getFilesDir()+"/dist/index,html");
+                if (!file.exists()){
+                    unzipWebPageByAssets();
+                }
+            }
+            return false;
+        }
+        return true;
+    }
+
+    //从assets中解压缩 初始化安装或版本更新时
     private static void unzipWebPageByAssets() {
         //直接解压缩access中的文件到缓存目录
         try(InputStream in = NativeServerImp.app.getAssets().open("dist.zip");){

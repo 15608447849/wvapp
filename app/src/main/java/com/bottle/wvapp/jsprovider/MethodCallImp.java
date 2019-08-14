@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 
 import lee.bottle.lib.imagepick.ImagePicker;
+import lee.bottle.lib.toolset.log.LLog;
 import lee.bottle.lib.toolset.util.AppUtils;
 import lee.bottle.lib.toolset.util.GsonUtils;
 import lee.bottle.lib.toolset.util.StringUtils;
@@ -111,6 +112,7 @@ public class MethodCallImp {
     /** 打开地区选择器 */
     private AreaBean areaSelect(){
         area.code = 0; //重置
+        area.fullName = "";
         if (nsi.fragment.get() == null) throw new NullPointerException("fragment is null");
         Intent intent = new Intent(nsi.fragment.get().getContext(), CitySelectActivity.class);
         nsi.fragment.get().startActivityForResult(intent, CitySelectActivity.CONST.getREQUEST_SELECT_AREA_CODE());
@@ -226,5 +228,12 @@ public class MethodCallImp {
         return getVersionName(NativeServerImp.app)
                 .replace("B", NativeServerImp.config.backVersion)
                 .replace("W",NativeServerImp.sp.getInt("webPageVersion",0)+"");
+    }
+
+    /** 文件删除 */
+    public String delFiles(String json){
+        List<String> list = GsonUtils.json2List(json,String.class);
+        LLog.print("删除文件: "+ list);
+        return HttpServerImp.deleteFileOnRemoteServer(NativeServerImp.fileDeleteUrl(),list);
     }
 }

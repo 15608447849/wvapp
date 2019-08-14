@@ -1,6 +1,8 @@
 package com.bottle.lib.tbsx5;
 
 
+import android.widget.Toast;
+
 import com.tencent.smtt.export.external.interfaces.SslError;
 import com.tencent.smtt.export.external.interfaces.SslErrorHandler;
 import com.tencent.smtt.export.external.interfaces.WebResourceError;
@@ -75,6 +77,7 @@ public class X5WebViewClient extends WebViewClient {
     @Override
     public void onPageFinished(WebView webView, String url) {
         LLog.print("onPageFinished()\t" + url +" ,x5 core = " + X5Core.isX5CoreUse(webView) );
+        Toast.makeText(webView.getContext(),"X5 = " + X5Core.isX5CoreUse(webView) , Toast.LENGTH_LONG).show();
         super.onPageFinished(webView, url);
     }
 

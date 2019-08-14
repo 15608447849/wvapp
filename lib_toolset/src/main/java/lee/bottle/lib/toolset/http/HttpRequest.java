@@ -75,18 +75,32 @@ public class HttpRequest extends HttpUtil.CallbackAbs  {
     }
 
     /**
-     * 上传的文件设置大小
+     * 上传的文件设置裁剪大小
      */
     public HttpRequest addImageSize(String... sizes){
         imageSizeList.add(join(Arrays.asList(sizes),","));
         return this;
     }
 
-    private String logo = " ";
-    public HttpRequest setLogoText(String logo){
-        this.logo = logo;
+    private boolean isLogo;
+
+    public HttpRequest setLogo(boolean f){
+        this.isLogo = f;
         return this;
     }
+
+    private boolean isCompress;
+    public HttpRequest setCompress(boolean f){
+        this.isCompress= f;
+        return this;
+    }
+
+    private long compressLimitSize;
+    public HttpRequest setCompressLimitSieze(long size){
+        this.compressLimitSize= size;
+        return this;
+    }
+
 
     /**
      * 上传流
@@ -101,6 +115,7 @@ public class HttpRequest extends HttpUtil.CallbackAbs  {
     }
 
     private static String join(List list, String separator) {
+        if (list == null || list.size() == 0) return "";
         StringBuffer sb = new StringBuffer();
         for (Object obj : list){
             sb.append(obj.toString()).append(separator);
@@ -110,19 +125,26 @@ public class HttpRequest extends HttpUtil.CallbackAbs  {
     }
 
     /**
-     * 文件上传地址
+     * 执行表单文件上传
      */
     public HttpRequest fileUploadUrl(String url){
-        HashMap<String,String> headParams = new HashMap<>();
-        headParams.put("specify-path",join(pathList,";"));
-        headParams.put("specify-filename",join(nameList,";"));
-        headParams.put("tailor-list",join(nameList,";"));
-        try { headParams.put("image-logo",URLEncoder.encode(URLEncoder.encode(logo,"UTF-8"),"UTF-8")); } catch (UnsupportedEncodingException ignored) { }
-        new HttpUtil.Request(url, HttpUtil.Request.POST, this)
-                .setFormSubmit()
-                .setParams(headParams)
-                .addFormItemList(formItems)
-                .upload().execute();
+        if (formItems != null && formItems.size() > 0){
+            HashMap<String,String> headParams = new HashMap<>();
+            headParams.put("specify-path",join(pathList,";"));
+            headParams.put("specify-filename",join(nameList,";"));
+            if(imageSizeList.size() > 0) headParams.put("tailor-list",join(imageSizeList,";"));
+            headParams.put("image-min-exist","1");//图片最小比例缩略图
+
+            if (isLogo) headParams.put("image-logo", "0");//水印
+            if (isCompress) headParams.put("image-compress","0");//图片压缩
+            if (compressLimitSize>0) headParams.put("image-compress-size",compressLimitSize+"");//图片压缩至少到多少阔值
+
+            new HttpUtil.Request(url, HttpUtil.Request.POST, this)
+                    .setFileFormSubmit()
+                    .setParams(headParams)
+                    .addFormItemList(formItems)
+                    .upload().execute();
+        }
         return this;
     }
 
@@ -148,20 +170,22 @@ public class HttpRequest extends HttpUtil.CallbackAbs  {
     }
 
     //删除文件
-    public void deleteFile(String url,String ...fileItem){
+    public HttpRequest deleteFile(String url, List<String> fileItem){
         try {
-            if (fileItem == null || fileItem.length == 0) return;
-            HashMap<String,String> headParams = new HashMap<>();
-            headParams.put("delete-list", URLEncoder.encode(GsonUtils.javaBeanToJson(fileItem),"UTF-8"));
-            new HttpUtil.Request(url, HttpUtil.Request.POST, this)
-                    .setParams(headParams)
-                    .setReadTimeout(1000).
-                    setConnectTimeout(1000)
-                    .text()
-                    .execute();
+            if (fileItem != null && fileItem.size() > 0) {
+                HashMap<String,String> headParams = new HashMap<>();
+                headParams.put("delete-list", URLEncoder.encode(GsonUtils.javaBeanToJson(fileItem),"UTF-8"));
+                new HttpUtil.Request(url, HttpUtil.Request.POST, this)
+                        .setParams(headParams)
+                        .setReadTimeout(1000).
+                        setConnectTimeout(1000)
+                        .text()
+                        .execute();
+            }
         } catch (UnsupportedEncodingException e) {
             e.printStackTrace();
         }
+        return this;
     }
 
 
@@ -177,8 +201,7 @@ public class HttpRequest extends HttpUtil.CallbackAbs  {
     }
 
     public boolean download(String url,File file){
-
-        if (file.exists()) file.delete();
+        if (file.exists() && file.isFile()) file.delete();
         HttpUtil.Request r = new HttpUtil.Request(url,this);
         r.setDownloadFileLoc(file);
         r.download();

@@ -105,7 +105,7 @@ public class GsonUtils {
     }
 
     public static int convertInt(Object val){
-        return Integer.parseInt(new BigDecimal(String.valueOf(val)).toString());
+        return new BigDecimal(String.valueOf(val)).intValue();
     }
 
 }

@@ -5,12 +5,13 @@ android {
 
 
     defaultConfig {
-        minSdkVersion 23
+        minSdkVersion 21
         targetSdkVersion 28
         versionCode 1
         versionName "1.0"
         ndk {
-            abiFilters "armeabi", "armeabi-v7a","armeabi-v8a", "x86","x86_64", "mips","mips64"
+            abiFilters"armeabi","armeabi-v7a","x86","mips"
+//            abiFilters "armeabi", "armeabi-v7a","armeabi-v8a", "x86","x86_64", "mips","mips64"
 //            abiFilters "armeabi-v7a", "x86_64"
 //            abiFilters "armeabi", "armeabi-v7a", "x86", "mips"
         }
@@ -28,4 +29,5 @@ dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
     implementation 'androidx.appcompat:appcompat:1.0.2'
     implementation project(':lib_toolset')
+    implementation 'com.tencent.tbs.tbssdk:sdk:43697'
 }

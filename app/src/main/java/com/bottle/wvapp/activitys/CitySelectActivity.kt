@@ -173,7 +173,8 @@ public class CitySelectActivity  : AppCompatActivity(){
 
         //返回按钮
         iv_title_back.setOnClickListener {
-                returnResult();
+            curItem = null
+            returnResult();
         }
 
         tv_auto_reset.setOnClickListener {
@@ -216,7 +217,6 @@ public class CitySelectActivity  : AppCompatActivity(){
         //返回按钮并且回传结果
         val intent = Intent();
         val result =  if (curItem != null && curItem?.value!! > 0) curItem?.value else 0
-//        LLog.print("返回数据: "+ result)
         //把返回数据存入Intent
         intent.putExtra(AREA_CODE,result);
         //设置返回数据

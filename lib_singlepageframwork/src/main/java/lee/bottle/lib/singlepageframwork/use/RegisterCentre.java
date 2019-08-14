@@ -23,10 +23,23 @@ import lee.bottle.lib.singlepageframwork.base.SFragment;
 public class RegisterCentre {
 
     public static class Bean{
+
+        public Bean(String fragment,String name, String container) {
+            this.container = container;
+            this.fragment = fragment;
+            this.name = name;
+        }
+
         public String container;//容器
         String fragment;//fragment路径
         public String name;//fragment名字
         HashMap<String,String> map;//携带的参数
+
+        public Bean addParam(String k,String v){
+            if (map == null) map = new HashMap<>();
+            map.put(k,v);
+            return this;
+        }
 
         @Override
         public String toString() {

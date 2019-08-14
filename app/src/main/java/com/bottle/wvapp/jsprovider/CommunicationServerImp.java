@@ -4,7 +4,6 @@ import com.bottle.wvapp.tool.NotifyUer;
 import com.onek.server.inf._PushMessageClientDisp;
 
 import Ice.Current;
-import lee.bottle.lib.toolset.log.LLog;
 import lee.bottle.lib.toolset.threadpool.IOUtils;
 
 /**
@@ -35,7 +34,7 @@ public class CommunicationServerImp extends _PushMessageClientDisp {
             @Override
             public void run() {
                 try {
-                    LLog.print("服务器推送消息:" + message);
+//                    LLog.print("服务器推送消息:" + message);
                     //刷新用户/ 企业信息
                     int compid = bridgeImp.getCompId(true);
                     if (compid == 0) return ;

@@ -50,10 +50,12 @@ public class WebFragment extends SFragment {
             if (NativeServerImp.config==null) return;
 
             this.loadUrl = bundle.getString("url");
-            this.core = "lee.bottle.lib.toolset.web.SysCore";
-//                    android.os.Build.VERSION.SDK_INT > Build.VERSION_CODES.N ?
+            this.core =
+            "lee.bottle.lib.toolset.web.SysCore";
+//                    android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.M ?
 //                            "lee.bottle.lib.toolset.web.SysCore" :
 //                            "com.bottle.lib.tbsx5.X5Core" ;
+//                            "com.bottle.lib.crosswalk.CKCore" ;
 
             int type =NativeServerImp.config.webPageVersion;
             if (type >= 0 ){
@@ -77,10 +79,16 @@ public class WebFragment extends SFragment {
                         e.printStackTrace();
                     }
                 }
+                if (iWebViewInit == null) {
+                    LLog.print("iWebViewInit =  "+ iWebViewInit);
+                    throw new RuntimeException();
+                }
                 LLog.print(core + " 准备加载页面 "+ loadUrl);
                 if (iWebViewInit!=null) {
                     iWebViewInit.clear();
                     iWebViewInit.getProxy().loadUrl(loadUrl);
+//                    iWebViewInit.getProxy().loadUrl("http://192.168.1.115:8888");
+//                    iWebViewInit.getProxy().loadUrl("http://soft.imtt.qq.com/browser/tes/feedback.html");
                 }
 
             }

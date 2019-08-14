@@ -1,6 +1,5 @@
 package lee.bottle.lib.toolset.os;
 
-import android.annotation.SuppressLint;
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
@@ -10,16 +9,10 @@ import android.content.Context;
 import android.content.Intent;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
-import android.net.Uri;
-import android.widget.RemoteViews;
 
 import androidx.core.app.NotificationCompat;
 
-import java.text.SimpleDateFormat;
-import java.util.Currency;
 import java.util.Random;
-
-import lee.bottle.lib.toolset.log.LLog;
 
 /**
  * Created by Leeping on 2018/5/2.
@@ -214,12 +207,13 @@ public class FrontNotification {
     }
 
     public void cancelNotification() {
-        build.notificationManager.cancel(build.id);
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-            //关闭通知通道
-            build.notificationManager.deleteNotificationChannel(build.channelId);
-        }
-
+        try {
+            build.notificationManager.cancel(build.id);
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                //关闭通知通道
+                build.notificationManager.deleteNotificationChannel(build.channelId);
+            }
+        } catch (Exception ignored) { }
     }
 
     public void startForeground(Service service){

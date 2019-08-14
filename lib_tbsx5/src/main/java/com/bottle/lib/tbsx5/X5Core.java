@@ -3,9 +3,9 @@ package com.bottle.lib.tbsx5;
 import android.content.Context;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Toast;
 
 import com.tencent.smtt.sdk.QbSdk;
-import com.tencent.smtt.sdk.TbsDownloader;
 import com.tencent.smtt.sdk.WebView;
 
 import lee.bottle.lib.toolset.jsbridge.IBridgeImp;
@@ -20,31 +20,36 @@ import static android.webkit.WebSettings.LOAD_CACHE_ELSE_NETWORK;
  */
 public class X5Core extends IWebViewInit<WebView> {
 
-    public static void tbsInit(final Context appContext) {
 
-        LLog.print(appContext);
-     /*   QbSdk.setTbsListener(new TbsListener() {
+    public static void tbsInit(final Context appContext) {
+        /*TbsDownloader.startDownload(appContext);
+        QbSdk.setTbsListener(new TbsListener() {
             @Override
             public void onDownloadFinish(int i) {
                 LLog.print("onDownloadFinish " + i);
+                Toast.makeText(appContext,"QbSdk onDownloadFinish "+ i,Toast.LENGTH_SHORT) .show();
+                QbSdk.initX5Environment(appContext,null);
             }
 
             @Override
             public void onInstallFinish(int i) {
                 LLog.print("onInstallFinish " + i);
+                Toast.makeText(appContext,"QbSdk onInstallFinish "+ i,Toast.LENGTH_SHORT) .show();
             }
 
             @Override
             public void onDownloadProgress(int i) {
                 LLog.print("onDownloadProgress " + i);
+                Toast.makeText(appContext,"QbSdk onDownloadProgress "+ i,Toast.LENGTH_SHORT) .show();
             }
-        });
-*/
-        TbsDownloader.needDownload(appContext, true);
+        });*/
 
-        LLog.print("X5 QbSdk.isTbsCoreInited() = " + QbSdk.isTbsCoreInited());
+    /*    boolean isNeed = TbsDownloader.needDownload(appContext, false);
+        Toast.makeText(appContext,"X5 QbSdk.isTbsCoreInited() = " + QbSdk.isTbsCoreInited()+" , " + isNeed,Toast.LENGTH_SHORT) .show();
 
-        QbSdk.setDownloadWithoutWifi(true);
+        LLog.print("X5 QbSdk.isTbsCoreInited() = " + QbSdk.isTbsCoreInited());*/
+
+//        QbSdk.setDownloadWithoutWifi(true);
 
       /*  if (!QbSdk.isTbsCoreInited()){
             QbSdk.preInit(appContext, new QbSdk.PreInitCallback() {
@@ -60,6 +65,18 @@ public class X5Core extends IWebViewInit<WebView> {
             });
         } */
 
+        /*QbSdk.preInit(appContext, new QbSdk.PreInitCallback() {
+            @Override
+            public void onCoreInitFinished() {
+                Toast.makeText(appContext,"preInit onCoreInitFinished ",Toast.LENGTH_SHORT) .show();
+            }
+
+            @Override
+            public void onViewInitFinished(boolean b) {
+                Toast.makeText(appContext,"preInit onViewInitFinished " +b,Toast.LENGTH_SHORT) .show();
+            }
+        });*/
+
         //x5内核初始化接口
         QbSdk.initX5Environment(appContext,   new QbSdk.PreInitCallback() {
 
@@ -68,6 +85,7 @@ public class X5Core extends IWebViewInit<WebView> {
                 //x5內核初始化完成的回调，为true表示x5内核加载成功，否则表示x5内核加载失败，会自动切换到系统内核。
                 LLog.print("X5内核使用: "+ flag);
 //                toast(appContext,"当前使用X5内核: "+ flag);
+                Toast.makeText(appContext,"加载内核是否成功  =  " + flag,Toast.LENGTH_SHORT) .show();
 
             }
             @Override
@@ -75,6 +93,8 @@ public class X5Core extends IWebViewInit<WebView> {
                 LLog.print("X5内核初始化完成");
             }
         });
+
+//        QbSdk.preInit(appContext);
     }
 
     public static boolean isX5CoreUse(com.tencent.smtt.sdk.WebView webView){

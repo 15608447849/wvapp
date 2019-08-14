@@ -107,11 +107,13 @@ public class SingleActivity extends SActivity implements PermissionApply.Callbac
         mHandler.io(new Runnable() {
             @Override
             public void run() {
+                LLog.print("初始化页面");
                 //初始化页面
                 RegisterCentre.register(NativeServerImp.dynamicPageInformation());
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
+                        LLog.print("加载页面");
                         NativeServerImp.ServerConfig c = NativeServerImp.config;
                         //加载页面
                         getSFOPage().skip(c.page.container,c.page.name);//跳转到web页面

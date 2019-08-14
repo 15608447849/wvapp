@@ -24,7 +24,7 @@ allprojects {
     repositories {
         flatDir {
             dirs 'libs'
-            //dirs project(':lib_crosswalk').file('libs')
+//            dirs project(':lib_crosswalk').file('libs')
         }
         maven{ url 'http://maven.aliyun.com/nexus/content/groups/public/'}
         maven { url "https://www.jitpack.io" }
