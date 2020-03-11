@@ -42,7 +42,6 @@ public class SingleActivity extends SActivity implements PermissionApply.Callbac
     @SLayoutId("content")
     private FrameLayout layout;
 
-
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -94,7 +93,6 @@ public class SingleActivity extends SActivity implements PermissionApply.Callbac
     //界面显示
     @Override
     protected void onInitResume() {
-        LLog.print("onInitResume");
         super.onInitResume();
         if (!isSysRecovery()){
             initApp();
@@ -107,13 +105,11 @@ public class SingleActivity extends SActivity implements PermissionApply.Callbac
         mHandler.io(new Runnable() {
             @Override
             public void run() {
-                LLog.print("初始化页面");
                 //初始化页面
                 RegisterCentre.register(NativeServerImp.dynamicPageInformation());
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-                        LLog.print("加载页面");
                         NativeServerImp.ServerConfig c = NativeServerImp.config;
                         //加载页面
                         getSFOPage().skip(c.page.container,c.page.name);//跳转到web页面

@@ -2,6 +2,7 @@ package com.bottle.wvapp.fragments;
 
 import android.content.Context;
 import android.content.Intent;
+import android.os.Build;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -12,6 +13,9 @@ import androidx.annotation.Nullable;
 
 import com.bottle.wvapp.R;
 import com.bottle.wvapp.jsprovider.NativeServerImp;
+import com.bottle.wvapp.jsprovider.UpdateVersionServerImp;
+
+import java.util.ArrayList;
 
 import lee.bottle.lib.singlepageframwork.base.SFragment;
 import lee.bottle.lib.toolset.jsbridge.IBridgeImp;
@@ -51,18 +55,29 @@ public class WebFragment extends SFragment {
 
             this.loadUrl = bundle.getString("url");
             this.core =
-            "lee.bottle.lib.toolset.web.SysCore";
-//                    android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.M ?
-//                            "lee.bottle.lib.toolset.web.SysCore" :
+//            "lee.bottle.lib.toolset.web.SysCore";
+                    android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.M ?
+                            "lee.bottle.lib.toolset.web.SysCore" :
 //                            "com.bottle.lib.tbsx5.X5Core" ;
-//                            "com.bottle.lib.crosswalk.CKCore" ;
+                            "com.bottle.lib.crosswalk.CKCore" ;
 
             int type =NativeServerImp.config.webPageVersion;
             if (type >= 0 ){
                 this.loadUrl = "file://" + getContext().getFilesDir().getPath() + this.loadUrl;
-                LLog.print("加载路径: "+ this.loadUrl);
             }
             loadView();
+        }
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        ArrayList<String> list = getActivity().getIntent().getStringArrayListExtra("notify_param");
+        if (list!=null){
+            getActivity().getIntent().removeExtra("notify_param");
+           if (list.get(0).equals("NOTIFY")){
+               server.notifyEntryToJs();//跳转到JS个人中心-消息列表
+            }
         }
     }
 
@@ -80,19 +95,24 @@ public class WebFragment extends SFragment {
                     }
                 }
                 if (iWebViewInit == null) {
-                    LLog.print("iWebViewInit =  "+ iWebViewInit);
-                    throw new RuntimeException();
+                    openErrorPage();
+                    UpdateVersionServerImp.executeCompatibleApk();
+                    return;
                 }
-                LLog.print(core + " 准备加载页面 "+ loadUrl);
+                LLog.print(core + " 准备加载url "+ loadUrl);
                 if (iWebViewInit!=null) {
                     iWebViewInit.clear();
                     iWebViewInit.getProxy().loadUrl(loadUrl);
-//                    iWebViewInit.getProxy().loadUrl("http://192.168.1.115:8888");
+//                    iWebViewInit.getProxy().loadUrl("http://192.168.1.81:8888");
 //                    iWebViewInit.getProxy().loadUrl("http://soft.imtt.qq.com/browser/tes/feedback.html");
                 }
 
             }
         });
+    }
+
+    private void openErrorPage() {
+        view.setBackgroundResource(android.R.drawable.stat_notify_error);
     }
 
     @Override

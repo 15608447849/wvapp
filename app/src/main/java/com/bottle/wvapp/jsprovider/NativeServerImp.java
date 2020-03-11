@@ -72,7 +72,7 @@ public class NativeServerImp implements IBridgeImp {
 
     public static void initDEVID() {
         DEVID = AppUtils.devOnlyCode(app) + "@PHONE";
-        LLog.print("当前设备唯一标识 : " + DEVID);
+//        LLog.print("当前设备唯一标识 : " + DEVID);
     }
 
     private static void launchICE(IceClient client) {
@@ -134,8 +134,8 @@ public class NativeServerImp implements IBridgeImp {
             public void run() {
                 try {
                     String url = fileDownloadUrl()+"/" +LAUNCH_IMAGE;
-                    LLog.print("更新启动页: " + url);
                     HttpServerImp.downloadFile(url, new File(app.getFilesDir(),LAUNCH_IMAGE).toString(),null);
+                    LLog.print("已更新启动页: " + url);
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
@@ -193,7 +193,7 @@ public class NativeServerImp implements IBridgeImp {
         if (!StringUtils.isEmpty(config.zipLink) && !config.zipLink.startsWith("http")){
             config.apkLink = fileDownloadUrl()+"/"+ config.zipLink;
         }
-        LLog.print("配置信息:\n"+config);
+//        LLog.print("配置信息:\n"+config);
     }
 
 
@@ -282,7 +282,7 @@ public class NativeServerImp implements IBridgeImp {
                 Object _roleCode = map.get("roleCode");
                 if (_compId!=null) {
                     int compId = GsonUtils.convertInt(_compId);
-                    LLog.print("公司码 "+ compId);
+//                    LLog.print("公司码 "+ compId);
                     if (compId > 0){
                         if (isNetwork) jsBridgeImp.putData("USER_INFO",json);
                         int roleCode = GsonUtils.convertInt(_roleCode);
@@ -314,8 +314,10 @@ public class NativeServerImp implements IBridgeImp {
         if (json!=null){
             String[] arrays = null;
             if (GsonUtils.checkJsonIsArray(json)) arrays = GsonUtils.jsonToJavaBean(json,String[].class);
-            if (arrays != null) client.settingParam(arrays);
-            else client.settingParam(json);
+            if (arrays != null) {
+                client.settingParam(arrays);
+            }
+            client.settingParam(json);
         }
         return client.execute();
     }
@@ -383,7 +385,8 @@ public class NativeServerImp implements IBridgeImp {
                 if (notifyImp == null) notifyImp = new CommunicationServerImp(this);
                 try {
                     if(checkCommunication()) return;
-                    InterfacesPrx prx = ic.settingProxy("orderServer" + getOrderServerNo()).getProxy();
+                    LLog.print("order2Server" + getOrderServerNo());
+                    InterfacesPrx prx = ic.settingProxy("order2Server" + getOrderServerNo()).getProxy();
                     notifyImp.identity = new Ice.Identity(compid+"","android");
                     localAdapter.add(notifyImp,notifyImp.identity );
                     prx.ice_getConnection().setAdapter(localAdapter);
@@ -421,6 +424,12 @@ public class NativeServerImp implements IBridgeImp {
         jsBridgeImp.requestJs("communicationSysReceive",message, null);
     }
 
+    /** 消息通知栏点击进入 */
+    public void notifyEntryToJs(){
+        if (jsBridgeImp == null) return;
+        jsBridgeImp.requestJs("notifyEntry",null, null);
+    }
+
     /** 推送支付结果 */
     void pushPaySuccessMessageToJs(final String message){
         if (jsBridgeImp == null) return;
@@ -432,15 +441,16 @@ public class NativeServerImp implements IBridgeImp {
      * json = { orderno=订单号,paytype=付款方式,flag客户端类型0 web,1 app }
      */
     Map payHandle(String json,String payType){
+
         Map map  = GsonUtils.jsonToJavaBean(json,Map.class);
         map.put("paytype",payType);
         map.put("flag",1);
-        json = transfer("orderServer"+getOrderServerNo(),"PayModule","prePay",0,0,GsonUtils.javaBeanToJson(map));
+        LLog.print("预支付信息: " + map);
+        json = transfer("order2Server"+getOrderServerNo(),"PayModule","prePay",0,0,GsonUtils.javaBeanToJson(map));
         map = GsonUtils.jsonToJavaBean(json,Map.class);
         if (map.get("data") !=null ){
             map = (Map) map.get("data");
         }
-//        LLog.print("支付信息:"+map);
         return map;
     }
 

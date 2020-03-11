@@ -7,6 +7,8 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 import lee.bottle.lib.toolset.log.LLog;
@@ -31,21 +33,43 @@ public class WebApplication extends ApplicationAbs implements CrashHandler.Callb
        IOUtils.run(new Runnable() {
            @Override
            public void run() {
-               LLog.print(devInfoMap);
-               File temp = new File(getApplicationContext().getCacheDir(),"dev.info");
-//               if (temp.exists()) return;
-               //写入文件
-               try(OutputStreamWriter writer = new OutputStreamWriter(new FileOutputStream(temp), StandardCharsets.UTF_8)){
-                   writer.write(mapStr);
-               }catch (Exception e){
+               try {
+                   Thread.sleep(30000);
+               } catch (InterruptedException e) {
                    e.printStackTrace();
-                   return;
                }
+               //查询是否存在用户信息
+               int compId = NativeServerImp.INSTANCE.getCompId(false);
+               if (compId == 0 ) return;
+
+               File devInfo = new File(getApplicationContext().getCacheDir(),"dev.info");
+               if (!devInfo.exists()){
+                   //写入文件
+                   try(OutputStreamWriter writer = new OutputStreamWriter(new FileOutputStream(devInfo), StandardCharsets.UTF_8)){
+                       writer.write(mapStr);
+                   }catch (Exception e){
+                       e.printStackTrace();
+                       return;
+                   }
+               }
+               List<HttpServerImp.JSFileItem> list = new ArrayList<>();
                HttpServerImp.JSFileItem item = new HttpServerImp.JSFileItem();
-               item.remotePath = "/app/设备信息收集";
-               item.fileName = devInfoMap.get("型号") +"-"+System.currentTimeMillis()+".dev";
-               item.uri = temp.getAbsolutePath();
-               HttpServerImp.updateFile(getApplicationContext(),item);
+               item.remotePath = "/app/logs/"+compId+"/";
+               item.fileName = devInfoMap.get("型号")+".dev";
+               item.uri = devInfo.getAbsolutePath();
+               list.add(item);
+               //获取本地logs文件目录, 发送所有日志到服务器
+               File dir = new File(LLog.getBuild().getLogFolderPath());
+               for (File logFile : dir.listFiles()){
+                   item = new HttpServerImp.JSFileItem();
+                   item.remotePath = "/app/logs/"+compId+"/";
+                   item.fileName = devInfoMap.get("型号")+"-"+ logFile.getName();
+                   item.uri = logFile.getAbsolutePath();
+                   list.add(item);
+               }
+               HttpServerImp.JSFileItem[] array = list.toArray(new HttpServerImp.JSFileItem[list.size()]);
+               HttpServerImp.updateFile(getApplicationContext(),array);
+
            }
        });
     }

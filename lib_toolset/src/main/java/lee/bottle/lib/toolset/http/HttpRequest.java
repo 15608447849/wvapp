@@ -124,6 +124,13 @@ public class HttpRequest extends HttpUtil.CallbackAbs  {
         return sb.toString();
     }
 
+    private boolean isThumb = true;
+
+    public HttpRequest setThumb(boolean thumb) {
+        isThumb = thumb;
+        return this;
+    }
+
     /**
      * 执行表单文件上传
      */
@@ -133,7 +140,7 @@ public class HttpRequest extends HttpUtil.CallbackAbs  {
             headParams.put("specify-path",join(pathList,";"));
             headParams.put("specify-filename",join(nameList,";"));
             if(imageSizeList.size() > 0) headParams.put("tailor-list",join(imageSizeList,";"));
-            headParams.put("image-min-exist","1");//图片最小比例缩略图
+            if (isThumb) headParams.put("image-min-exist","1");//图片最小比例缩略图
 
             if (isLogo) headParams.put("image-logo", "0");//水印
             if (isCompress) headParams.put("image-compress","0");//图片压缩

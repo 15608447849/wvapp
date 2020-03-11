@@ -36,7 +36,7 @@ public class SysWebChromeClient extends WebChromeClient {
     public boolean onConsoleMessage(ConsoleMessage consoleMessage) {
         String fileName =  consoleMessage.sourceId();
         LLog.print(
-                "浏览器控制台输出 - ["+consoleMessage.messageLevel()+"]\t"+consoleMessage.message() +
+                "浏览器控制台-["+consoleMessage.messageLevel()+"]\t"+consoleMessage.message() +
                         (consoleMessage.messageLevel().name().equalsIgnoreCase("error") ? "\n" + fileName +":"+consoleMessage.lineNumber():"")
         );
         return true;

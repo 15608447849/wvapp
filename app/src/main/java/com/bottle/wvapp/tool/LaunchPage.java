@@ -197,7 +197,16 @@ public class LaunchPage implements Runnable{
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
-        isLaunch = true;
-        stop();
+
+        if (showActivity!=null){
+            showActivity.runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    isLaunch = true;
+                    stop();
+                }
+            });
+        }
+
     }
 }

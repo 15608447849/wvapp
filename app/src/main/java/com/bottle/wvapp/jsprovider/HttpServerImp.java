@@ -25,6 +25,9 @@ public class HttpServerImp {
     }
 
      public static class JSUploadFile{
+        public boolean isCompress = true;
+        public boolean isLogo = true;
+        public boolean isThumb = true;
         public String url;
         public List<JSFileItem> files;
 
@@ -59,8 +62,9 @@ public class HttpServerImp {
                     if (file.exists()){
                         if ("image".equals(uri.getScheme())){
                             file = ImageUtils.imageCompression(context,file,500);
-                            httpRequest.setCompress(true);//服务器压缩
-                            httpRequest.setLogo(true);//图片水印
+                            httpRequest.setCompress(bean.isCompress);//服务器压缩
+                            httpRequest.setLogo(bean.isLogo);//图片水印
+                            httpRequest.setThumb(bean.isThumb);//图片略缩图
                             httpRequest.setCompressLimitSieze(5*1024*1024L);
                         }
                         httpRequest.addFile(file,item.remotePath ,item.fileName);

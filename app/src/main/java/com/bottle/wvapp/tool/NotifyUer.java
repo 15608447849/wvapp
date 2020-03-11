@@ -8,6 +8,9 @@ import android.content.Intent;
 import com.bottle.wvapp.R;
 import com.bottle.wvapp.activitys.SingleActivity;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+
 import lee.bottle.lib.toolset.os.FrontNotification;
 
 /**
@@ -16,9 +19,13 @@ import lee.bottle.lib.toolset.os.FrontNotification;
  */
 public class NotifyUer {
     private static int currentId =  1;
-    public static void createMessageNotify(Context context,String message) {
+    public static void createMessageNotify(Context context, String message, String... params) {
         FrontNotification.Build build = new FrontNotification.Build(context).setId(currentId++);
         Intent intent = new Intent(context, SingleActivity.class);
+        if (params!=null){
+            ArrayList<String> paramList = new ArrayList<>(Arrays.asList(params));
+            intent.putStringArrayListExtra("notify_param",paramList);
+        }
 //        intent.setFlags(FLAG_ACTIVITY_NEW_TASK);
 //        build.setFlags(new int[]{Notification.FLAG_INSISTENT,Notification.FLAG_AUTO_CANCEL});
         build.setFlags(new int[]{Notification.FLAG_SHOW_LIGHTS,Notification.FLAG_AUTO_CANCEL});

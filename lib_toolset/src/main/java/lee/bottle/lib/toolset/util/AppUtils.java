@@ -320,7 +320,9 @@ public class AppUtils {
     // 安装apk
     public static void installApk(Context context, File apkFile) {
         try {
-            LLog.print("安装: " + apkFile);
+
+            LLog.print("安装: " + apkFile +" , 存在 = "+ apkFile.exists());
+            if (!apkFile.exists()) return;
             Intent intent = new Intent();
             intent.setAction(Intent.ACTION_VIEW);
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
@@ -329,8 +331,17 @@ public class AppUtils {
                 uri = FileProvider.getUriForFile(context, context.getApplicationContext().getPackageName() + ".fileprovider", apkFile);
                 intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
             }else{
+                try {
+                    //apk放在cache文件中，需要获取读写权限
+                    String command = "chmod 777 "+apkFile.getAbsolutePath();
+                    Runtime runtime = Runtime.getRuntime();
+                    runtime.exec(command);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
                 uri = Uri.fromFile(apkFile);
             }
+            LLog.print("安装APK: " + uri );
             intent.setDataAndType(uri,"application/vnd.android.package-archive");
             context.startActivity(intent);
         } catch (Exception e) {

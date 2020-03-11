@@ -42,7 +42,7 @@ public class CommunicationServerImp extends _PushMessageClientDisp {
                     //解析
                     if (message.startsWith("sys")){
                             bridgeImp.pushMessageToJs(msg);
-                            NotifyUer.createMessageNotify(bridgeImp.fragment.get().getContext(), msg); //打开广播
+                            NotifyUer.createMessageNotify(bridgeImp.fragment.get().getContext(), msg,"NOTIFY"); //打开广播
                     } else if (message.startsWith("pay")){
                         bridgeImp.pushPaySuccessMessageToJs(msg);
                     }

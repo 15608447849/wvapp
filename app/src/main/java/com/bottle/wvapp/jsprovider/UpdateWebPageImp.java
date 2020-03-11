@@ -1,5 +1,7 @@
 package com.bottle.wvapp.jsprovider;
 
+import android.os.Build;
+
 import com.bottle.wvapp.tool.NotifyUer;
 
 import java.io.File;
@@ -42,9 +44,11 @@ class UpdateWebPageImp {
     }
 
     private static boolean checkAppVersionMatch(int remote,int recode) {
-        //如果当前app版本与服务器版本不一致
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M)  return true;
+
+        //如果当前app版本与服务器版本不一致 ,检查是否存在已记录得版本
         if (AppUtils.getVersionCode(NativeServerImp.app)<remote){
-            //检查是否存在已记录得版本
+
             if (recode == 0){
                 unzipWebPageByAssets();
             }else {
@@ -77,13 +81,19 @@ class UpdateWebPageImp {
 
     //打开进度条
     private static void openProgress() {
-        notification = NotifyUer.createDownloadApkNotify(NativeServerImp.app.getApplicationContext(),"页面更新");
-        notification.setProgress(100,0);
+        if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP){
+            if (notification == null){
+                notification = NotifyUer.createDownloadApkNotify(NativeServerImp.app.getApplicationContext(),"页面更新");
+                notification.setProgress(100,0);
+            }
+        }
     }
 
     private static void closeProgress() {
-        notification.cancelNotification();
-        notification = null;
+        if (notification!=null){
+            notification.cancelNotification();
+            notification = null;
+        }
     }
     private static FrontNotification notification;
     //从服务器更新
@@ -104,7 +114,7 @@ class UpdateWebPageImp {
                     public void onProgress(File file, long progress, long total) {
                         //打开进度指示条的通知栏
                         int current = (int)( (progress * 100f) / total );
-                        notification.setProgress(100, current);
+                        if (notification!=null) notification.setProgress(100, current);
                     }
                 });
                 closeProgress();

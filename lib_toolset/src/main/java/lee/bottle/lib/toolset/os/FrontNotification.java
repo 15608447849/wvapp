@@ -1,5 +1,6 @@
 package lee.bottle.lib.toolset.os;
 
+import android.annotation.SuppressLint;
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
@@ -129,10 +130,11 @@ public class FrontNotification {
         }
 
 
+        @SuppressLint("WrongConstant")
         public FrontNotification generateNotification(){
             PendingIntent pi = null;
             if (activityIntent !=null){
-                pi = PendingIntent.getActivity(context,0, activityIntent,0);
+                pi = PendingIntent.getActivity(context,0, activityIntent,PendingIntent.FLAG_UPDATE_CURRENT);//传递值 PendingIntent.FLAG_UPDATE_CURRENT
             }else if (serviceIntent!=null){
                 pi = PendingIntent.getService(context,0, serviceIntent,0);
             }
