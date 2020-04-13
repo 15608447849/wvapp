@@ -128,7 +128,13 @@ public class IceClient {
         return settingParam(arr);
     }
 
-
+    public IceClient setExtend(String extend){
+        ReqStore store = threadLocalStore.get();
+        if (store!=null  && store.request!=null){
+            store. request.param.extend = extend;
+        }
+        return this;
+    }
 
     public IceClient settingParam(String json){
         ReqStore store = threadLocalStore.get();

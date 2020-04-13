@@ -6,6 +6,7 @@ import android.content.SharedPreferences;
 import android.view.View;
 import android.webkit.JavascriptInterface;
 
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.HashMap;
 
@@ -13,6 +14,7 @@ import lee.bottle.lib.toolset.log.LLog;
 import lee.bottle.lib.toolset.threadpool.IOUtils;
 import lee.bottle.lib.toolset.util.GsonUtils;
 
+import static lee.bottle.lib.toolset.util.ErrorUtil.printExceptInfo;
 import static lee.bottle.lib.toolset.util.StringUtils.getDecodeJSONStr;
 
 /**
@@ -82,9 +84,12 @@ public class JSInterface implements IJsBridge {
                         value = hImp.invoke(methodName,data);
                     }
                 } catch (Exception e) {
-                    e.printStackTrace();
-                    LLog.print("js调用native错误("+e+") -> methodName = "+ methodName +" , data = " +data);
-                    value = "bridge execute error:\t"+ e;
+                    Throwable targetEx = e;
+                    if (e instanceof InvocationTargetException) {
+                        targetEx =((InvocationTargetException)e).getTargetException();
+                    }
+                    LLog.print("js调用native错误  methodName = "+ methodName +" , data = " +data +"\n"+printExceptInfo(targetEx));
+                    value = "bridge execute error:\t"+ targetEx;
                 }
 
                 if (callback_id == null) return;

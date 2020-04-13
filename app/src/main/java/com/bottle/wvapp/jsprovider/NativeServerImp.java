@@ -43,6 +43,8 @@ public class NativeServerImp implements IBridgeImp {
 
     private NativeServerImp() {
         caller = new MethodCallImp(this);//伴生类
+        checkCommunicationThread.setDaemon(true);
+        checkCommunicationThread.start();//长连接检测线程
     }
 
     public static final NativeServerImp INSTANCE = new NativeServerImp();
@@ -141,6 +143,11 @@ public class NativeServerImp implements IBridgeImp {
                 }
             }
         });
+    }
+
+    /* 强制登出 */
+    public void forceLogout() {
+        jsBridgeImp.requestJs("logoutHandle",null, null);
     }
 
     /** 服务配置 */
@@ -262,7 +269,6 @@ public class NativeServerImp implements IBridgeImp {
     //获取公司码
     public int getCompId(boolean passLocal) {
         if (jsBridgeImp != null){
-
             boolean isNetwork = false;
             String json = null;
             //不跳过本地,并且检测服务器环境信息指纹
@@ -306,7 +312,7 @@ public class NativeServerImp implements IBridgeImp {
     }
 
     //转发
-    private String transfer(String serverName, String cls, String method,int page,int count,String json) {
+    private String transfer(String serverName, String cls, String method,int page,int count,String extend,String json) {
         IceClient client =
                 NativeServerImp.ic.settingProxy(serverName).
                         settingReq(DEVID,cls,method).
@@ -319,6 +325,7 @@ public class NativeServerImp implements IBridgeImp {
             }
             client.settingParam(json);
         }
+        client.setExtend(extend);
         return client.execute();
     }
 
@@ -326,7 +333,7 @@ public class NativeServerImp implements IBridgeImp {
     private static int getOrderServerNo(){
         //获取用户公司码
         int compid = INSTANCE.getCompId(false);
-        return compid / 8192 % 65535;
+        return ( compid / 65535 )   % 8192;
     }
 
     @Override
@@ -339,10 +346,10 @@ public class NativeServerImp implements IBridgeImp {
     public Object invoke(String methodName, String data) throws Exception{
         if (isDebug) LLog.print("本地方法: "+ methodName +" ,数据: "+ data );
         if (methodName.startsWith("ts:")){
-            //转发协议  ts:服务名@类名@方法名@分页页码@分页条数
+            //转发协议  ts:服务名@类名@方法名@分页页码@分页条数@扩展字段
             String temp = methodName.replace("ts:","");
             String[] args = temp.split("@");
-            return transfer(args[0],args[1],args[2],Integer.parseInt(args[3]),Integer.parseInt(args[4]),data);
+            return transfer(args[0],args[1],args[2],Integer.parseInt(args[3]),Integer.parseInt(args[4]),args[5],data);
         }
         Object val;
         //反射调用方法
@@ -378,13 +385,14 @@ public class NativeServerImp implements IBridgeImp {
 
     /** 打开/关闭连接 */
     void communication(String type){
+
         if (type.equals("start")){
             //获取用户公司码
             int compid = getCompId(false);
             if (compid > 0){
                 if (notifyImp == null) notifyImp = new CommunicationServerImp(this);
                 try {
-                    if(checkCommunication()) return;
+                    if(checkCommunication(compid+"")) return;
                     LLog.print("order2Server" + getOrderServerNo());
                     InterfacesPrx prx = ic.settingProxy("order2Server" + getOrderServerNo()).getProxy();
                     notifyImp.identity = new Ice.Identity(compid+"","android");
@@ -392,6 +400,7 @@ public class NativeServerImp implements IBridgeImp {
                     prx.ice_getConnection().setAdapter(localAdapter);
                     prx.online( notifyImp.identity);
                     notifyImp.online = true;
+
                 } catch (Exception e) {
                     e.printStackTrace();
                     notifyImp = null;
@@ -404,12 +413,31 @@ public class NativeServerImp implements IBridgeImp {
         }
     }
 
+    //长连接检测线程
+    private Thread checkCommunicationThread = new Thread(){
+        @Override
+        public void run() {
+            while (true){
+                try {
+                    Thread.sleep(5 * 1000L);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+                communication("start");
+                LLog.print("连接情况： " +  (notifyImp!=null && notifyImp.online));
+            }
+        }
+    };
+
+
     //检查长连接是否有效
-    private boolean checkCommunication() {
+    private boolean checkCommunication(String compid) {
         try {
             if (notifyImp.online){
                 notifyImp.ice_ping();
-                return true;
+                if (notifyImp.identity.name.equals(compid)){
+                    return true;
+                }
             }
         } catch (Exception e) {
             notifyImp.online = false;
@@ -446,7 +474,7 @@ public class NativeServerImp implements IBridgeImp {
         map.put("paytype",payType);
         map.put("flag",1);
         LLog.print("预支付信息: " + map);
-        json = transfer("order2Server"+getOrderServerNo(),"PayModule","prePay",0,0,GsonUtils.javaBeanToJson(map));
+        json = transfer("order2Server"+getOrderServerNo(),"PayModule","prePay",0,0,null,GsonUtils.javaBeanToJson(map));
         map = GsonUtils.jsonToJavaBean(json,Map.class);
         if (map.get("data") !=null ){
             map = (Map) map.get("data");
@@ -459,7 +487,7 @@ public class NativeServerImp implements IBridgeImp {
         if (fragment.get() == null) return null;
         Activity activity = fragment.get().getActivity();
         if (activity==null) return null;
-        communication("open");//强制打开连接
+        communication("start");//强制打开连接
         return notifyImp.online? activity : null;
     }
 

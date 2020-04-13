@@ -182,6 +182,7 @@ public class MethodCallImp {
         if (activity == null) return -1;
         //获取支付信息
         Map map = nsi.payHandle(json,"alipay");
+        LLog.print(GsonUtils.javaBeanToJson("尝试支付宝支付,后台结果： " + GsonUtils.javaBeanToJson(map)));
         final String orderInfo = mapToString(map);
         PayTask alipay = new PayTask(activity);
         //执行
@@ -199,7 +200,7 @@ public class MethodCallImp {
         if (activity == null) return wxpayRes;
         //获取支付信息 https://www.jianshu.com/p/84eac713f007
         Map map = nsi.payHandle(json,"wxpay");
-
+        LLog.print(GsonUtils.javaBeanToJson("尝试微信支付,后台结果： " + GsonUtils.javaBeanToJson(map)));
         if(wxapi == null){
             wxapi = WXAPIFactory.createWXAPI(nsi.app,null);
             wxapi.registerApp(map.get("appid").toString());

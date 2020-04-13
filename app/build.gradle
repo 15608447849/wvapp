@@ -2,12 +2,13 @@ apply plugin: 'com.android.application'
 apply plugin: 'kotlin-android'
 apply plugin: 'kotlin-android-extensions'
 
-def appVersion = 30
+def appVersion = 33
 def iceTag = "DemoIceGrid"
 //def address = "114.116.137.5:4061"
 //def address = "114.116.155.221:4061"
 //def address = "47.106.100.121:4061"
 def address = "47.106.209.254:4061"
+//def address = "114.115.168.87:4061"
 def args = "idleTimeOutSeconds=300,--Ice.MessageSizeMax=4096"
 def env = "[${address.replace(':', '@')}]"
 
