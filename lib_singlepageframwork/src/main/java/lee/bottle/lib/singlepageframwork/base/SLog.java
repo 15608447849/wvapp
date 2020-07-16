@@ -7,7 +7,7 @@ import android.util.Log;
  * email: 793065165@qq.com
  */
 public class SLog {
-    public static boolean debug = true;
+    public static boolean debug = false;
     public static void print(Object... objects){
         if (!debug) return;
         StringBuffer sb = new StringBuffer();

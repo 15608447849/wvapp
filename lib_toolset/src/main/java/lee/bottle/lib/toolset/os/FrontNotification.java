@@ -148,6 +148,7 @@ public class FrontNotification {
 
             buildAndroidNotify();
 
+
             return new FrontNotification(this);
         }
 
@@ -165,7 +166,7 @@ public class FrontNotification {
                 notificationChannel.setDescription(context.getPackageName()+ " 消息通知渠道");
                 notificationChannel.setShowBadge(true); //是否在久按桌面图标时显示此渠道的通知
                 notificationChannel.enableLights(true);//是否在桌面icon右上角展示小圆点
-                notificationChannel.setLightColor(Color.RED);//小圆点颜色
+                notificationChannel.setLightColor(Color.WHITE);//小圆点颜色
 
 //                notificationChannel.enableVibration(false);//允许震动
 //                notificationChannel.setVibrationPattern(new long[]{0});

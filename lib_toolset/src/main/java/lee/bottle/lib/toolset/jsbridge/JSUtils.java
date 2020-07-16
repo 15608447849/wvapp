@@ -1,6 +1,5 @@
 package lee.bottle.lib.toolset.jsbridge;
 
-import android.app.ProgressDialog;
 import android.content.Context;
 import android.net.Uri;
 
@@ -9,7 +8,6 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.InputStream;
 
-import lee.bottle.lib.toolset.util.DialogUtil;
 import lee.bottle.lib.toolset.util.ObjectRefUtil;
 
 import static lee.bottle.lib.toolset.util.AppUtils.getLocalFileByte;
@@ -21,18 +19,14 @@ import static lee.bottle.lib.toolset.util.ImageUtils.imageCompression;
  */
 public class JSUtils {
 
-
-
-    public interface WebPageOneOpen{
-        void pageFinish();
+    public interface WebProgressI{
+        void updateProgress(int current);
     }
 
-    private static ProgressDialog dialog;
+    private static WebProgressI webProgressI;
 
-    private static WebPageOneOpen openCallback;
-
-    public static void setCallback(WebPageOneOpen callback){
-        openCallback = callback;
+    public static void setWebProgressI(WebProgressI callback){
+        webProgressI = callback;
     }
 
     /** 对媒体文件拦截 */
@@ -61,32 +55,14 @@ public class JSUtils {
     }
 
     public static void progressHandler(Context context,int progress){
-        if (progress<100){
-            openProgressDialog(context);
-            if (dialog!=null) dialog.setMessage("应用加载中,已完成"+ progress);
-        }else{
-            closeProgressDialog();
+        if (webProgressI!=null){
+            webProgressI.updateProgress(progress);
         }
     }
 
-    public static void openProgressDialog(Context context){
-        if (openCallback!=null) return;
-        if (dialog == null){
-            dialog = DialogUtil.createSimpleProgressDialog(context,"应用加载中");
-            dialog.show();
-        }
-    }
 
-    public static void closeProgressDialog(){
-        if (dialog!=null){
-            dialog.cancel();
-            dialog = null;
-        }
-        if (openCallback != null){
-            openCallback.pageFinish();
-            openCallback = null;
-        }
-    }
+
+
 
 
 

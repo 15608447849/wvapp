@@ -1,5 +1,6 @@
 package lee.bottle.lib.toolset.os;
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.Application;
 import android.content.pm.ActivityInfo;
@@ -123,6 +124,7 @@ public abstract class ApplicationAbs extends Application implements Application.
     }
 
 
+    @SuppressLint("SourceLockedOrientationActivity")
     @Override
     public void onActivityCreated(Activity activity, Bundle savedInstanceState) {
         if (isPrintLifeLog) LLog.format("---%s :: %s",activity,"onCreated");

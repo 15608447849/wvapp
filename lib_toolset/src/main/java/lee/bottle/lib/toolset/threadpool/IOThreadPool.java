@@ -47,7 +47,7 @@ public class IOThreadPool extends Thread  implements IThreadPool,RejectedExecuti
     public void rejectedExecution(Runnable r, ThreadPoolExecutor executor) {
         queue.offer(r);
         synchronized (queue){
-            queue.notify();
+            queue.notifyAll();
         }
     }
 

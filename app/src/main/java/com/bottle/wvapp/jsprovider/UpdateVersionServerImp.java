@@ -1,7 +1,6 @@
 package com.bottle.wvapp.jsprovider;
 
 import android.app.Activity;
-import android.app.ProgressDialog;
 import android.content.DialogInterface;
 import android.os.Build;
 
@@ -17,6 +16,9 @@ import lee.bottle.lib.toolset.os.FrontNotification;
 import lee.bottle.lib.toolset.threadpool.IOUtils;
 import lee.bottle.lib.toolset.util.AppUtils;
 import lee.bottle.lib.toolset.util.DialogUtil;
+
+import static com.bottle.wvapp.tool.UploadProgressWindow.progressBarCircleDialogStop;
+import static com.bottle.wvapp.tool.UploadProgressWindow.progressBarCircleDialogUpdate;
 
 /**
  * Created by Leeping on 2019/7/5.
@@ -71,73 +73,22 @@ public class UpdateVersionServerImp extends HttpUtil.CallbackAbs implements Runn
        isExecute = false;
     }
 
-    private static ProgressDialog progressDialog;
-
-    public static void executeCompatibleApk() {
-
-        if(android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) return;
-
-        if (!AppUtils.checkUIThread()) return;
-        if (progressDialog != null) return;
-
-        final NativeServerImp.ServerConfig c = NativeServerImp.config;
-        //检查当前版本号是不是1000+
-        int cv = AppUtils.getVersionCode(NativeServerImp.app);
-        if (cv >= 1000) return;
-
-        //打开安装对话框
-        Fragment fragment = NativeServerImp.fragment.get();
-        if (fragment == null) return;
-        final Activity activity = fragment.getActivity();
-        if (activity == null) return;
-
-        progressDialog = DialogUtil.createSimpleProgressDialog(activity, "当前系统版本过低,正在下载兼容版");
-        progressDialog.show();
-        IOUtils.run(new Runnable() {
-            @Override
-            public void run() {
-                //下载apk
-                final File file = HttpServerImp.downloadFile(c.apkLink + ".apk", NativeServerImp.app.getCacheDir() + "/compatible.apk",
-                        new HttpUtil.CallbackAbs() {
-                            @Override
-                            public void onProgress(File file, final long progress, final long total) {
-                                if (progress % 10 > 0) {
-                                    activity.runOnUiThread(new Runnable() {
-                                        @Override
-                                        public void run() {
-                                            progressDialog.setMessage("当前系统版本过低,正在下载兼容版 " + progress + "/" + total);
-                                        }
-                                    });
-                                }
-                            }
-                        });
-                activity.runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        if (file == null || !file.exists() || file.length()==0 ) {
-                            tryToast("无法下载兼容版本,请联系客服");
-                            return;
-                        }
-                        progressDialog.cancel();
-                        progressDialog = null;
-                        //提示安装
-                        AppUtils.installApk(NativeServerImp.app, file);
-                    }
-                });
-            }
-        });
+    static boolean checkAppVersionMatch(int remote) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M || remote==0)  return true;
+        int localVersion = AppUtils.getVersionCode(NativeServerImp.app);
+//        LLog.print("当前应用版本号: "+ localVersion+" , 服务器版本号: "+ remote);
+        return  localVersion>= remote;
     }
 
-
-            //打开进度条
-            private void openProgress() {
-                if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                    if (notification == null) {
-                        notification = NotifyUer.createDownloadApkNotify(NativeServerImp.app.getApplicationContext(), "下载apk文件");
-                        notification.setProgress(100, 0);
-                    }
-                }
+    //打开进度条
+    private void openProgress() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            if (notification == null) {
+                notification = NotifyUer.createDownloadApkNotify(NativeServerImp.app.getApplicationContext(), "下载apk文件");
+                notification.setProgress(100, 0);
             }
+        }
+    }
 
     private void closeProgress() {
         if(notification != null){
@@ -148,21 +99,19 @@ public class UpdateVersionServerImp extends HttpUtil.CallbackAbs implements Runn
 
     private void checkVersionAndDownload() {
         if (!isAuto) NativeServerImp.updateServerConfigJson();
-        final NativeServerImp.ServerConfig c = NativeServerImp.config;
+        final AppUploadConfig c = NativeServerImp.config;
+        boolean isMatch = checkAppVersionMatch(c.serverVersion);
 
-        int sv = c.serverVersion;
-        int cv = AppUtils.getVersionCode(NativeServerImp.app);
-
-        if (sv == 0 || cv >= sv) {
-            if (!isAuto) tryToast("当前已经是最新版本");
+        if (isMatch) {
+            if (!isAuto) tryToast("当前应用已经是最新版本("+c.serverVersion+")");
             return;
         }
 
-        if (!isAuto) tryToast("正在下载新版本,请稍等");
+        if (!isAuto) tryToast("正在下载新版本("+c.serverVersion+"),请稍等");
         //下载apk
         final File file = HttpServerImp.downloadFile(c.apkLink,NativeServerImp.app.getCacheDir() + "/temp.apk",this);
         if (file == null) {
-            if (!isAuto) tryToast("无法下载最新版本app,请重新尝试");
+            if (!isAuto) tryToast("无法下载最新版本应用,请重新尝试");
             return;
         }
 
@@ -206,5 +155,11 @@ public class UpdateVersionServerImp extends HttpUtil.CallbackAbs implements Runn
         //打开进度指示条的通知栏
         int current = (int)( (progress * 100f) / total );
         if (notification!=null) notification.setProgress(100, current);
+        if (NativeServerImp.fragment.get()!=null && current>0){
+            progressBarCircleDialogUpdate(NativeServerImp.fragment.get().getActivity(),"程序更新中\n当前进度:"+current+"/"+100);
+            if (current == 100){
+                progressBarCircleDialogStop(NativeServerImp.fragment.get().getActivity());
+            }
+        }
     }
 }

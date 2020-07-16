@@ -59,12 +59,17 @@ public class JSInterface implements IJsBridge {
 
     //关联一个实现
     public IJsBridge setIBridgeImp(IBridgeImp imp){
-        this.hImp = imp;
-        this.hImp.setIJsBridge(this);
+        if (imp!=null){
+            this.hImp = imp;
+            this.hImp.setIJsBridge(this);
+        }
+
         return this;
     }
 
     private final HashMap<String, IJsBridge.JSCallback> jsCallbackMap = new HashMap<>();
+
+
 
     /**
      * js -> native
@@ -74,15 +79,17 @@ public class JSInterface implements IJsBridge {
     @JavascriptInterface
     public void invoke(final String methodName, final String data, final String callback_id) {
 
+        if (hImp == null) return;
+
         IOUtils.run(new Runnable() {
             @Override
             public void run() {
+
+
                 //异步执行
-                Object value = null;
+                Object value ;
                 try {
-                    if (hImp!=null){
-                        value = hImp.invoke(methodName,data);
-                    }
+                  value = hImp.invoke(methodName,data);
                 } catch (Exception e) {
                     Throwable targetEx = e;
                     if (e instanceof InvocationTargetException) {
@@ -94,6 +101,7 @@ public class JSInterface implements IJsBridge {
 
                 if (callback_id == null) return;
 
+
                 final String result  = value == null ? null :
                         value instanceof String ? getDecodeJSONStr(value.toString()) : GsonUtils.javaBeanToJson(value);
 
@@ -103,7 +111,11 @@ public class JSInterface implements IJsBridge {
                         if (isDebug) {
                             LLog.print("JS->NATIVE:" + methodName + "\n参数: " + data + "\n回调数据: " + result);
                         }
-                        loadUrl(String.format(JS_INTERFACE_NAME,callback_id ,result));
+                        try {
+                            loadUrl(String.format(JS_INTERFACE_NAME,callback_id ,result));
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
                     }
                 });
 
@@ -118,7 +130,14 @@ public class JSInterface implements IJsBridge {
             if (webView == null) return;
             @SuppressLint("PrivateApi") Method m = webView.getClass().getDeclaredMethod("loadUrl",String.class);
             m.setAccessible(true);
-            m.invoke(webView,content);
+//            LLog.print("---loadUrl----\n" + content);
+
+            try {
+                m.invoke(webView,content);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -136,7 +155,7 @@ public class JSInterface implements IJsBridge {
         webView.post(new Runnable() {
             @Override
             public void run() {
-                loadUrl(String.format(JS_INTERFACE_INVOKE_NAME,method ,data,_callbackId));
+                loadUrl(String.format(JS_INTERFACE_INVOKE_NAME,method ,data ,_callbackId));
             }
         });
     }

@@ -1,5 +1,7 @@
 package lee.bottle.lib.toolset.http;
 
+import android.os.Build;
+
 import java.io.BufferedReader;
 import java.io.Closeable;
 import java.io.File;
@@ -552,7 +554,9 @@ public class HttpUtil {
                 }else{
                     //下载文件
                     long fileLength = con.getContentLength();
-                    if (fileLength<=0) fileLength = con.getContentLengthLong();
+                    if (fileLength<=0 && Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                        fileLength = con.getContentLengthLong();
+                    }
                     if (fileLength <= 0) throw new IllegalArgumentException("远程服务器文件不存在");
                     writeServiceStreamToFile(in,fileLength,request,callback);
                 }
@@ -564,6 +568,7 @@ public class HttpUtil {
                 );
             }
         }catch (Exception e){
+
             if (callback!=null) callback.onError(e);
         }finally {
             closeIo(out,in);

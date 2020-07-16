@@ -3,7 +3,6 @@ package com.bottle.wvapp.jsprovider;
 import android.app.Activity;
 import android.app.Application;
 import android.content.Context;
-import android.content.Intent;
 import android.content.SharedPreferences;
 
 import androidx.fragment.app.Fragment;
@@ -18,10 +17,8 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.ref.SoftReference;
-import java.lang.reflect.Method;
 import java.util.Map;
 
-import lee.bottle.lib.singlepageframwork.use.RegisterCentre;
 import lee.bottle.lib.toolset.jsbridge.IBridgeImp;
 import lee.bottle.lib.toolset.jsbridge.IJsBridge;
 import lee.bottle.lib.toolset.log.LLog;
@@ -30,53 +27,72 @@ import lee.bottle.lib.toolset.util.AppUtils;
 import lee.bottle.lib.toolset.util.GsonUtils;
 import lee.bottle.lib.toolset.util.StringUtils;
 
-import static lee.bottle.lib.toolset.jsbridge.JSInterface.isDebug;
-
 
 /**
  * 提供给JS调用的后台接口
  * lzp
  */
-public class NativeServerImp implements IBridgeImp {
+public class NativeServerImp{
+    private NativeServerImp(){ };
 
-    public final MethodCallImp caller;
+    public final static NativeMethodCallImp caller = new NativeMethodCallImp();//伴生类;
+    public final static IBridgeImp iBridgeImp = new NativeBridgeImp();
 
-    private NativeServerImp() {
-        caller = new MethodCallImp(this);//伴生类
-        checkCommunicationThread.setDaemon(true);
-        checkCommunicationThread.start();//长连接检测线程
-    }
-
-    public static final NativeServerImp INSTANCE = new NativeServerImp();
-
+    private static boolean isInitComplete = false;
     public static Application app;
-
-    private static String DEVID = "unknown@PHONE";
-
-    private static IceClient ic = null;
-
-    private static Ice.ObjectAdapter localAdapter;
-
-    private IJsBridge jsBridgeImp;
-
-    static SharedPreferences sp ;
-
-    static SoftReference<Fragment> fragment;
-
-    private CommunicationServerImp notifyImp; //长连接
+    public static String DEVID = "unknown";
+    public static final String DEVTYPE = "PHONE";
+    public static IceClient ic;
+    public static Ice.ObjectAdapter localAdapter;
+    public static SharedPreferences sp ;
+    public static SoftReference<Fragment> fragment;
+    public static CommunicationServerImp notifyImp; //长连接
+    public static IJsBridge iJsBridge;
+    /* 文件服务地址信息 */
+    private static Map fileServerMap;
+    /* 服务器配置 */
+    public static AppUploadConfig config;
 
     public static void bindApplication(Application application){
+        if (application == null) throw new RuntimeException("应用初始化失败");
+
         app = application;
-        sp = NativeServerImp.app.getSharedPreferences("CONFIG", Context.MODE_PRIVATE);
-        initDEVID();
-        initServerCommunication();
+        sp = application.getSharedPreferences("CONFIG", Context.MODE_PRIVATE);
+        //初始化设备标识
+        DEVID = StringUtils.strMD5(AppUtils.devOnlyCode(app));
+        LLog.print("当前设备唯一标识 : " + getDevSID());
+        boolean isStart = startServer();
+        if (isStart){
+            //加载升级服务配置
+            updateServerConfigJson();
+            //更新线程执行
+            UpdateVersionServerImp.execute(true);
+        }
+        //长连接检测线程
+        checkCommunicationThread.setDaemon(true);
+        checkCommunicationThread.start();
+        isInitComplete = true;
+        threadNotify();
     }
 
-    public static void initDEVID() {
-        DEVID = AppUtils.devOnlyCode(app) + "@PHONE";
-//        LLog.print("当前设备唯一标识 : " + DEVID);
+
+
+    private static boolean startServer() {
+        //初始化ice连接
+        String tag = BuildConfig._ICE_TAG;
+        String address = BuildConfig._ADDRESS;
+        String args = BuildConfig._ARGS;
+        launchICE(new IceClient(tag,address,args));
+        //加载文件服务信息
+        return initFileServerInfo("userServer");
     }
 
+
+    private static String getDevSID() {
+        return DEVID+"@"+DEVTYPE;
+    }
+
+    //启动ICE客户端
     private static void launchICE(IceClient client) {
         destroyICE();
         ic = client.startCommunication();
@@ -94,18 +110,14 @@ public class NativeServerImp implements IBridgeImp {
         }
     }
 
-    //设置,连接服务器
-    private static void initServerCommunication() {
-        String tag = BuildConfig._ICE_TAG;
-        String address = BuildConfig._ADDRESS;
-        String args = BuildConfig._ARGS;
-        launchICE(new IceClient(tag,address,args));
-    }
-
-    public static NativeServerImp buildServer(Fragment fragmentInstance){
+    /* 绑定web显示层碎片 */
+    public static void buildFragment(Fragment fragmentInstance){
         if (ic == null) throw new RuntimeException("ICE 连接未初始化");
         fragment = new SoftReference<>(fragmentInstance);
-        return INSTANCE;
+    }
+
+    public static void buildJSBridge(IJsBridge bridge) {
+        iJsBridge  = bridge;
     }
 
     public static void reopenWeb() {
@@ -114,6 +126,7 @@ public class NativeServerImp implements IBridgeImp {
             wf.loadView();
         }
     }
+
     private final static String LAUNCH_IMAGE = "launch.png";
     //获取启动页图片
     public static InputStream getLaunchImage() {
@@ -129,193 +142,84 @@ public class NativeServerImp implements IBridgeImp {
         return null;
     }
 
+    //初始化文件服务地址
+    private static boolean initFileServerInfo(String serverName){
+        try {
+            String json = ic.setServerAndRequest(serverName,"FileInfoModule","fileServerInfo").execute();
+            Map map = GsonUtils.jsonToJavaBean(json,Map.class);
+            fileServerMap = (Map)map.get("data");
+            LLog.print("获取基础文件服务信息:\n" + json);
+            return true;
+        } catch (Exception e) {
+           LLog.print("获取基础文件服务信息失败:\n" + e);
+        }
+        return false;
+    }
+
+    /* 文件上传的地址 上传-upUrl 下载-downPrev 删除-deleteUrl */
+    public static String getSpecFileUrl(String type){
+        try {
+            if (!isInitComplete){
+                //等待
+                threadWait();
+            }
+            if (fileServerMap!=null){
+                return String.valueOf(fileServerMap.get(type));
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
     //更新启动页图片
     public static void updateLaunchImage(){
         IOUtils.run(new Runnable() {
             @Override
             public void run() {
                 try {
-                    String url = fileDownloadUrl()+"/" +LAUNCH_IMAGE;
+                    String url = getSpecFileUrl("downPrev")+"/" +LAUNCH_IMAGE;
                     HttpServerImp.downloadFile(url, new File(app.getFilesDir(),LAUNCH_IMAGE).toString(),null);
                     LLog.print("已更新启动页: " + url);
                 } catch (Exception e) {
-                    e.printStackTrace();
+                    LLog.print("启动页更新失败: " + e);
                 }
             }
         });
     }
 
-    /* 强制登出 */
-    public void forceLogout() {
-        jsBridgeImp.requestJs("logoutHandle",null, null);
-    }
-
-    /** 服务配置 */
-    public static class ServerConfig{
-        String backVersion="v1.0.0";
-        int serverVersion = 0;
-        String updateMessage = "发现新版本,请更新";
-        String apkLink = "";
-        public int webPageVersion = 0;
-        String zipLink = "";
-        public RegisterCentre.Bean page =
-                new RegisterCentre.Bean("com.bottle.wvapp.fragments.WebFragment","web","content")
-                        .addParam("url","/dist/index.html");
-        @Override
-        public String toString() {
-            return "{" +
-                    "backVersion='" + backVersion + '\'' +
-                    ", serverVersion=" + serverVersion +
-                    ", updateMessage='" + updateMessage + '\'' +
-                    ", apkLink='" + apkLink + '\'' +
-                    ", webPageVersion=" + webPageVersion +
-                    ", zipLink='" + zipLink + '\'' +
-                    ", page=" + page +
-                    '}';
-        }
-    }
-
-    public static ServerConfig config;
-
-    //获取页面配置信息JSON
-    public static RegisterCentre.Bean[] dynamicPageInformation(){
-    if (app == null) throw new RuntimeException("应用初始化失败");
-    updateServerConfigJson();
-    if (config == null || config.page == null) throw new RuntimeException("没有配置信息");
-    UpdateWebPageImp.transferWebPageToDir(true);
-    //更新线程执行
-    UpdateVersionServerImp.execute(true);
-
-    return new RegisterCentre.Bean[]{ config.page };
-    }
-
     //更新服务配置
     static void updateServerConfigJson(){
-        String json = loadServerConfigJson();
-        config  =  GsonUtils.jsonToJavaBean(json,ServerConfig.class);
-        if (config == null) config = new ServerConfig();
+        String json = loadServerConfigJson(0,10);
+        LLog.print("获取服务器配置信息JSON:\n"+json);
+        config  =  GsonUtils.jsonToJavaBean(json, AppUploadConfig.class);
+        if (config == null) config = new AppUploadConfig();
         if (!StringUtils.isEmpty(config.apkLink) && !config.apkLink.startsWith("http")){
-            config.apkLink = fileDownloadUrl()+"/"+ config.apkLink;
+            config.apkLink = getSpecFileUrl("downPrev")+"/"+ config.apkLink;
         }
-        if (!StringUtils.isEmpty(config.zipLink) && !config.zipLink.startsWith("http")){
-            config.apkLink = fileDownloadUrl()+"/"+ config.zipLink;
-        }
-//        LLog.print("配置信息:\n"+config);
     }
 
-
-    private static String loadServerConfigJson() {
-        String json;
+    //加载服务器配置信息URL
+    private static String loadServerConfigJson(int retry,int max) {
         try {
-            //网络获取
-            json = ic.setServerAndRequest("globalServer","WebAppModule","config").execute();
-            json = json.trim().replaceAll("\\s*","");
-            if (StringUtils.isEmpty(json) || json.equals("null")) throw new NullPointerException();
-            if (json.contains("code") && json.contains("message")) throw new NullPointerException();
+            String url = getSpecFileUrl("downPrev")+"/config.json";
+            LLog.print("当前次数: "+ retry+" 加载服务器配置信息URL: " + url);
+            String json = HttpServerImp.text(url);
+            return json.trim().replaceAll("\\s*","");
         } catch (Exception e) {
-            LLog.print("加载服务器配置信息错误,没有服务器没有配置信息");
-           json = null;
-        }
-        return json;
-    }
-
-    //获取地区信息
-    public static String areaJson(long areaCode){
-        return  ic.setServerAndRequest("globalServer","WebAppModule","appAreaAll").setArrayParams(areaCode).execute();
-    }
-
-    //获取地区全名
-    public static String getAreaFullName(long areaCode){
-        return ic.setServerAndRequest("globalServer","CommonModule","getCompleteName").setArrayParams(areaCode).execute();
-    }
-
-    //文件上传的地址
-    public static String fileUploadUrl(){
-        try {
-            String json = ic.setServerAndRequest("globalServer","FileInfoModule","fileServerInfo").execute();
-            Map map = GsonUtils.jsonToJavaBean(json,Map.class);
-            map = (Map)map.get("data");
-            return map.get("upUrl").toString();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return null;
-    }
-    //文件下载地址
-    public static String fileDownloadUrl(){
-        try {
-            String json = ic.setServerAndRequest("globalServer","FileInfoModule","fileServerInfo").execute();
-            Map map = GsonUtils.jsonToJavaBean(json,Map.class);
-            map = (Map)map.get("data");
-            return map.get("downPrev").toString();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return null;
-    }
-    //文件删除地址
-    public static String fileDeleteUrl(){
-        try {
-            String json = ic.setServerAndRequest("globalServer","FileInfoModule","fileServerInfo").execute();
-            Map map = GsonUtils.jsonToJavaBean(json,Map.class);
-            map = (Map)map.get("data");
-            return map.get("deleteUrl").toString();
-        } catch (Exception e) {
-            e.printStackTrace();
+            LLog.print("加载服务器配置信息失败:\n"+e);
+            if (retry < max){
+                return loadServerConfigJson(++retry,max);
+            }
         }
         return null;
     }
 
-    //获取公司码
-    public int getCompId(boolean passLocal) {
-        if (jsBridgeImp != null){
-            boolean isNetwork = false;
-            String json = null;
-            //不跳过本地,并且检测服务器环境信息指纹
-            if (!passLocal && checkServerEnv()){
-                //尝试本地缓存获取
-                json = jsBridgeImp.getData("USER_INFO");
-            }
-            if (StringUtils.isEmpty(json)){
-                //网络获取
-                json = ic.setServerAndRequest(DEVID,"userServer","LoginRegistrationModule","appStoreInfo").execute();
-//                LLog.print("网络获取用户信息完成: "+ json);
-                isNetwork = true;
-            }
-            Map map = GsonUtils.jsonToJavaBean(json,Map.class);
-            if (map!=null){
-                Object _compId = map.get("compId");
-                Object _roleCode = map.get("roleCode");
-                if (_compId!=null) {
-                    int compId = GsonUtils.convertInt(_compId);
-//                    LLog.print("公司码 "+ compId);
-                    if (compId > 0){
-                        if (isNetwork) jsBridgeImp.putData("USER_INFO",json);
-                        int roleCode = GsonUtils.convertInt(_roleCode);
-                        if ((roleCode & 2) > 0){
-                            return compId;
-                        }
-                    }
-                }
-            }
-        }
-        return 0;
-    }
-
-    //效验环境
-    private boolean checkServerEnv() {
-        String recode = sp.getString("envInfo",null);
-        String current = ic.getEnvId();
-        if (current.equals(recode))return true;
-        sp.edit().putString("envInfo",current).apply();
-        return false;
-    }
-
-    //转发
-    private String transfer(String serverName, String cls, String method,int page,int count,String extend,String json) {
+    //转发ICE
+    public static String transfer(String serverName, String cls, String method,int page,int count,String extend,String json) {
         IceClient client =
                 NativeServerImp.ic.settingProxy(serverName).
-                        settingReq(DEVID,cls,method).
+                        settingReq(getDevSID(),cls,method).
                         setPageInfo(page,count);
         if (json!=null){
             String[] arrays = null;
@@ -329,146 +233,135 @@ public class NativeServerImp implements IBridgeImp {
         return client.execute();
     }
 
+    //获取公司码
+    public static int refreshCompanyInfo(boolean passLocal) {
+        boolean isNetwork = false;
+        String json = null;
+        //不跳过本地,并且检测服务器环境信息指纹
+        if (iJsBridge!=null && !passLocal){
+            //尝试本地缓存获取
+            json = iJsBridge.getData("USER_INFO");
+        }
+        if (StringUtils.isEmpty(json)){
+            //本地获取失败时->网络获取
+            json = ic.setServerAndRequest(getDevSID(),"userServer","LoginRegistrationModule","appStoreInfo").execute();
+            isNetwork = true;
+        }
+        Map map = GsonUtils.jsonToJavaBean(json,Map.class);
+        if (map!=null){
+            Object _compId = map.get("compId");
+            Object _roleCode = map.get("roleCode");
+            if (_compId==null) {
+                //没有获取到客户信息
+                if (iJsBridge!=null && isNetwork) iJsBridge.putData("USER_INFO",null);
+                return 0;
+            }
+            int compId = GsonUtils.convertInt(_compId);
+            if (compId > 0){
+                if (iJsBridge!=null && isNetwork) iJsBridge.putData("USER_INFO",json);
+                int roleCode = GsonUtils.convertInt(_roleCode);
+                if ((roleCode & 2) > 0){
+                    return compId;
+                }
+            }
+        }
+        return 0;
+    }
     //根据企业码 获取 分库分表的订单服务的下标序列
     private static int getOrderServerNo(){
         //获取用户公司码
-        int compid = INSTANCE.getCompId(false);
+        int compid = refreshCompanyInfo(false);
         return ( compid / 65535 )   % 8192;
     }
 
-    @Override
-    public void setIJsBridge(IJsBridge bridge) {
-        this.jsBridgeImp = bridge;
-        getCompId(true);
-    }
-
-    @Override
-    public Object invoke(String methodName, String data) throws Exception{
-        if (isDebug) LLog.print("本地方法: "+ methodName +" ,数据: "+ data );
-        if (methodName.startsWith("ts:")){
-            //转发协议  ts:服务名@类名@方法名@分页页码@分页条数@扩展字段
-            String temp = methodName.replace("ts:","");
-            String[] args = temp.split("@");
-            return transfer(args[0],args[1],args[2],Integer.parseInt(args[3]),Integer.parseInt(args[4]),args[5],data);
-        }
-        Object val;
-        //反射调用方法
-        if(data == null){
-            Method m = caller.getClass().getDeclaredMethod(methodName);
-            m.setAccessible(true);
-            val =  m.invoke(caller);
-        }else{
-            Method m = caller.getClass().getDeclaredMethod(methodName,String.class);
-            m.setAccessible(true);
-            val = m.invoke(caller,data);
-        }
-        return val;
-    }
-
-    public void threadNotify() {
+    //线程活动
+    public static void threadNotify() {
        synchronized (caller){
-           caller.notify();
+           caller.notifyAll();
         }
     }
-
-    void threadWait(){
+    //线程休眠
+    public static void threadWait(){
         synchronized (caller) {
             try { caller.wait(); } catch (InterruptedException ignored) { }
         }
     }
 
-    @Override
-    public void onActivityResult(int requestCode, int resultCode, Intent data) {
-        caller.onActivityResultHandle(requestCode,resultCode,data);
-        threadNotify();
-    }
-
     /** 打开/关闭连接 */
-    void communication(String type){
-
-        if (type.equals("start")){
-            //获取用户公司码
-            int compid = getCompId(false);
-            if (compid > 0){
-                if (notifyImp == null) notifyImp = new CommunicationServerImp(this);
+    public static synchronized void communication(String type){
+        try {
+            if (type.equals("start")){
                 try {
+                    //实时获取用户公司码
+                    int compid = refreshCompanyInfo(true);
+                    if (compid == 0) throw new IllegalStateException("当前用户未登录");
+                    if (notifyImp == null) notifyImp = new CommunicationServerImp();
                     if(checkCommunication(compid+"")) return;
-                    LLog.print("order2Server" + getOrderServerNo());
-                    InterfacesPrx prx = ic.settingProxy("order2Server" + getOrderServerNo()).getProxy();
+                    InterfacesPrx prx = ic.settingProxy("order2Service" + getOrderServerNo()+"_1").getProxy();
                     notifyImp.identity = new Ice.Identity(compid+"","android");
                     localAdapter.add(notifyImp,notifyImp.identity );
                     prx.ice_getConnection().setAdapter(localAdapter);
                     prx.online( notifyImp.identity);
                     notifyImp.online = true;
-
+                    LLog.print("IM 已连接服务器");
                 } catch (Exception e) {
-                    e.printStackTrace();
-                    notifyImp = null;
+                    //LLog.print("IM错误: "+e);
+                    type = "close";
                 }
             }
-        }else if (type.equals("close")){
-            if (notifyImp ==null) return;
-            localAdapter.remove(notifyImp.identity);
-            notifyImp = null;
+            if (type.equals("close")){
+                //断开本地长连接
+                if (notifyImp !=null){
+                    if (notifyImp.identity!=null) localAdapter.remove(notifyImp.identity);
+                    notifyImp = null;
+                    LLog.print("IM 服务器 断开连接");
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            LLog.print("IM-communication-错误: "+e);
         }
     }
 
     //长连接检测线程
-    private Thread checkCommunicationThread = new Thread(){
+    private static final Thread checkCommunicationThread = new Thread(){
         @Override
         public void run() {
             while (true){
                 try {
-                    Thread.sleep(5 * 1000L);
+                    Thread.sleep(10 * 1000L);
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
                 communication("start");
-                LLog.print("连接情况： " +  (notifyImp!=null && notifyImp.online));
             }
         }
     };
 
 
     //检查长连接是否有效
-    private boolean checkCommunication(String compid) {
+    private static boolean checkCommunication(String compid) {
         try {
-            if (notifyImp.online){
+            if (notifyImp!=null && notifyImp.online){
                 notifyImp.ice_ping();
                 if (notifyImp.identity.name.equals(compid)){
                     return true;
                 }
             }
         } catch (Exception e) {
-            notifyImp.online = false;
             e.printStackTrace();
+            if (notifyImp!=null) notifyImp.online = false;
         }
         return false;
     }
 
-    /** 推送消息 */
-    void pushMessageToJs(final String message){
-        if (jsBridgeImp == null) return;
-        jsBridgeImp.requestJs("communicationSysReceive",message, null);
-    }
 
-    /** 消息通知栏点击进入 */
-    public void notifyEntryToJs(){
-        if (jsBridgeImp == null) return;
-        jsBridgeImp.requestJs("notifyEntry",null, null);
-    }
-
-    /** 推送支付结果 */
-    void pushPaySuccessMessageToJs(final String message){
-        if (jsBridgeImp == null) return;
-        jsBridgeImp.requestJs("communicationPayReceive",message, null);
-    }
 
     /**
      * app支付
      * json = { orderno=订单号,paytype=付款方式,flag客户端类型0 web,1 app }
      */
-    Map payHandle(String json,String payType){
+    public static Map payHandle(String json,String payType){
 
         Map map  = GsonUtils.jsonToJavaBean(json,Map.class);
         map.put("paytype",payType);
@@ -483,12 +376,44 @@ public class NativeServerImp implements IBridgeImp {
     }
 
     //支付前准备
-    Activity payPrevHandle(){
+    public static Activity payPrevHandle(){
         if (fragment.get() == null) return null;
-        Activity activity = fragment.get().getActivity();
+        final Activity activity = fragment.get().getActivity();
         if (activity==null) return null;
-        communication("start");//强制打开连接
-        return notifyImp.online? activity : null;
+        final boolean isConnState = (notifyImp!=null && notifyImp.online);
+        LLog.print("连接情况： " + isConnState );
+        activity.runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                AppUtils.toast(activity,"支付环境"+ (isConnState?"正确,可以支付":"错误,请稍后尝试"));
+            }
+        });
+        //communication("start");//强制打开连接
+        return isConnState ? activity : null;
+    }
+
+    /** 推送消息 */
+    public static void pushMessageToJs(final String message){
+        if (iJsBridge == null) return;
+        iJsBridge.requestJs("communicationSysReceive",message, null);
+    }
+
+    /** 消息通知栏点击进入 */
+    public static void notifyEntryToJs(String path){
+        if (iJsBridge == null) return;
+        if (path == null) path = "/message";
+        iJsBridge.requestJs("notifyEntry",path, null);
+    }
+
+    /** 推送支付结果 */
+    public static void pushPaySuccessMessageToJs(final String message){
+        if (iJsBridge == null) return;
+        iJsBridge.requestJs("communicationPayReceive",message, null);
+    }
+
+    /* 强制登出 */
+    public static void forceLogout() {
+        iJsBridge.requestJs("logoutHandle",null, null);
     }
 
 }

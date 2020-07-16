@@ -21,6 +21,7 @@ import lee.bottle.lib.toolset.util.GsonUtils;
 public class HttpRequest extends HttpUtil.CallbackAbs  {
 
     private String text;
+    private Exception exception;
 
     public HttpRequest bindParam(StringBuffer sb,Map<String,String > map){
         Iterator<Map.Entry<String,String>> it = map.entrySet().iterator();
@@ -44,10 +45,9 @@ public class HttpRequest extends HttpUtil.CallbackAbs  {
 //    }
 
     public HttpRequest accessUrl(String url){
-        System.out.println(url);
         new HttpUtil.Request(url,this)
-                .setReadTimeout(1000)
-                .setConnectTimeout(1000)
+                .setReadTimeout(30*1000)
+                .setConnectTimeout(30*1000)
                 .text()
                 .execute();
         return this;
@@ -176,6 +176,11 @@ public class HttpRequest extends HttpUtil.CallbackAbs  {
         return text;
     }
 
+    //获取错误信息
+    public Exception getException(){
+        return exception;
+    }
+
     //删除文件
     public HttpRequest deleteFile(String url, List<String> fileItem){
         try {
@@ -203,8 +208,8 @@ public class HttpRequest extends HttpUtil.CallbackAbs  {
 
     @Override
     public void onError(Exception e) {
-        e.printStackTrace();
-        this.text = e.toString();
+        exception = e;
+        this.text = null;
     }
 
     public boolean download(String url,File file){

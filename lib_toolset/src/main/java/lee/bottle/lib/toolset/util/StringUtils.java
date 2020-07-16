@@ -7,6 +7,7 @@ import net.sourceforge.pinyin4j.format.HanyuPinyinToneType;
 import net.sourceforge.pinyin4j.format.exception.BadHanyuPinyinOutputFormatCombination;
 
 import java.net.URLEncoder;
+import java.security.MessageDigest;
 import java.util.Iterator;
 import java.util.Map;
 
@@ -67,7 +68,17 @@ public class StringUtils {
                     sb.append(c);
             }
         }
-        return sb.toString();
+        return sb.toString()
+                .replaceAll("%","%25")
+                .replaceAll("\\+","%2B")
+                .replaceAll("\\s+","%20")
+                .replaceAll("/","%2F")
+                .replaceAll("\\?","%3F")
+                .replaceAll("#","%23")
+                .replaceAll("&","%26")
+                .replaceAll("=","%26")
+                ;
+
     }
 
     /**
@@ -87,6 +98,43 @@ public class StringUtils {
             e.printStackTrace();
         }
        return null;
+    }
+
+    /**
+     * byte->16进制字符串
+     * @param bytes
+     * @return
+     */
+    public static String byteToHexString(byte[] bytes) {
+        StringBuilder hexStr = new StringBuilder();
+        int num;
+        for (byte aByte : bytes) {
+            num = aByte;
+            if (num < 0) {
+                num += 256;
+            }
+            if (num < 16) {
+                hexStr.append("0");
+            }
+            hexStr.append(Integer.toHexString(num));
+        }
+        return hexStr.toString().toUpperCase();
+    }
+
+    /**
+     * 获取一段字节数组的md5
+     * @param buffer
+     * @return
+     */
+    public static byte[] getBytesMd5(byte[] buffer) {
+        byte[] result = null;
+        try { result =  MessageDigest.getInstance("MD5").digest(buffer); } catch (Exception ignored) { }
+        return result;
+    }
+
+    /* 获取字符串的MD5 */
+    public static String strMD5(String str){
+        return byteToHexString(getBytesMd5(str.getBytes()));
     }
 
 }

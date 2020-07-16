@@ -34,7 +34,6 @@ public class ScanActivity : AppCompatActivity() , QRCodeView.Delegate, CompoundB
         zbar_view.setDelegate(this)
 
         tb_flash.setOnCheckedChangeListener(this)
-
     }
 
     fun backUp(){

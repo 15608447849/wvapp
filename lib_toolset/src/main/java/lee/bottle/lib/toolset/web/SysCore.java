@@ -84,6 +84,7 @@ public class SysCore extends IWebViewInit<WebView> {
         settings.setCacheMode(WebSettings.LOAD_CACHE_ELSE_NETWORK);
         settings.setRenderPriority(WebSettings.RenderPriority.HIGH);
 //        settings.setBlockNetworkImage(true);
+        settings.setDefaultTextEncodingName("UTF-8");
 
         webview.setWebChromeClient(new SysWebChromeClient());
         webview.setWebViewClient(new SysWebViewClient());
@@ -92,6 +93,8 @@ public class SysCore extends IWebViewInit<WebView> {
         //去除滚动条
         webview.setHorizontalFadingEdgeEnabled(false);
         webview.setVerticalScrollBarEnabled(false);
+
+
 
 
     }

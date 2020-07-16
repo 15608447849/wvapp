@@ -91,7 +91,7 @@ public class LLog{
 
     //打印
     public static void print(Object... objects){
-        printTag(null,objects);
+        printTag("<<LEE LOG>>",objects);
     }
     //打印
     public static void printTag(String tag, Object... objects){

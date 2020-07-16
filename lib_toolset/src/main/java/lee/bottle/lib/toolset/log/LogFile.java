@@ -25,6 +25,9 @@ class LogFile implements ILogHandler{
             if (!folder.exists()) return;
             File[] files = folder.listFiles();
             ArrayList<File> delFile = new ArrayList<>();
+            if(files==null){
+                return;
+            }
             long time;
             for (File file : files){
                 time = System.currentTimeMillis() - file.lastModified(); //当前时间 - 最后修改时间

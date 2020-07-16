@@ -4,18 +4,19 @@ import android.Manifest;
 import android.content.Intent;
 import android.os.Bundle;
 import android.os.PersistableBundle;
+import android.view.View;
 import android.widget.FrameLayout;
+import android.widget.ProgressBar;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import com.bottle.wvapp.R;
-import com.bottle.wvapp.jsprovider.NativeServerImp;
 import com.bottle.wvapp.tool.LaunchPage;
 
 import lee.bottle.lib.singlepageframwork.anno.SLayoutId;
 import lee.bottle.lib.singlepageframwork.base.SActivity;
-import lee.bottle.lib.singlepageframwork.use.RegisterCentre;
+import lee.bottle.lib.toolset.jsbridge.JSUtils;
 import lee.bottle.lib.toolset.log.LLog;
 import lee.bottle.lib.toolset.os.PermissionApply;
 
@@ -25,7 +26,6 @@ import lee.bottle.lib.toolset.os.PermissionApply;
  * 主入口
  */
 public class SingleActivity extends SActivity implements PermissionApply.Callback{
-
     //权限数组
     private String[] permissionArray = new String[]{
             Manifest.permission.WRITE_EXTERNAL_STORAGE, // 写sd卡
@@ -38,6 +38,9 @@ public class SingleActivity extends SActivity implements PermissionApply.Callbac
     //权限申请
     private PermissionApply permissionApply =  new PermissionApply(this,permissionArray,this);
 
+    /* 进度条 */
+    private ProgressBar progressBar;
+
     /* fragment 容器*/
     @SLayoutId("content")
     private FrameLayout layout;
@@ -46,10 +49,30 @@ public class SingleActivity extends SActivity implements PermissionApply.Callbac
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_single);
+        progressBar = findViewById(R.id.progress_bar);
         layout = findViewById(R.id.container);
-        LaunchPage.start(this);
-    }
 
+        LaunchPage.start(this, new JSUtils.WebProgressI() {
+            @Override
+            public void updateProgress(final int current) {
+                SingleActivity.this.runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        if (progressBar!=null){
+                            progressBar.setProgress(current);
+                            if (current==100){
+                                progressBar.setVisibility(View.GONE);
+                            }else{
+                                progressBar.setVisibility(View.VISIBLE);
+                            }
+                        }
+                    }
+                });
+            }
+        });
+
+
+    }
 
     /* 权限审核回调 */
     @Override
@@ -102,23 +125,8 @@ public class SingleActivity extends SActivity implements PermissionApply.Callbac
 
     //初始化应用
     private void initApp() {
-        mHandler.io(new Runnable() {
-            @Override
-            public void run() {
-                //初始化页面
-                RegisterCentre.register(NativeServerImp.dynamicPageInformation());
-                runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        NativeServerImp.ServerConfig c = NativeServerImp.config;
-                        //加载页面
-                        getSFOPage().skip(c.page.container,c.page.name);//跳转到web页面
-                    }
-                });
-            }
-        });
+        //加载页面
+        getSFOPage().skip("content","web");//跳转到web页面
     }
-
-
 
 }

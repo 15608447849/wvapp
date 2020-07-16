@@ -32,12 +32,13 @@ public class NotifyUer {
         build.setActivityIntent(intent);
         build.setGroup("messageList");
         build.setDefaults(Notification.DEFAULT_ALL);
-        build.setIcon(R.drawable.ic_message);
+        build.setIcon(R.mipmap.ic_launcher);
         build.setText( context.getString(R.string.app_name),message,"点击进入");
         build.setWhen(System.currentTimeMillis());
         build.setTicker(message);
         build.generateNotification().showNotification();
     }
+
     public static FrontNotification createDownloadApkNotify(Context context,String title){
         Intent intent = new Intent(context, SingleActivity.class);
        return new FrontNotification.Build(context).setLevel(3)

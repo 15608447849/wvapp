@@ -12,15 +12,9 @@ import lee.bottle.lib.toolset.threadpool.IOUtils;
  * email: 793065165@qq.com
  */
 public class CommunicationServerImp extends _PushMessageClientDisp {
-    private NativeServerImp bridgeImp;
 
     public Ice.Identity identity;
-
     public boolean online = false;
-
-    public CommunicationServerImp(NativeServerImp bridgeImp) {
-        this.bridgeImp = bridgeImp;
-    }
 
     /**
      * 客户端接受服务端 消息
@@ -34,23 +28,42 @@ public class CommunicationServerImp extends _PushMessageClientDisp {
             @Override
             public void run() {
                 try {
-                    LLog.print("服务器推送消息:" + message);
-                    if(message.startsWith("logout:force")  ){
-                        if(message.contains("PHONE")){
-                            bridgeImp.forceLogout();
-                        }
-                        return;
-                    }
                     //刷新用户/ 企业信息
-                    int compid = bridgeImp.getCompId(true);
-                    if (compid == 0) return ;
-                    String msg = message.substring(4);
-                    //解析
-                    if (message.startsWith("sys")){
-                            bridgeImp.pushMessageToJs(msg);
-                            NotifyUer.createMessageNotify(bridgeImp.fragment.get().getContext(), msg,"NOTIFY"); //打开广播
-                    } else if (message.startsWith("pay")){
-                        bridgeImp.pushPaySuccessMessageToJs(msg);
+                    int compid = NativeServerImp.refreshCompanyInfo(true);
+
+                    LLog.print("公司标识 " + compid + " ,收到服务器推送消息\t" + message);
+                    String prop = message.substring(0,message.indexOf(":"));
+                    String msg = message.substring(message.indexOf(":")+1);
+
+                    //其他相同设备登录,强制下线
+                    if(prop.equals("logout-force")  ){
+                        String devID = msg.substring(0,msg.lastIndexOf("@"));
+                        String devType = msg.substring(msg.lastIndexOf("@")+1);
+                        //相同设备 并且 设备标识不相同
+                        if (devType.equals(NativeServerImp.DEVTYPE) && !devID.equals(NativeServerImp.DEVID)){
+                            NativeServerImp.forceLogout();
+                        }
+                    }
+                    if (message.equals("pay")){
+                        NativeServerImp.pushPaySuccessMessageToJs(msg);
+                    }
+                    //推送消息
+                    if (prop.equals("push") || prop.equals("custom")){
+                        String content = msg;
+                        String likePath = null;
+                        if (message.startsWith("custom")){
+                          // [内容,链接]
+                            String[] arr = content.split(";");
+                            if (arr.length >= 1){
+                                content = arr[0];
+                            }
+                            if (arr.length >= 2){
+                                likePath = arr[1];
+                            }
+                        }
+                        NativeServerImp.pushMessageToJs(content);
+                        //打开广播-跳转个人中心
+                        NotifyUer.createMessageNotify(NativeServerImp.app.getApplicationContext(), content,likePath);
                     }
                 } catch (Exception e) {
                     e.printStackTrace();

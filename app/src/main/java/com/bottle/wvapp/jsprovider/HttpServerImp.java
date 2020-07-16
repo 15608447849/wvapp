@@ -1,14 +1,15 @@
 package com.bottle.wvapp.jsprovider;
 
-import android.content.Context;
 import android.net.Uri;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 
 import lee.bottle.lib.toolset.http.HttpRequest;
 import lee.bottle.lib.toolset.http.HttpUtil;
+import lee.bottle.lib.toolset.log.LLog;
 import lee.bottle.lib.toolset.util.ImageUtils;
 
 /**
@@ -16,15 +17,14 @@ import lee.bottle.lib.toolset.util.ImageUtils;
  * email: 793065165@qq.com
  * 提供给移动端的文件上传
  */
-public class HttpServerImp {
-
-    public static class JSFileItem{
+public final class HttpServerImp {
+     public static final class JSFileItem{
         public String remotePath;
         public String fileName;
         public String uri;//上传的文件的本地路径
     }
 
-     public static class JSUploadFile{
+     public static final class JSUploadFile{
         public boolean isCompress = true;
         public boolean isLogo = true;
         public boolean isThumb = true;
@@ -37,21 +37,50 @@ public class HttpServerImp {
          }
      }
 
-     public static boolean updateFile(Context context,JSFileItem... item){
-         String url = NativeServerImp.INSTANCE.fileUploadUrl();
-         if (url == null) return false;
+     private static final LinkedList<HttpServerImp.JSUploadFile> waitQueue = new LinkedList<>();
+     private static Thread uploadThread = null;
+
+     //多个文件上传
+     public static void updateFile(JSFileItem... item){
          HttpServerImp.JSUploadFile jsUploadFile = new HttpServerImp.JSUploadFile();
-         jsUploadFile.url = url;
          for (JSFileItem it : item){
              jsUploadFile.addFile(it);
          }
-         //发送文件到服务器
-         HttpServerImp.updateFile(context,jsUploadFile);
-         return true;
+//         加入上传队列
+         waitQueue.add(jsUploadFile);
+         if (uploadThread==null){
+             uploadThread = new Thread(){
+                 @Override
+                 public void run() {
+                     while (true){
+                         if (waitQueue.size()>0){
+                             HttpServerImp.JSUploadFile bean = waitQueue.removeFirst();
+                             bean.url = NativeServerImp.getSpecFileUrl("upUrl");
+                             if (bean.url == null){
+                                 waitQueue.addLast(bean);
+                             }else{
+                                 String uploadResult = updateFile(bean);
+                                 LLog.print("文件上传结果 : "+ uploadResult);
+                             }
+                         }else{
+                                 try {
+                                     synchronized (waitQueue){
+                                        waitQueue.wait();
+                                     }
+                                 } catch (InterruptedException ignored) { }
+                         }
+                     }
+                 }
+             };
+             uploadThread.start();
+         }
+         synchronized (waitQueue){
+             waitQueue.notifyAll();
+         }
      }
 
     //文件上传
-    public static String updateFile(Context context, JSUploadFile bean){
+    public static String updateFile(JSUploadFile bean){
         HttpRequest httpRequest = new HttpRequest();
         for (JSFileItem item : bean.files){
             try {
@@ -61,25 +90,25 @@ public class HttpServerImp {
                     File file = new File(path);
                     if (file.exists()){
                         if ("image".equals(uri.getScheme())){
-                            file = ImageUtils.imageCompression(context,file,500);
-                            httpRequest.setCompress(bean.isCompress);//服务器压缩
-                            httpRequest.setLogo(bean.isLogo);//图片水印
-                            httpRequest.setThumb(bean.isThumb);//图片略缩图
-                            httpRequest.setCompressLimitSieze(5*1024*1024L);
+                            if (NativeServerImp.app!=null){
+                                file = ImageUtils.imageCompression(NativeServerImp.app,file,500);
+                                httpRequest.setCompress(bean.isCompress);//服务器压缩
+                                httpRequest.setLogo(bean.isLogo);//图片水印
+                                httpRequest.setThumb(bean.isThumb);//图片略缩图
+                                httpRequest.setCompressLimitSieze(5*1024*1024L);
+                            }
                         }
                         httpRequest.addFile(file,item.remotePath ,item.fileName);
                     }
                 }
-
             } catch (Exception e) {
                 e.printStackTrace();
             }
         }
         return  httpRequest.fileUploadUrl(bean.url).getRespondContent();
     }
-
     //文件下载
-    public static File downloadFile(String url, String storePath, final HttpUtil.Callback callback){
+    static File downloadFile(String url, String storePath, final HttpUtil.Callback callback){
         File file = new File(storePath);
        return new HttpRequest(){
            @Override
@@ -88,9 +117,13 @@ public class HttpServerImp {
            }
        }.download(url,file) ? file : null;
     }
-
+    static String text(String url) throws Exception{
+        HttpRequest httpRequest = new HttpRequest().accessUrl(url);
+        if (httpRequest.getException()!=null) throw httpRequest.getException();
+        return httpRequest.getRespondContent();
+    }
     //文件删除
-    public static String deleteFileOnRemoteServer(String url,List<String> pathList){
+    static String deleteFileOnRemoteServer(String url,List<String> pathList){
         List<String> paths = new ArrayList<>();
         for (String path : pathList){
             Uri uri = Uri.parse(path);
@@ -103,4 +136,5 @@ public class HttpServerImp {
         }
         return null;
     }
+
 }

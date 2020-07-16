@@ -10,7 +10,6 @@ import java.util.Locale;
 import Ice.Communicator;
 import Ice.ObjectPrx;
 import Ice.Util;
-import lee.bottle.lib.toolset.log.LLog;
 
 /**
  * @Author: leeping
@@ -38,7 +37,6 @@ public class IceClient {
 
     public IceClient(String tag,String serverAdds,String argsStr) {
         args = initParams(tag,serverAdds,argsStr.split(","));
-        LLog.print("服务器信息:" + getEnvId() );
     }
 
     private String[] initParams(String tag,String serverAdds,String... iceArgs) {

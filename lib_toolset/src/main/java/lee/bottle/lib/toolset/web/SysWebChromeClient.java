@@ -35,10 +35,14 @@ public class SysWebChromeClient extends WebChromeClient {
     @Override
     public boolean onConsoleMessage(ConsoleMessage consoleMessage) {
         String fileName =  consoleMessage.sourceId();
+
         LLog.print(
-                "浏览器控制台-["+consoleMessage.messageLevel()+"]\t"+consoleMessage.message() +
-                        (consoleMessage.messageLevel().name().equalsIgnoreCase("error") ? "\n" + fileName +":"+consoleMessage.lineNumber():"")
+                "浏览器控制台-["+consoleMessage.messageLevel()+"]\n"+consoleMessage.message()
+                        + (consoleMessage.messageLevel().name().equalsIgnoreCase("error") ? "\n" + fileName +":"+consoleMessage.lineNumber():"")
+
         );
+
+//        LLog.print("WEB LOG \n\t" + consoleMessage.message());
         return true;
     }
 

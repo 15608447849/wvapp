@@ -3,11 +3,13 @@ package lee.bottle.lib.toolset.util;
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.ActivityManager;
+import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
+import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.location.LocationManager;
 import android.net.ConnectivityManager;
@@ -17,6 +19,7 @@ import android.net.wifi.WifiManager;
 import android.os.Build;
 import android.os.Looper;
 import android.os.Parcelable;
+import android.provider.ContactsContract;
 import android.telephony.TelephonyManager;
 import android.view.View;
 import android.view.inputmethod.InputMethodManager;
@@ -36,6 +39,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.NetworkInterface;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -53,6 +57,31 @@ import static android.content.Intent.FLAG_ACTIVITY_NEW_TASK;
  * email: 793065165@qq.com
  */
 public class AppUtils {
+    /** 读取手机通讯录
+     * <uses-permission android:name="android.permission.READ_CONTACTS"/>
+     * */
+    private List<String> readContacts(Activity activity){
+        List<String> list = new ArrayList<>();
+        ContentResolver resolver  = activity.getContentResolver();
+        //用于查询电话号码的URI
+        Uri phoneUri = ContactsContract.CommonDataKinds.Phone.CONTENT_URI;
+        // 查询的字段
+        String[] projection = {ContactsContract.CommonDataKinds.Phone._ID,//Id
+                ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME,//通讯录姓名
+                ContactsContract.CommonDataKinds.Phone.DATA1, "sort_key",//通讯录手机号
+                ContactsContract.CommonDataKinds.Phone.CONTACT_ID,//通讯录Id
+                ContactsContract.CommonDataKinds.Phone.PHOTO_ID,//手机号Id
+                ContactsContract.CommonDataKinds.Phone.LOOKUP_KEY};
+        @SuppressLint("Recycle") Cursor cursor = resolver.query(phoneUri, projection, null, null, null);
+        assert cursor != null;
+        while ((cursor.moveToNext())) {
+            String name = cursor.getString(1);
+            String phone = cursor.getString(2);
+            list.add(name+":"+phone);
+        }
+        return list;
+    }
+
     /**
      * 判断应用是否存在指定权限
      */
@@ -401,18 +430,24 @@ public class AppUtils {
      */
     @SuppressLint({"MissingPermission", "HardwareIds"})
     public static String devOnlyCode(Context context){
-        StringBuffer sb = new StringBuffer();
-        sb.append(Build.FINGERPRINT);
-        sb.append("-").append( Arrays.toString(Build.SUPPORTED_ABIS) ).append("-");
+        StringBuilder sb = new StringBuilder();
+
+        sb.append(Build.FINGERPRINT).append(";").
+        append( Arrays.toString(Build.SUPPORTED_ABIS) ).append(";");
+        //物理地址
+        sb.append(devMAC(context)).append(";");
+
         if (checkPermissionExist(context,READ_PHONE_STATE)){
             TelephonyManager telephonyMgr = (TelephonyManager)context.getSystemService(TELEPHONY_SERVICE);
             if (telephonyMgr != null){
-                sb.append("-").append( telephonyMgr.getDeviceId()).append("-");
+                String deviceID  = telephonyMgr.getDeviceId();
+                if (deviceID!=null){
+                    sb.append(deviceID ).append(";");
+                    String sel = android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O ? Build.getSerial() : Build.SERIAL;
+                    sb.append(sel).append(";");
+                }
             }
-            String sel = android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O ? Build.getSerial() : Build.SERIAL;
-            sb.append(sel).append("-");
         }
-        sb.append(devMAC(context));
         return sb.toString();
     }
 

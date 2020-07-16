@@ -50,10 +50,13 @@
 
         <uses-library android:name="org.apache.http.legacy" android:required="false" />
 
-        <activity android:name="com.bottle.wvapp.activitys.CitySelectActivity"/>
-
+        <!--   扫码     -->
         <activity android:name="com.bottle.wvapp.activitys.ScanActivity"/>
 
+        <!--   其他web页面     -->
+        <activity android:name="com.bottle.wvapp.activitys.WebActivity" android:launchMode="singleInstance" />
+
+        <!--    主服务    -->
         <activity android:name="com.bottle.wvapp.activitys.SingleActivity" android:launchMode="singleInstance">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -77,7 +80,6 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths" />
         </provider>
-
     </application>
 
 

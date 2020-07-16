@@ -38,6 +38,7 @@ public class SysWebViewClient extends WebViewClient {
      */
     @Override
     public boolean shouldOverrideUrlLoading(WebView view, String url) {
+        LLog.print("shouldOverrideUrlLoading\n\t"+url);
         view.loadUrl(url);
         return true;
     }

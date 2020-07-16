@@ -40,7 +40,7 @@ public class LaunchPage implements Runnable{
     private static ImageView iv;
 
 
-    public static void start(Activity activity){
+    public static void start(Activity activity,final JSUtils.WebProgressI webProgressI){
         if (!AppUtils.checkUIThread()) return;
         if (isLaunch) return;
         try(InputStream imageIn = NativeServerImp.getLaunchImage()){
@@ -58,11 +58,15 @@ public class LaunchPage implements Runnable{
             iv.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
             rootView.addView(iv);
             scaleImage(imageIn);
-            JSUtils.setCallback(new JSUtils.WebPageOneOpen() {
+            JSUtils.setWebProgressI(new JSUtils.WebProgressI() {
                 @Override
-                public void pageFinish() {
-                    isLaunch = true;
-                    stop();
+                public void updateProgress(int current) {
+                    if (current>=90){
+                        isLaunch = true;
+                        stop();
+                        //设置页面加载滚动条
+                        JSUtils.setWebProgressI(webProgressI);
+                    }
                 }
             });
             new Thread(new LaunchPage()).start();
