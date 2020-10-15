@@ -95,7 +95,7 @@ public class NativeMethodCallImp {
         NativeServerImp.app.startActivity(i);
     }
 
-    public void onActivityResultHandle(int requestCode, int resultCode, Intent data) {
+    void onActivityResultHandle(int requestCode, int resultCode, Intent data) {
         if (resultCode == RESULT_OK){
             if (requestCode == REQUEST_SELECT_IMAGES_CODE) {
                 imagePaths = data.getStringArrayListExtra(ImagePicker.EXTRA_SELECT_IMAGES);
@@ -175,7 +175,7 @@ public class NativeMethodCallImp {
     /** 内置浏览器打开链接 */
     public void localBrowserOpenUrl(final String url) {
         LLog.print("浏览器打开链接: "+url);
-        if (url.endsWith(".pdf") || url.endsWith(".png")){
+        if (url.endsWith("?openType=outBrowser") || url.endsWith(".pdf") || url.endsWith(".png")){
             Intent intent=new Intent();
             intent.setFlags(FLAG_ACTIVITY_NEW_TASK);
             intent.setAction("android.intent.action.VIEW");

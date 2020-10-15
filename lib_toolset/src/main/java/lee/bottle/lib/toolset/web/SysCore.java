@@ -73,10 +73,8 @@ public class SysCore extends IWebViewInit<WebView> {
          * 默认情况下，KITKAT及更低版本默认值为MIXED_CONTENT_ALWAYS_ALLOW，LOLLIPOP版本默认值MIXED_CONTENT_NEVER_ALLOW，WebView首选的最安全的操作模式为MIXED_CONTENT_NEVER_ALLOW ，不鼓励使用MIXED_CONTENT_ALWAYS_ALLOW
          */
         settings.setMixedContentMode(android.webkit.WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
-
         //是否保存表单数据，默认值true
         settings.setSaveFormData(true);
-
         //图片自动下载
         settings.setLoadsImagesAutomatically(true);
         //不禁止网络图片加载
@@ -93,10 +91,6 @@ public class SysCore extends IWebViewInit<WebView> {
         //去除滚动条
         webview.setHorizontalFadingEdgeEnabled(false);
         webview.setVerticalScrollBarEnabled(false);
-
-
-
-
     }
 
     @Override
@@ -112,8 +106,11 @@ public class SysCore extends IWebViewInit<WebView> {
 
     @Override
     public void clear() {
-        getWebView().clearCache(true);
+//        getWebView().clearCache(true);
         getWebView().clearFormData();
+        getWebView().clearHistory();
+        getWebView().clearMatches();
+        getWebView().clearSslPreferences();
     }
 
     @Override

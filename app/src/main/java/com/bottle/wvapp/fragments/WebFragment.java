@@ -11,6 +11,7 @@ import android.view.ViewGroup;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
+import com.bottle.wvapp.BuildConfig;
 import com.bottle.wvapp.R;
 import com.bottle.wvapp.jsprovider.NativeServerImp;
 
@@ -71,7 +72,7 @@ public class WebFragment extends SFragment {
                     Objects.requireNonNull(getActivity()).getApplicationContext(),
                     view, NativeServerImp.iBridgeImp);
             iWebViewInit.clear();
-            iWebViewInit.getProxy().loadUrl("http://wx.onekdrug.com");
+            iWebViewInit.getProxy().loadUrl(BuildConfig._WEB_HOME_URL);
         } catch (Exception e) {
             LLog.print("加载内核失败, core = "+ core);
             AppUtils.toast(getSActivity(),"浏览器内核加载失败");

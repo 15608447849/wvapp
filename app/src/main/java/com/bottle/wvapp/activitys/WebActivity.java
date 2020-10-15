@@ -25,7 +25,6 @@ import lee.bottle.lib.toolset.util.ObjectRefUtil;
  */
 public class WebActivity extends AppCompatActivity {
 
-
     private IWebViewInit iWebViewInit;
 
     private Button linkBtn;

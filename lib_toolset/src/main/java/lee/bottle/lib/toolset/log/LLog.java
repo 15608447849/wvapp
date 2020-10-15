@@ -73,7 +73,7 @@ public class LLog{
     //通知
     private static void notifyThread() {
         synchronized (LLog.class){
-            LLog.class.notify();
+            LLog.class.notifyAll();
         }
     }
 

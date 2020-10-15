@@ -30,7 +30,6 @@ public class CommunicationServerImp extends _PushMessageClientDisp {
                 try {
                     //刷新用户/ 企业信息
                     int compid = NativeServerImp.refreshCompanyInfo(true);
-
                     LLog.print("公司标识 " + compid + " ,收到服务器推送消息\t" + message);
                     String prop = message.substring(0,message.indexOf(":"));
                     String msg = message.substring(message.indexOf(":")+1);
@@ -41,7 +40,10 @@ public class CommunicationServerImp extends _PushMessageClientDisp {
                         String devType = msg.substring(msg.lastIndexOf("@")+1);
                         //相同设备 并且 设备标识不相同
                         if (devType.equals(NativeServerImp.DEVTYPE) && !devID.equals(NativeServerImp.DEVID)){
-                            NativeServerImp.forceLogout();
+                            if (compid == 0) {
+                                LLog.print("用户登出提醒");
+                                NativeServerImp.forceLogout();
+                            }
                         }
                     }
                     if (message.equals("pay")){

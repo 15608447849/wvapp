@@ -63,13 +63,9 @@ public class JSInterface implements IJsBridge {
             this.hImp = imp;
             this.hImp.setIJsBridge(this);
         }
-
         return this;
     }
-
     private final HashMap<String, IJsBridge.JSCallback> jsCallbackMap = new HashMap<>();
-
-
 
     /**
      * js -> native
@@ -78,14 +74,10 @@ public class JSInterface implements IJsBridge {
      */
     @JavascriptInterface
     public void invoke(final String methodName, final String data, final String callback_id) {
-
         if (hImp == null) return;
-
         IOUtils.run(new Runnable() {
             @Override
             public void run() {
-
-
                 //异步执行
                 Object value ;
                 try {

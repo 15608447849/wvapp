@@ -1,22 +1,31 @@
 <?xml version="1.0" encoding="utf-8"?>
-<FrameLayout
-    android:id="@+id/root"
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout android:id="@+id/root"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
-    <!--fragment展示层-->
-    <FrameLayout
-        android:id="@+id/container"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent" />
-    <ProgressBar
-        android:id="@+id/progress_bar"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        style="?android:attr/progressBarStyleHorizontal"
-        android:max="100"
-        android:visibility="gone"
-        />
-</FrameLayout>
+    android:layout_height="match_parent"
+    xmlns:android="http://schemas.android.com/apk/res/android">
+        <!--fragment展示层-->
+        <FrameLayout
+            android:id="@+id/container"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+        <ProgressBar
+            android:id="@+id/progress_bar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            style="?android:attr/progressBarStyleHorizontal"
+            android:max="100"
+            android:visibility="gone"
+            />
+    </FrameLayout>
+<!--<androidx.cardview.widget.CardView-->
+<!--xmlns:android="http://schemas.android.com/apk/res/android"-->
+<!--xmlns:material="http://schemas.android.com/apk/res-auto"-->
+<!--android:layout_width="match_parent"-->
+<!--android:layout_height="match_parent"-->
+<!--android:layout_margin="1dp"-->
+<!--material:cardCornerRadius="1dp"-->
+<!--android:background="@color/text_color_white">-->
+<!--</androidx.cardview.widget.CardView>-->
+

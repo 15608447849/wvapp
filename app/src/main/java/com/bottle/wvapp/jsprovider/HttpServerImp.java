@@ -9,7 +9,6 @@ import java.util.List;
 
 import lee.bottle.lib.toolset.http.HttpRequest;
 import lee.bottle.lib.toolset.http.HttpUtil;
-import lee.bottle.lib.toolset.log.LLog;
 import lee.bottle.lib.toolset.util.ImageUtils;
 
 /**
@@ -60,7 +59,7 @@ public final class HttpServerImp {
                                  waitQueue.addLast(bean);
                              }else{
                                  String uploadResult = updateFile(bean);
-                                 LLog.print("文件上传结果 : "+ uploadResult);
+                                 //LLog.print("文件上传结果 : "+ uploadResult);
                              }
                          }else{
                                  try {

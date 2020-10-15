@@ -40,13 +40,6 @@ public class IceClient {
     }
 
     private String[] initParams(String tag,String serverAdds,String... iceArgs) {
-        StringBuffer sb = new StringBuffer("--Ice.Default.Locator="+tag+"/Locator");
-        String str = ":tcp -h %s -p %s";
-        String[] infos = serverAdds.split(";");
-        for (String info : infos){
-            String[] host_port = info.split(":");
-            sb.append(String.format(Locale.CHINA,str, host_port[0],host_port[1]));
-        }
         String[] arr;
         if (iceArgs == null) {
             arr = new String[1];
@@ -54,7 +47,20 @@ public class IceClient {
             arr = new String[iceArgs.length + 1];
             System.arraycopy(iceArgs, 0, arr, 1, iceArgs.length);
         }
-        arr[0] = sb.toString();
+        StringBuilder address = new StringBuilder("--Ice.Default.Locator="+tag+"/Locator");
+        String str = ":%s -h %s -p %s";
+        String[] infos = serverAdds.split(";");
+        for (String info : infos){
+            String[] host_port = info.split(":");
+            if (host_port.length == 3){
+                address.append(String.format(Locale.CHINA,str, host_port[0],host_port[1],host_port[2]));
+            }
+            if (host_port.length == 2){
+                address.append(String.format(Locale.CHINA,str, "tcp",host_port[0],host_port[1]));
+            }
+
+        }
+        arr[0] = address.toString();
         return arr;
     }
 

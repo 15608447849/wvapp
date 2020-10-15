@@ -50,8 +50,8 @@ public class SingleActivity extends SActivity implements PermissionApply.Callbac
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_single);
         progressBar = findViewById(R.id.progress_bar);
-        layout = findViewById(R.id.container);
 
+        layout = findViewById(R.id.container);
         LaunchPage.start(this, new JSUtils.WebProgressI() {
             @Override
             public void updateProgress(final int current) {
@@ -71,8 +71,9 @@ public class SingleActivity extends SActivity implements PermissionApply.Callbac
             }
         });
 
-
     }
+
+
 
     /* 权限审核回调 */
     @Override
