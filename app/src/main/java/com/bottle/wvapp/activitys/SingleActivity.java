@@ -52,6 +52,7 @@ public class SingleActivity extends SActivity implements PermissionApply.Callbac
         progressBar = findViewById(R.id.progress_bar);
 
         layout = findViewById(R.id.container);
+
         LaunchPage.start(this, new JSUtils.WebProgressI() {
             @Override
             public void updateProgress(final int current) {

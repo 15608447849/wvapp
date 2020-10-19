@@ -13,6 +13,7 @@ import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.location.LocationManager;
 import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.net.Uri;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
@@ -126,10 +127,15 @@ public class AppUtils {
      */
     @SuppressLint("MissingPermission")
     public static boolean isNetworkAvailable(@NonNull Context context) {
-        ConnectivityManager cm = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
-        if (cm != null) {
+        ConnectivityManager manager = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
+
+        if (manager != null) {
             try {
-                return cm.getActiveNetworkInfo().isAvailable();
+                NetworkInfo info = manager.getActiveNetworkInfo();
+                LLog.print("网络状态: " + (info != null && info.isAvailable()));
+                if (info != null && info.isAvailable()) {
+                    return true;
+                }
             } catch (Exception e) {
                 e.printStackTrace();
             }

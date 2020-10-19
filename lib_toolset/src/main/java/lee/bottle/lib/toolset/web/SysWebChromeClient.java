@@ -1,11 +1,14 @@
 package lee.bottle.lib.toolset.web;
 
+import android.net.Uri;
 import android.webkit.ConsoleMessage;
 import android.webkit.GeolocationPermissions;
 import android.webkit.JsResult;
+import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
 import android.webkit.WebView;
 
+import lee.bottle.lib.toolset.jsbridge.JSUtils;
 import lee.bottle.lib.toolset.log.LLog;
 import lee.bottle.lib.toolset.util.DialogUtil;
 
@@ -16,17 +19,23 @@ import static lee.bottle.lib.toolset.jsbridge.JSUtils.progressHandler;
  * email: 793065165@qq.com
  */
 public class SysWebChromeClient extends WebChromeClient {
+
+    private SysCore core;
+
+    SysWebChromeClient(lee.bottle.lib.toolset.web.SysCore sysCore) {
+        core = sysCore;
+    }
+
     //进度状态
     @Override
     public void onProgressChanged(WebView view, int newProgress) {
-        progressHandler(view.getContext(),newProgress);
+        progressHandler(newProgress);
     }
     @Override
     public boolean onJsAlert(WebView view, String url, String message,final JsResult result) {
         DialogUtil.dialogSimple(view.getContext(), message, "确认", new DialogUtil.Action0() {
             @Override
-            public void onAction0() {
-                result.confirm();
+            public void onAction0() { result.confirm();
             }
         });
         return true;
@@ -35,11 +44,9 @@ public class SysWebChromeClient extends WebChromeClient {
     @Override
     public boolean onConsoleMessage(ConsoleMessage consoleMessage) {
         String fileName =  consoleMessage.sourceId();
-
         LLog.print(
                 "浏览器控制台-["+consoleMessage.messageLevel()+"]\n"+consoleMessage.message()
                         + (consoleMessage.messageLevel().name().equalsIgnoreCase("error") ? "\n" + fileName +":"+consoleMessage.lineNumber():"")
-
         );
 
 //        LLog.print("WEB LOG \n\t" + consoleMessage.message());
@@ -66,5 +73,13 @@ public class SysWebChromeClient extends WebChromeClient {
     public void onGeolocationPermissionsShowPrompt(String origin, GeolocationPermissions.Callback callback) {
         callback.invoke(origin, true, false);
     }
+
+    @Override
+    public boolean onShowFileChooser(WebView webView, ValueCallback<Uri[]> filePathCallback, FileChooserParams fileChooserParams) {
+        //文件选择
+        return JSUtils.onShowFileChooser(core.getCurrentBinder(),webView,filePathCallback,fileChooserParams);
+    }
+
+
 
 }

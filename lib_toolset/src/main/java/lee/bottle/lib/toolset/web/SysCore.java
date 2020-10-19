@@ -2,6 +2,7 @@ package lee.bottle.lib.toolset.web;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
+import android.content.Intent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.webkit.WebSettings;
@@ -9,14 +10,16 @@ import android.webkit.WebView;
 
 import lee.bottle.lib.toolset.jsbridge.IBridgeImp;
 import lee.bottle.lib.toolset.jsbridge.IWebViewInit;
+import lee.bottle.lib.toolset.jsbridge.JSUtils;
 
 /**
  * Created by Leeping on 2019/7/7.
  * email: 793065165@qq.com
  */
 public class SysCore extends IWebViewInit<WebView> {
-    public SysCore(Context appContext,ViewGroup group, IBridgeImp bridge) throws Exception {
-        super(appContext,group, bridge);
+
+    public SysCore(Object binder,ViewGroup group, IBridgeImp bridge) throws Exception {
+        super(binder,group, bridge);
     }
 
     @SuppressLint("SetJavaScriptEnabled")
@@ -84,8 +87,8 @@ public class SysCore extends IWebViewInit<WebView> {
 //        settings.setBlockNetworkImage(true);
         settings.setDefaultTextEncodingName("UTF-8");
 
-        webview.setWebChromeClient(new SysWebChromeClient());
-        webview.setWebViewClient(new SysWebViewClient());
+        webview.setWebChromeClient(new SysWebChromeClient(this));
+        webview.setWebViewClient(new SysWebViewClient(this));
 
         webview.setScrollBarStyle(View.SCROLLBARS_INSIDE_OVERLAY);
         //去除滚动条
@@ -105,8 +108,8 @@ public class SysCore extends IWebViewInit<WebView> {
     }
 
     @Override
-    public void clear() {
-//        getWebView().clearCache(true);
+    public void clear(boolean includeDiskFiles) {
+        getWebView().clearCache(includeDiskFiles);
         getWebView().clearFormData();
         getWebView().clearHistory();
         getWebView().clearMatches();
@@ -118,5 +121,10 @@ public class SysCore extends IWebViewInit<WebView> {
         viewGroup.removeView(getWebView());
         getWebView().pauseTimers();
         getWebView().stopLoading();
+    }
+
+    @Override
+    public void onActivityResultHandle(int requestCode, int resultCode, Intent data) {
+        JSUtils.onActivityResultHandle(requestCode,resultCode,data);
     }
 }

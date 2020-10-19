@@ -12,11 +12,9 @@
           <set>
             <option value="$PROJECT_DIR$" />
             <option value="$PROJECT_DIR$/app" />
-            <option value="$PROJECT_DIR$/lib_crosswalk" />
             <option value="$PROJECT_DIR$/lib_imagepick" />
             <option value="$PROJECT_DIR$/lib_recycleviews" />
             <option value="$PROJECT_DIR$/lib_singlepageframwork" />
-            <option value="$PROJECT_DIR$/lib_tbsx5" />
             <option value="$PROJECT_DIR$/lib_toolset" />
           </set>
         </option>

@@ -1,8 +1,10 @@
 package lee.bottle.lib.toolset.web;
 
+import android.app.Activity;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.net.http.SslError;
+import android.os.Build;
 import android.os.Message;
 import android.view.KeyEvent;
 import android.webkit.ClientCertRequest;
@@ -16,21 +18,35 @@ import android.webkit.WebResourceResponse;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 
+import androidx.annotation.Nullable;
+import androidx.fragment.app.Fragment;
+
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.Timer;
+import java.util.TimerTask;
 
 import lee.bottle.lib.toolset.jsbridge.JSUtils;
 import lee.bottle.lib.toolset.log.LLog;
+import lee.bottle.lib.toolset.util.AppUtils;
 
 import static lee.bottle.lib.toolset.http.HttpUtil.closeIo;
+import static lee.bottle.lib.toolset.jsbridge.JSUtils.progressHandler;
 
 /**
  * Created by Leeping on 2019/7/7.
  * email: 793065165@qq.com
  */
 public class SysWebViewClient extends WebViewClient {
+
+    private SysCore core;
+
+    SysWebViewClient(lee.bottle.lib.toolset.web.SysCore sysCore) {
+        core = sysCore;
+    }
+
     /**
      * 当加载的网页需要重定向的时候就会回调这个函数告知我们应用程序是否需要接管控制网页加载，如果应用程序接管，
      * 并且return true意味着主程序接管网页加载，如果返回false让webview自己处理
@@ -38,7 +54,7 @@ public class SysWebViewClient extends WebViewClient {
      */
     @Override
     public boolean shouldOverrideUrlLoading(WebView view, String url) {
-        LLog.print("shouldOverrideUrlLoading\n\t"+url);
+//        LLog.print("shouldOverrideUrlLoading\n\t"+url);
         view.loadUrl(url);
         return true;
     }
@@ -47,16 +63,22 @@ public class SysWebViewClient extends WebViewClient {
      * 通知应用程序内核即将加载url制定的资源，应用程序可以返回本地的资源提供给内核，
      * 若本地处理返回数据，内核不从网络上获取数据
      */
+    @Nullable
+    @Override
+    public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
+//        LLog.print("shouldInterceptRequest(WebView view, WebResourceRequest request) 加载媒体资源URL : "+ request.getUrl());
+        return super.shouldInterceptRequest(view, request);
+    }
+
     @Override
     public WebResourceResponse shouldInterceptRequest(WebView webView, String url) {
+//        LLog.print("shouldInterceptRequest(WebView webView, String url) 加载媒体资源URL : "+ url);
         WebResourceResponse webResourceResponse = JSUtils.mediaUriIntercept(webView.getContext(),url,WebResourceResponse.class);
         return resourceLocalStore(webView.getContext(),url,webResourceResponse) != null ? webResourceResponse : super.shouldInterceptRequest(webView,url);
     }
 
-
-
     private WebResourceResponse resourceLocalStore(Context context, String url, WebResourceResponse webResourceResponse) {
-//        LLog.print(Thread.currentThread() + " 资源拦截: " + url+" ,webResourceResponse = " + webResourceResponse);
+//        LLog.print("shouldInterceptRequest " + url+" ,webResourceResponse = " + webResourceResponse);
 //        if (url.startsWith("http") || url.startsWith("https")){
 //            File file = context.getFilesDir()+"/webResource";
 //            return webResourceResponseDownload(url);
@@ -76,7 +98,6 @@ public class SysWebViewClient extends WebViewClient {
         InputStream in = null; //服务器下载输入流
         try {
             if (url.contains("localhost")) return null;
-            LLog.print("下载: " + url);
             con = (HttpURLConnection) new URL(url).openConnection();
             con.setRequestMethod("GET");// GET POST
             con .setUseCaches(false);
@@ -107,7 +128,6 @@ public class SysWebViewClient extends WebViewClient {
         return webResourceResponse;
     }
 
-
     /**
      * http加载错误
      */
@@ -119,7 +139,58 @@ public class SysWebViewClient extends WebViewClient {
     /** 访问地址错误回调 */
     @Override
     public void onReceivedError(WebView webView, WebResourceRequest webResourceRequest, WebResourceError webResourceError) {
-        super.onReceivedError(webView, webResourceRequest, webResourceError);
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            LLog.print("页面加载错误: "+ webResourceRequest.getUrl() + "\n\r" + webResourceRequest.getRequestHeaders()+"\n\r"+webResourceError.getDescription());
+        }
+        if (!AppUtils.isNetworkAvailable(webView.getContext())){
+            // 加载错误页面
+//            webView.loadUrl("file:android_asset/error.html");
+            AppUtils.toast(webView.getContext(),"网络连接不可用");
+        }
+        //super.onReceivedError(webView, webResourceRequest, webResourceError);
+    }
+
+    boolean openTryExecuteIng = false;
+    private void tryReload(WebView webView, final String url) {
+        if (openTryExecuteIng) return;
+        openTryExecuteIng = true;
+        final WebView _webView = webView;
+        //间隔10秒再次尝试加载
+        new Timer(true).schedule(new TimerTask() {
+            @Override
+            public void run() {
+                Object o = core.getCurrentBinder();
+                if (o!=null){
+                    Activity activity = null;
+
+                    if (o instanceof Fragment){
+                        activity = ((Fragment) o).getActivity();
+                    }
+                    if (o instanceof Activity){
+                        activity = (Activity) o;
+                    }
+                    openTryExecuteIng = false;
+                    if (activity != null){
+
+                        LLog.print("尝试重新加载");
+                        if (AppUtils.isNetworkAvailable(activity)){
+                            activity.runOnUiThread(new Runnable() {
+                                @Override
+                                public void run() {
+                                    _webView.loadUrl(url);
+                                }
+                            });
+                        }else{
+                            tryReload(_webView,url);
+                        }
+
+
+                    }
+                }
+
+            }
+        },3 * 1000L);
     }
 
     /** 如果浏览器需要重新发送POST请求，可以通过这个时机来处理。默认是不重新发送数据 */
@@ -128,11 +199,13 @@ public class SysWebViewClient extends WebViewClient {
         super.onFormResubmission(view, dontResend, resend);
     }
 
-    /**通知应用程序可以将当前的url存储在数据库中，意味着当前的访问url已经生效并被记录在内核当中。
+    /** 通知应用程序可以将当前的url存储在数据库中，意味着当前的访问url已经生效并被记录在内核当中。
      * 这个函数在网页加载过程中只会被调用一次。
-     * 注意网页前进后退并不会回调这个函数*/
+     * 注意网页前进后退并不会回调这个函数
+     * */
     @Override
     public void doUpdateVisitedHistory(WebView view, String url, boolean isReload) {
+//        LLog.print("doUpdateVisitedHistory "+ url+" , "+ isReload);
         super.doUpdateVisitedHistory(view, url, isReload);
     }
 
@@ -171,15 +244,19 @@ public class SysWebViewClient extends WebViewClient {
     /** 在页面加载开始时调用*/
     @Override
     public void onPageStarted(WebView webView, String url, Bitmap favicon) {
+//        LLog.print("onPageStarted "+ url);
         webView.getSettings().setBlockNetworkImage(true);
+        progressHandler(1);
         super.onPageStarted(webView, url, favicon);
     }
 
     /** 在页面加载结束时调用 */
     @Override
     public void onPageFinished(WebView webView, String url) {
-        super.onPageFinished(webView, url);
+//        LLog.print("onPageFinished "+ url);
         webView.getSettings().setBlockNetworkImage(false);
+        progressHandler(100);
+        super.onPageFinished(webView, url);
     }
 
     /** 通知应用程序webview 要被scale。应用程序可以处理改事件，比如调整适配屏幕 */
@@ -187,7 +264,8 @@ public class SysWebViewClient extends WebViewClient {
     public void onScaleChanged(WebView view, float oldScale, float newScale) {
         super.onScaleChanged(view, oldScale, newScale);
     }
- /** HTTP的body标签加载前调用，仅在主frame调用 */
+
+    /** HTTP的body标签加载前调用，仅在主frame调用 */
     @Override
     public void onPageCommitVisible(WebView view, String url) {
         super.onPageCommitVisible(view, url);
@@ -207,6 +285,5 @@ public class SysWebViewClient extends WebViewClient {
     @Override
     public void onSafeBrowsingHit(WebView view, WebResourceRequest request, int threatType, SafeBrowsingResponse callback) {
         super.onSafeBrowsingHit(view, request, threatType, callback);
-
     }
 }

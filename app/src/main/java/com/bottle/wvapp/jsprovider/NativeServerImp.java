@@ -14,17 +14,12 @@ import com.bottle.wvapp.fragments.WebFragment;
 import com.onek.client.IceClient;
 import com.onek.server.inf.InterfacesPrx;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
 import java.lang.ref.SoftReference;
 import java.util.Map;
 
 import lee.bottle.lib.toolset.jsbridge.IBridgeImp;
 import lee.bottle.lib.toolset.jsbridge.IJsBridge;
 import lee.bottle.lib.toolset.log.LLog;
-import lee.bottle.lib.toolset.threadpool.IOUtils;
 import lee.bottle.lib.toolset.util.AppUtils;
 import lee.bottle.lib.toolset.util.DialogUtil;
 import lee.bottle.lib.toolset.util.GsonUtils;
@@ -124,16 +119,42 @@ public class NativeServerImp{
         }
     }
 
-    private final static String LAUNCH_IMAGE = "launch.png";
-    //获取启动页图片
-    public static InputStream getLaunchImage() {
-        try {
-            File image = new File(app.getFilesDir(),LAUNCH_IMAGE);
-            if (image.exists()){
-                return new FileInputStream(image);
+
+
+
+    //更新启动页图片
+    /*public static void updateLaunchImage(){
+        IOUtils.run(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    String prev = getSpecFileUrl("downPrev");
+                    while (prev == null ){
+                        Thread.sleep(1000);
+                        prev = getSpecFileUrl("downPrev");
+                    }
+                    String url = prev + "/" +LAUNCH_IMAGE;
+                    HttpServerImp.downloadFile(url, new File(app.getFilesDir(),LAUNCH_IMAGE).toString(),null);
+                    LLog.print("已更新启动页: " + url);
+                } catch (Exception e) {
+                    LLog.print("启动页更新失败: " + e);
+                }
             }
-            return app.getAssets().open(LAUNCH_IMAGE);
-        } catch (IOException e) {
+        });
+    }*/
+    //获取启动页图片
+    public static String getLaunchImage() {
+        try {
+            //网络获取流数据流
+            String prev = getSpecFileUrl("downPrev");
+            int tryIndex = 0;
+            while (prev == null || tryIndex<10 ){
+                Thread.sleep(100);
+                prev = getSpecFileUrl("downPrev");
+                tryIndex++;
+            }
+            return prev + "/launch.png";
+        } catch (Exception e) {
             e.printStackTrace();
         }
         return null;
@@ -166,26 +187,6 @@ public class NativeServerImp{
         return null;
     }
 
-    //更新启动页图片
-    public static void updateLaunchImage(){
-        IOUtils.run(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    String prev = getSpecFileUrl("downPrev");
-                    while (prev == null ){
-                        Thread.sleep(1000);
-                        prev = getSpecFileUrl("downPrev");
-                    }
-                    String url = prev + "/" +LAUNCH_IMAGE;
-                    HttpServerImp.downloadFile(url, new File(app.getFilesDir(),LAUNCH_IMAGE).toString(),null);
-                    LLog.print("已更新启动页: " + url);
-                } catch (Exception e) {
-                    LLog.print("启动页更新失败: " + e);
-                }
-            }
-        });
-    }
 
     //更新服务配置
     static void updateServerConfigJson(){

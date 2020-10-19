@@ -1,6 +1,5 @@
 package com.bottle.wvapp.fragments;
 
-import android.content.Context;
 import android.content.Intent;
 import android.os.Build;
 import android.os.Bundle;
@@ -19,11 +18,8 @@ import java.util.ArrayList;
 import java.util.Objects;
 
 import lee.bottle.lib.singlepageframwork.base.SFragment;
-import lee.bottle.lib.toolset.jsbridge.IBridgeImp;
 import lee.bottle.lib.toolset.jsbridge.IWebViewInit;
-import lee.bottle.lib.toolset.log.LLog;
 import lee.bottle.lib.toolset.util.AppUtils;
-import lee.bottle.lib.toolset.util.ObjectRefUtil;
 
 
 /**
@@ -53,7 +49,7 @@ public class WebFragment extends SFragment {
     @Override
     public void onResume() {
         super.onResume();
-        ArrayList<String> list = getActivity().getIntent().getStringArrayListExtra("notify_param");
+        ArrayList<String> list = Objects.requireNonNull(getActivity()).getIntent().getStringArrayListExtra("notify_param");
         if (list!=null){
             getActivity().getIntent().removeExtra("notify_param");
             NativeServerImp.notifyEntryToJs(list.get(0)); //跳转到指定页面
@@ -65,23 +61,20 @@ public class WebFragment extends SFragment {
             AppUtils.toast(getSActivity(),"抱歉,应用无法兼容ANDROID 6.0以下版本");
             return;
         }
-        String core = "lee.bottle.lib.toolset.web.SysCore";
-        try {
-            iWebViewInit = (IWebViewInit) ObjectRefUtil.createObject(core,
-                    new Class[]{Context.class,ViewGroup.class, IBridgeImp.class},
-                    Objects.requireNonNull(getActivity()).getApplicationContext(),
-                    view, NativeServerImp.iBridgeImp);
-            iWebViewInit.clear();
+        iWebViewInit = IWebViewInit.createIWebView("lee.bottle.lib.toolset.web.SysCore",
+                this,
+                (ViewGroup) view,
+                NativeServerImp.iBridgeImp);
+        if (iWebViewInit!=null){
+            iWebViewInit.clear(false);
             iWebViewInit.getProxy().loadUrl(BuildConfig._WEB_HOME_URL);
-        } catch (Exception e) {
-            LLog.print("加载内核失败, core = "+ core);
-            AppUtils.toast(getSActivity(),"浏览器内核加载失败");
         }
     }
 
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
         NativeServerImp.iBridgeImp.onActivityResult(requestCode,resultCode,data);
+        if (iWebViewInit!=null) iWebViewInit.onActivityResultHandle(requestCode,resultCode,data);
     }
 
     @Override

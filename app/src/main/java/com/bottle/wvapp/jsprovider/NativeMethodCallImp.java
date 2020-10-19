@@ -32,7 +32,7 @@ import static lee.bottle.lib.toolset.util.StringUtils.mapToString;
 /**
  * 提供给前端调用的本地方法
  */
-public class NativeMethodCallImp {
+public class NativeMethodCallImp{
 
     //图片选择结果集
     private ArrayList<String> imagePaths;
@@ -82,6 +82,7 @@ public class NativeMethodCallImp {
         if (f == null) return "-1";
         Intent intent = new Intent(f.getContext(), ScanActivity.class);
         f.startActivityForResult(intent,ScanActivity.CONST.getSCAN_RESULT_CODE());
+
         //等待结果
         NativeServerImp.threadWait();
         return StringUtils.isEmpty(scanRes) ? "0" : scanRes;
@@ -175,7 +176,9 @@ public class NativeMethodCallImp {
     /** 内置浏览器打开链接 */
     public void localBrowserOpenUrl(final String url) {
         LLog.print("浏览器打开链接: "+url);
-        if (url.endsWith("?openType=outBrowser") || url.endsWith(".pdf") || url.endsWith(".png")){
+        if (url.endsWith("?openType=outBrowser")
+//                || url.endsWith(".pdf") || url.endsWith(".png")
+        ){
             Intent intent=new Intent();
             intent.setFlags(FLAG_ACTIVITY_NEW_TASK);
             intent.setAction("android.intent.action.VIEW");
@@ -190,4 +193,5 @@ public class NativeMethodCallImp {
         }
 
     }
+
 }

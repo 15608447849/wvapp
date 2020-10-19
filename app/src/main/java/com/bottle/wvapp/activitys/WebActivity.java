@@ -1,6 +1,5 @@
 package com.bottle.wvapp.activitys;
 
-import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
@@ -14,10 +13,8 @@ import com.bottle.wvapp.R;
 
 import java.util.ArrayList;
 
-import lee.bottle.lib.toolset.jsbridge.IBridgeImp;
 import lee.bottle.lib.toolset.jsbridge.IWebViewInit;
 import lee.bottle.lib.toolset.log.LLog;
-import lee.bottle.lib.toolset.util.ObjectRefUtil;
 
 /**
  * Created by Leeping on 2020/6/15.
@@ -33,7 +30,6 @@ public class WebActivity extends AppCompatActivity {
     public void onCreate(@Nullable Bundle savedInstanceState) {
         LLog.print(this+" , onCreate()");
         super.onCreate(savedInstanceState);
-
         setContentView(R.layout.activity_web);
         View view = findViewById(R.id.fl_web);
         linkBtn = findViewById(R.id.btn_link);
@@ -43,17 +39,9 @@ public class WebActivity extends AppCompatActivity {
                 toSingleActivity();
             }
         });
-        try {
-            iWebViewInit = (IWebViewInit)ObjectRefUtil.createObject("lee.bottle.lib.toolset.web.SysCore",
-                    new Class[]{Context.class, ViewGroup.class, IBridgeImp.class},
-                    this, view,null);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        iWebViewInit = IWebViewInit.createIWebView("lee.bottle.lib.toolset.web.SysCore",this, (ViewGroup) view,null);
         openWeb();
     }
-
-
 
     @Override
     protected void onNewIntent(Intent intent) {
@@ -82,11 +70,9 @@ public class WebActivity extends AppCompatActivity {
             linkBtn.setVisibility(View.GONE);
         }
 
-
         if (loadUrl == null || !loadUrl.equals(_loadUrl)){
             loadUrl = _loadUrl;
             LLog.print("WEB ACTIVITY 加载: "+ loadUrl);
-            iWebViewInit.clear();
             iWebViewInit.getProxy().loadUrl(loadUrl);
         }
     }
@@ -114,9 +100,15 @@ public class WebActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         if (iWebViewInit!=null){
-            iWebViewInit.clear();
+            iWebViewInit.clear(false);
             iWebViewInit = null;
         }
         super.onDestroy();
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        if (iWebViewInit!=null) iWebViewInit.onActivityResultHandle(requestCode,resultCode,data);
+        super.onActivityResult(requestCode, resultCode, data);
     }
 }

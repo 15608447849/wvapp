@@ -1,1 +1,7 @@
-include ':app', ':lib_singlepageframwork', ':lib_toolset', ':lib_imagepick', ':lib_recycleviews', ':lib_crosswalk', ':lib_tbsx5'
+include ':app',
+        ':lib_singlepageframwork',
+        ':lib_toolset',
+        ':lib_imagepick',
+        ':lib_recycleviews'
+//        ':lib_crosswalk',
+//        ':lib_tbsx5'
