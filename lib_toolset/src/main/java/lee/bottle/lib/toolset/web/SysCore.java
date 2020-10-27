@@ -1,22 +1,26 @@
 package lee.bottle.lib.toolset.web;
 
 import android.annotation.SuppressLint;
+import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
+import android.net.Uri;
 import android.view.View;
 import android.view.ViewGroup;
+import android.webkit.DownloadListener;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 
 import lee.bottle.lib.toolset.jsbridge.IBridgeImp;
 import lee.bottle.lib.toolset.jsbridge.IWebViewInit;
 import lee.bottle.lib.toolset.jsbridge.JSUtils;
+import lee.bottle.lib.toolset.log.LLog;
 
 /**
  * Created by Leeping on 2019/7/7.
  * email: 793065165@qq.com
  */
-public class SysCore extends IWebViewInit<WebView> {
+public class SysCore extends IWebViewInit<WebView> implements DownloadListener {
 
     public SysCore(Object binder,ViewGroup group, IBridgeImp bridge) throws Exception {
         super(binder,group, bridge);
@@ -94,6 +98,8 @@ public class SysCore extends IWebViewInit<WebView> {
         //去除滚动条
         webview.setHorizontalFadingEdgeEnabled(false);
         webview.setVerticalScrollBarEnabled(false);
+
+        webview.setDownloadListener(this);
     }
 
     @Override
@@ -126,5 +132,38 @@ public class SysCore extends IWebViewInit<WebView> {
     @Override
     public void onActivityResultHandle(int requestCode, int resultCode, Intent data) {
         JSUtils.onActivityResultHandle(requestCode,resultCode,data);
+    }
+
+    private DownloadListener listenerImp;
+    @Override
+    public void setDownloadListener(DownloadListener listener) {
+        if (listener!=null){
+            listenerImp = listener;
+        }
+    }
+
+    /**
+     webview 文件下载
+     */
+    @Override
+    public void onDownloadStart(String url, String userAgent, String contentDisposition, String mimetype, long contentLength) {
+        LLog.print("浏览器下载url: "+ url+" , userAgent:"+userAgent+" , contentDisposition:"+contentDisposition+" , mimetype:"+mimetype+" , contentLength:"+contentLength  );
+        if (listenerImp!=null){
+            try {
+                listenerImp.onDownloadStart(url,userAgent,contentDisposition,mimetype,contentLength);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }else{
+            Object object = getCurrentBinder();
+            if (object == null) return;
+            if (object instanceof Activity){
+                Intent intent = new Intent(Intent.ACTION_VIEW);
+                intent.addCategory(Intent.CATEGORY_BROWSABLE);
+                intent.setData(Uri.parse(url));
+                ((Activity)object).startActivity(intent);
+            }
+        }
+
     }
 }

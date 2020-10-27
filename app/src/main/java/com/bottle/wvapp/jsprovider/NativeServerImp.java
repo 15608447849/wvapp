@@ -6,11 +6,9 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.SharedPreferences;
 
-import androidx.fragment.app.Fragment;
-
 import com.bottle.wvapp.BuildConfig;
 import com.bottle.wvapp.R;
-import com.bottle.wvapp.fragments.WebFragment;
+import com.bottle.wvapp.activitys.BaseActivity;
 import com.onek.client.IceClient;
 import com.onek.server.inf.InterfacesPrx;
 
@@ -42,7 +40,7 @@ public class NativeServerImp{
     public static IceClient ic;
     public static Ice.ObjectAdapter localAdapter;
     public static SharedPreferences sp ;
-    public static SoftReference<Fragment> fragment;
+    public static SoftReference<BaseActivity> activityRef;
     public static CommunicationServerImp notifyImp; //长连接
     public static IJsBridge iJsBridge;
 
@@ -103,61 +101,12 @@ public class NativeServerImp{
     }
 
     /* 绑定web显示层碎片 */
-    public static void buildFragment(Fragment fragmentInstance){
-        if (ic == null) throw new RuntimeException("ICE 连接未初始化");
-        fragment = new SoftReference<>(fragmentInstance);
+    public static void bindActivity(BaseActivity activity){
+        if (activity!=null) activityRef = new SoftReference<>(activity);
     }
 
     public static void buildJSBridge(IJsBridge bridge) {
         iJsBridge  = bridge;
-    }
-
-    public static void reopenWeb() {
-        if (fragment.get() !=null && fragment.get() instanceof WebFragment) {
-            WebFragment wf = (WebFragment) fragment.get();
-            wf.loadView();
-        }
-    }
-
-
-
-
-    //更新启动页图片
-    /*public static void updateLaunchImage(){
-        IOUtils.run(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    String prev = getSpecFileUrl("downPrev");
-                    while (prev == null ){
-                        Thread.sleep(1000);
-                        prev = getSpecFileUrl("downPrev");
-                    }
-                    String url = prev + "/" +LAUNCH_IMAGE;
-                    HttpServerImp.downloadFile(url, new File(app.getFilesDir(),LAUNCH_IMAGE).toString(),null);
-                    LLog.print("已更新启动页: " + url);
-                } catch (Exception e) {
-                    LLog.print("启动页更新失败: " + e);
-                }
-            }
-        });
-    }*/
-    //获取启动页图片
-    public static String getLaunchImage() {
-        try {
-            //网络获取流数据流
-            String prev = getSpecFileUrl("downPrev");
-            int tryIndex = 0;
-            while (prev == null || tryIndex<10 ){
-                Thread.sleep(100);
-                prev = getSpecFileUrl("downPrev");
-                tryIndex++;
-            }
-            return prev + "/launch.png";
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return null;
     }
 
     //初始化文件服务地址
@@ -253,7 +202,7 @@ public class NativeServerImp{
 
         if (StringUtils.isEmpty(json)){
             //本地获取失败时->网络获取
-            json = ic.setServerAndRequest(getDevSID(),"userServer","LoginRegistrationModule","appStoreInfo").execute();
+            json = ic.setServerAndRequest(getDevSID(), "userServer","LoginRegistrationModule","appStoreInfo").execute();
             isNetwork = true;
         }
 
@@ -393,8 +342,7 @@ public class NativeServerImp{
 
     //支付前准备
     public static Activity payPrevHandle(){
-        if (fragment.get() == null) return null;
-        final Activity activity = fragment.get().getActivity();
+        final Activity activity = activityRef.get();
         if (activity==null) return null;
         final boolean isConnState = (notifyImp!=null && notifyImp.online);
         LLog.print("连接情况： " + isConnState );
@@ -430,21 +378,14 @@ public class NativeServerImp{
 
     /* 强制登出 */
     public static void forceLogout() {
-        final Fragment fragment = NativeServerImp.fragment.get();
-        if (fragment == null) return;
-
-        final Activity activity = NativeServerImp.fragment.get().getActivity();
+        final BaseActivity activity = activityRef.get();
         if (activity == null) return;
 
         activity.runOnUiThread(new Runnable() {
             @Override
             public void run() {
-
                 //刷新首页
-                if (fragment instanceof WebFragment){
-                    WebFragment webFragment = (WebFragment) fragment;
-                    webFragment.loadView();
-                }
+                activity.reloadWebMainPage();
 
                 DialogUtil.build(activity,
                         "安全提示",

@@ -4,9 +4,8 @@ import android.app.Activity;
 import android.content.DialogInterface;
 import android.os.Build;
 
-import androidx.fragment.app.Fragment;
-
 import com.bottle.wvapp.R;
+import com.bottle.wvapp.activitys.BaseActivity;
 import com.bottle.wvapp.tool.NotifyUer;
 
 import java.io.File;
@@ -49,19 +48,16 @@ public class UpdateVersionServerImp extends HttpUtil.CallbackAbs implements Runn
     }
 
     private static void tryToast(final String message) {
-        if (NativeServerImp.fragment == null) return;
-        final Fragment fragment = NativeServerImp.fragment.get();
-        if (fragment!=null){
-            final Activity activity = fragment.getActivity();
+            final Activity activity = NativeServerImp.activityRef.get();
             if (activity!=null){
-                fragment.getActivity().runOnUiThread(new Runnable() {
+                activity.runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
                         AppUtils.toast(activity,message);
                     }
                 });
             }
-        }
+
     }
 
     @Override
@@ -116,11 +112,8 @@ public class UpdateVersionServerImp extends HttpUtil.CallbackAbs implements Runn
         }
 
         //打开安装对话框
-        Fragment fragment = NativeServerImp.fragment.get();
-        if (fragment == null) return;
-        final Activity activity = fragment.getActivity();
+        final BaseActivity activity = NativeServerImp.activityRef.get();
         if (activity == null) return;
-
         activity.runOnUiThread(new Runnable() {
             @Override
             public void run() {
@@ -148,17 +141,15 @@ public class UpdateVersionServerImp extends HttpUtil.CallbackAbs implements Runn
 
     }
 
-//    private static NumberFormat format = NumberFormat.getPercentInstance();
-
     @Override
     public void onProgress(File file, long progress, long total) {
         //打开进度指示条的通知栏
         int current = (int)( (progress * 100f) / total );
         if (notification!=null) notification.setProgress(100, current);
-        if (NativeServerImp.fragment.get()!=null && current>0){
-            progressBarCircleDialogUpdate(NativeServerImp.fragment.get().getActivity(),"程序更新中\n当前进度:"+current+"/"+100);
+        if (NativeServerImp.activityRef.get()!=null && current>0){
+            progressBarCircleDialogUpdate(NativeServerImp.activityRef.get(),"程序更新中\n当前进度:"+current+"/"+100);
             if (current == 100){
-                progressBarCircleDialogStop(NativeServerImp.fragment.get().getActivity());
+                progressBarCircleDialogStop(NativeServerImp.activityRef.get());
             }
         }
     }

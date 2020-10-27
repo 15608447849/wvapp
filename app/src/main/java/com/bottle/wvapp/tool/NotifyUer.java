@@ -6,7 +6,7 @@ import android.content.Context;
 import android.content.Intent;
 
 import com.bottle.wvapp.R;
-import com.bottle.wvapp.activitys.SingleActivity;
+import com.bottle.wvapp.activitys.NativeActivity;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -21,7 +21,7 @@ public class NotifyUer {
     private static int currentId =  1;
     public static void createMessageNotify(Context context, String message, String... params) {
         FrontNotification.Build build = new FrontNotification.Build(context).setId(currentId++);
-        Intent intent = new Intent(context, SingleActivity.class);
+        Intent intent = new Intent(context, NativeActivity.class);
         if (params!=null){
             ArrayList<String> paramList = new ArrayList<>(Arrays.asList(params));
             intent.putStringArrayListExtra("notify_param",paramList);
@@ -40,7 +40,7 @@ public class NotifyUer {
     }
 
     public static FrontNotification createDownloadApkNotify(Context context,String title){
-        Intent intent = new Intent(context, SingleActivity.class);
+        Intent intent = new Intent(context, NativeActivity.class);
        return new FrontNotification.Build(context).setLevel(3)
                 .setId(currentId++)
                 .setGroup("download-"+title)

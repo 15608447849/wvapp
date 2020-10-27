@@ -18,7 +18,7 @@ import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.widget.ImageView;
 
-import com.bottle.wvapp.jsprovider.NativeServerImp;
+import com.bottle.wvapp.BuildConfig;
 
 import java.io.InputStream;
 import java.net.HttpURLConnection;
@@ -42,7 +42,6 @@ public class LaunchPage{
 
     private static ImageView iv;
 
-
     public static void start(Activity activity,final JSUtils.WebProgressI webProgressI){
         if (showActivity!=null) return;
         executeStartTime = System.currentTimeMillis();
@@ -51,7 +50,6 @@ public class LaunchPage{
         JSUtils.setWebProgressI(new JSUtils.WebProgressI() {
             @Override
             public void updateProgress(int current) {
-
                 if (current>=100){
                     LaunchPage.stop();
                     //设置页面加载滚动条
@@ -63,14 +61,7 @@ public class LaunchPage{
         IOUtils.run(new Runnable() {
             @Override
             public void run() {
-                final String url = NativeServerImp.getLaunchImage();
-                if (url!=null){
-                    LLog.print("启动页URL: " + url +" , 已耗时: "+ (System.currentTimeMillis() - executeStartTime));
-                    if (showActivity!=null){
-                        loadImageUrl(url);
-                    }
-                }
-
+                loadImageUrl(BuildConfig._LAUNCH_IMAGE_URL);
             }
         });
 
@@ -83,13 +74,17 @@ public class LaunchPage{
             conn = (HttpURLConnection)new URL(url).openConnection();
             conn.setDoInput(true);
             try(InputStream imageIn = conn.getInputStream() ){
-                if (showActivity!=null && imageIn!=null) {
-                    showActivity.runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            startLoadImage(BitmapFactory.decodeStream(imageIn));
-                        }
-                    });
+                if (imageIn!=null) {
+                    final Bitmap resourceBitmap = BitmapFactory.decodeStream(imageIn);
+                    if (showActivity!=null){
+                        showActivity.runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                startLoadImage(resourceBitmap);
+                            }
+                        });
+                    }
+
                 }
             }
         } catch (Exception e) {
@@ -123,7 +118,7 @@ public class LaunchPage{
             public void run() {
                 LaunchPage.stop();
             }
-        },1000);
+        },10 * 1000);
     }
 
     public static void stop(){

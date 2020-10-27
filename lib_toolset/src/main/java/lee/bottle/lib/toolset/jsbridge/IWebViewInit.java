@@ -4,6 +4,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.view.View;
 import android.view.ViewGroup;
+import android.webkit.DownloadListener;
 
 import java.lang.ref.SoftReference;
 import java.lang.reflect.ParameterizedType;
@@ -61,7 +62,10 @@ public abstract class IWebViewInit<V extends View> {
     //关闭
     public abstract void close(ViewGroup view);
 
+    //图片选择处理回调
     public abstract void onActivityResultHandle(int requestCode, int resultCode, Intent data);
+
+    public abstract void setDownloadListener(DownloadListener listener);
 
     public static IWebViewInit createIWebView(String coreClassTypeName,Object binder,ViewGroup group, IBridgeImp bridge){
         try {

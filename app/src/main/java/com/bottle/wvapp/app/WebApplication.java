@@ -11,7 +11,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import lee.bottle.lib.singlepageframwork.use.RegisterCentre;
 import lee.bottle.lib.toolset.log.LLog;
 import lee.bottle.lib.toolset.os.ApplicationAbs;
 import lee.bottle.lib.toolset.os.CrashHandler;
@@ -25,8 +24,6 @@ public class WebApplication extends ApplicationAbs implements CrashHandler.Callb
 
     @Override
     protected void onCreateByApplicationMainProgress(String processName) {
-        //注册页面
-        RegisterCentre.register( new RegisterCentre.Bean("com.bottle.wvapp.fragments.WebFragment","web","content"));
         IOUtils.run(new Runnable() {
             @Override
             public void run() {

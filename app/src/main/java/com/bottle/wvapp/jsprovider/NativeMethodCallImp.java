@@ -4,11 +4,8 @@ import android.app.Activity;
 import android.content.Intent;
 import android.net.Uri;
 
-import androidx.fragment.app.Fragment;
-
 import com.alipay.sdk.app.PayTask;
-import com.bottle.wvapp.activitys.ScanActivity;
-import com.bottle.wvapp.activitys.WebActivity;
+import com.bottle.wvapp.activitys.BaseActivity;
 import com.bottle.wvapp.tool.GlideLoader;
 import com.tencent.mm.opensdk.modelpay.PayReq;
 import com.tencent.mm.opensdk.openapi.IWXAPI;
@@ -22,7 +19,6 @@ import lee.bottle.lib.imagepick.ImagePicker;
 import lee.bottle.lib.toolset.log.LLog;
 import lee.bottle.lib.toolset.util.AppUtils;
 import lee.bottle.lib.toolset.util.GsonUtils;
-import lee.bottle.lib.toolset.util.StringUtils;
 
 import static android.app.Activity.RESULT_OK;
 import static android.content.Intent.FLAG_ACTIVITY_NEW_TASK;
@@ -40,7 +36,7 @@ public class NativeMethodCallImp{
 
     /** 打开图片选择器 */
     private String openImageSelect(){
-        if (NativeServerImp.fragment.get() == null) throw new NullPointerException("fragment is null");
+        if (NativeServerImp.activityRef.get() == null) throw new NullPointerException("fragment is null");
         String url = "";
         imagePaths = null;
         ImagePicker.getInstance()
@@ -52,7 +48,7 @@ public class NativeMethodCallImp{
                 .setMaxCount(1)//设置最大选择图片数目(默认为1，单选)
 //                .setImagePaths(imagePaths)//保存上一次选择图片的状态，如果不需要可以忽略
                 .setImageLoader(new GlideLoader(NativeServerImp.app.getApplicationContext()))//设置自定义图片加载器
-                .start(NativeServerImp.fragment.get(),REQUEST_SELECT_IMAGES_CODE);
+                .start(NativeServerImp.activityRef.get(),REQUEST_SELECT_IMAGES_CODE);
         //等待结果
         NativeServerImp.threadWait();
         if (imagePaths!=null && imagePaths.size()==1){
@@ -70,23 +66,11 @@ public class NativeMethodCallImp{
 
     /** 拨号 */
     private void callPhone(String phone){
-        if (NativeServerImp.fragment.get()==null) return;
-        Activity activity = NativeServerImp.fragment.get().getActivity();
-        if (activity!=null) AppUtils.callPhoneNo(activity,phone);
+        if (NativeServerImp.activityRef.get()==null) return;
+        AppUtils.callPhoneNo(NativeServerImp.activityRef.get(),phone);
     }
 
-    private String scanRes;
-    /** 扫码 */
-    private String scan(){
-        Fragment f  = NativeServerImp.fragment.get();
-        if (f == null) return "-1";
-        Intent intent = new Intent(f.getContext(), ScanActivity.class);
-        f.startActivityForResult(intent,ScanActivity.CONST.getSCAN_RESULT_CODE());
 
-        //等待结果
-        NativeServerImp.threadWait();
-        return StringUtils.isEmpty(scanRes) ? "0" : scanRes;
-    }
 
     /** 打开qq */
     private void openTel(String qq){
@@ -100,8 +84,6 @@ public class NativeMethodCallImp{
         if (resultCode == RESULT_OK){
             if (requestCode == REQUEST_SELECT_IMAGES_CODE) {
                 imagePaths = data.getStringArrayListExtra(ImagePicker.EXTRA_SELECT_IMAGES);
-            }else if (requestCode == ScanActivity.CONST.getSCAN_RESULT_CODE()){
-                scanRes = data.getStringExtra( ScanActivity.CONST.getSCAN_RES());
             }
         }
     }
@@ -175,10 +157,8 @@ public class NativeMethodCallImp{
 
     /** 内置浏览器打开链接 */
     public void localBrowserOpenUrl(final String url) {
-        LLog.print("浏览器打开链接: "+url);
-        if (url.endsWith("?openType=outBrowser")
-//                || url.endsWith(".pdf") || url.endsWith(".png")
-        ){
+        LLog.print("JS请求打开链接: "+url);
+        if (url.endsWith("?openType=outBrowser")){
             Intent intent=new Intent();
             intent.setFlags(FLAG_ACTIVITY_NEW_TASK);
             intent.setAction("android.intent.action.VIEW");
@@ -186,12 +166,29 @@ public class NativeMethodCallImp{
             intent.setData(content_url );
             NativeServerImp.app.startActivity(intent);
         }else{
-            Intent intent = new Intent(NativeServerImp.fragment.get().getContext(), WebActivity.class);
+            /*Intent intent = new Intent(NativeServerImp.activityRef.get(), WebActivity.class);
             intent.putExtra("loadUrl",url);
             intent.setFlags(FLAG_ACTIVITY_NEW_TASK);
-            NativeServerImp.app.startActivity(intent);
+            NativeServerImp.app.startActivity(intent);*/
+            Activity activity = NativeServerImp.activityRef.get();
+            if(activity!=null && NativeServerImp.activityRef.get() instanceof BaseActivity){
+                final BaseActivity baseActivity = (BaseActivity) activity;
+                baseActivity.runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        baseActivity.openWebPage(url);
+                    }
+                });
+            }
         }
-
     }
 
+    /** 清理缓存 */
+    public void clearCache(String flag){
+        BaseActivity activity = NativeServerImp.activityRef.get();
+        if (activity!=null){
+            boolean isDelete = Boolean.getBoolean(flag);
+            activity.clearWeb(isDelete);
+        }
+    }
 }

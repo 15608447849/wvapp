@@ -50,14 +50,8 @@
 
         <uses-library android:name="org.apache.http.legacy" android:required="false" />
 
-        <!--   扫码     -->
-        <activity android:name="com.bottle.wvapp.activitys.ScanActivity"/>
-
-        <!--   其他web页面     -->
-        <activity android:name="com.bottle.wvapp.activitys.WebActivity" android:launchMode="singleInstance" />
-
-        <!--    主服务    -->
-        <activity android:name="com.bottle.wvapp.activitys.SingleActivity" android:launchMode="singleInstance">
+        <!--主服务-->
+        <activity android:name="com.bottle.wvapp.activitys.NativeActivity" android:launchMode="singleInstance">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
