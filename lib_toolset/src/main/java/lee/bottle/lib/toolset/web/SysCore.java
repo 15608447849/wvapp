@@ -13,7 +13,6 @@ import android.webkit.WebView;
 
 import lee.bottle.lib.toolset.jsbridge.IBridgeImp;
 import lee.bottle.lib.toolset.jsbridge.IWebViewInit;
-import lee.bottle.lib.toolset.jsbridge.JSUtils;
 import lee.bottle.lib.toolset.log.LLog;
 
 /**
@@ -22,8 +21,8 @@ import lee.bottle.lib.toolset.log.LLog;
  */
 public class SysCore extends IWebViewInit<WebView> implements DownloadListener {
 
-    public SysCore(Object binder,ViewGroup group, IBridgeImp bridge) throws Exception {
-        super(binder,group, bridge);
+    public SysCore(Context context, IBridgeImp bridge) throws Exception {
+        super(context, bridge);
     }
 
     @SuppressLint("SetJavaScriptEnabled")
@@ -84,11 +83,10 @@ public class SysCore extends IWebViewInit<WebView> implements DownloadListener {
         settings.setSaveFormData(true);
         //图片自动下载
         settings.setLoadsImagesAutomatically(true);
-        //不禁止网络图片加载
-//        settings.setBlockNetworkImage(false);
+        //是否禁止网络图片加载
+        settings.setBlockNetworkImage(false);
         settings.setCacheMode(WebSettings.LOAD_CACHE_ELSE_NETWORK);
         settings.setRenderPriority(WebSettings.RenderPriority.HIGH);
-//        settings.setBlockNetworkImage(true);
         settings.setDefaultTextEncodingName("UTF-8");
 
         webview.setWebChromeClient(new SysWebChromeClient(this));

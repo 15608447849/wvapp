@@ -122,8 +122,6 @@ public class JSInterface implements IJsBridge {
             if (webView == null) return;
             @SuppressLint("PrivateApi") Method m = webView.getClass().getDeclaredMethod("loadUrl",String.class);
             m.setAccessible(true);
-//            LLog.print("---loadUrl----\n" + content);
-
             try {
                 m.invoke(webView,content);
             } catch (Exception e) {

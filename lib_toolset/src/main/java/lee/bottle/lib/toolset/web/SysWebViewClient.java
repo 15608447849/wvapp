@@ -1,8 +1,8 @@
 package lee.bottle.lib.toolset.web;
 
-import android.app.Activity;
 import android.content.Context;
 import android.graphics.Bitmap;
+import android.net.Uri;
 import android.net.http.SslError;
 import android.os.Build;
 import android.os.Message;
@@ -19,21 +19,11 @@ import android.webkit.WebView;
 import android.webkit.WebViewClient;
 
 import androidx.annotation.Nullable;
-import androidx.fragment.app.Fragment;
 
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.net.HttpURLConnection;
-import java.net.URL;
-import java.util.Timer;
-import java.util.TimerTask;
-
-import lee.bottle.lib.toolset.jsbridge.JSUtils;
 import lee.bottle.lib.toolset.log.LLog;
 import lee.bottle.lib.toolset.util.AppUtils;
 
-import static lee.bottle.lib.toolset.http.HttpUtil.closeIo;
-import static lee.bottle.lib.toolset.jsbridge.JSUtils.progressHandler;
+import static lee.bottle.lib.toolset.web.JSUtils.progressHandler;
 
 /**
  * Created by Leeping on 2019/7/7.
@@ -54,7 +44,7 @@ public class SysWebViewClient extends WebViewClient {
      */
     @Override
     public boolean shouldOverrideUrlLoading(WebView view, String url) {
-//        LLog.print("shouldOverrideUrlLoading\n\t"+url);
+        LLog.print("shouldOverrideUrlLoading\n\t"+url);
         view.loadUrl(url);
         return true;
     }
@@ -73,58 +63,12 @@ public class SysWebViewClient extends WebViewClient {
     @Override
     public WebResourceResponse shouldInterceptRequest(WebView webView, String url) {
 //        LLog.print("shouldInterceptRequest(WebView webView, String url) 加载媒体资源URL : "+ url);
-        WebResourceResponse webResourceResponse = JSUtils.mediaUriIntercept(webView.getContext(),url,WebResourceResponse.class);
+        WebResourceResponse webResourceResponse = JSUtils.resourceIntercept(url);
         return resourceLocalStore(webView.getContext(),url,webResourceResponse) != null ? webResourceResponse : super.shouldInterceptRequest(webView,url);
     }
 
     private WebResourceResponse resourceLocalStore(Context context, String url, WebResourceResponse webResourceResponse) {
 //        LLog.print("shouldInterceptRequest " + url+" ,webResourceResponse = " + webResourceResponse);
-//        if (url.startsWith("http") || url.startsWith("https")){
-//            File file = context.getFilesDir()+"/webResource";
-//            return webResourceResponseDownload(url);
-//        }
-        return webResourceResponse;
-    }
-
-    private WebResourceResponse webResourceResponseDownload(String url) {
-
-        //从软缓存拿
-        //软缓存找不到->硬盘缓存拿
-        //还是没有,下载资源->设置软存->设置硬存
-
-        WebResourceResponse webResourceResponse = null;
-        HttpURLConnection con = null;
-        OutputStream out = null;//本地文件输出流
-        InputStream in = null; //服务器下载输入流
-        try {
-            if (url.contains("localhost")) return null;
-            con = (HttpURLConnection) new URL(url).openConnection();
-            con.setRequestMethod("GET");// GET POST
-            con .setUseCaches(false);
-            con.setDefaultUseCaches(false);
-            con.setConnectTimeout(30000);
-            con.setReadTimeout(5000);
-            con.setRequestProperty("Charset", "UTF-8");
-            con.setRequestProperty("Connection", "keep-alive");  //设置连接的状态
-            con.setDoInput(true);
-            con.setRequestProperty("Accept-Encoding", "identity");
-
-            con.setRequestProperty("Content-Type", "application/octet-stream");//传输数据类型,流传输
-            con.connect();//连接
-            int code = con.getResponseCode();
-            String message = con.getResponseMessage();
-            String contentType = con.getContentType();
-            if ( code == HttpURLConnection.HTTP_OK || code == HttpURLConnection.HTTP_PARTIAL) {
-                in = con.getInputStream();
-                webResourceResponse = new WebResourceResponse(contentType,"UTF-8",in);
-            }
-        }catch (Exception e){
-          e.printStackTrace();
-        }finally {
-            closeIo(out,in);
-            if (con!=null) con.disconnect();//断开连接
-        }
-        LLog.print("返回: " + webResourceResponse);
         return webResourceResponse;
     }
 
@@ -139,58 +83,19 @@ public class SysWebViewClient extends WebViewClient {
     /** 访问地址错误回调 */
     @Override
     public void onReceivedError(WebView webView, WebResourceRequest webResourceRequest, WebResourceError webResourceError) {
+        Uri url = webResourceRequest.getUrl();
+        if (url==null || url.getHost()==null || url.getHost().contains("localhost")) return;
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            LLog.print("页面加载错误: "+ webResourceRequest.getUrl() + "\n\r" + webResourceRequest.getRequestHeaders()+"\n\r"+webResourceError.getDescription());
+            LLog.print("页面加载错误: " + webResourceRequest.getUrl()
+                    + "\n\r" + webResourceRequest.getRequestHeaders()
+                    + "\n\r"+webResourceError.getDescription());
         }
         if (!AppUtils.isNetworkAvailable(webView.getContext())){
             // 加载错误页面
-//            webView.loadUrl("file:android_asset/error.html");
             AppUtils.toast(webView.getContext(),"网络连接不可用");
         }
         //super.onReceivedError(webView, webResourceRequest, webResourceError);
-    }
-
-    boolean openTryExecuteIng = false;
-    private void tryReload(WebView webView, final String url) {
-        if (openTryExecuteIng) return;
-        openTryExecuteIng = true;
-        final WebView _webView = webView;
-        //间隔10秒再次尝试加载
-        new Timer(true).schedule(new TimerTask() {
-            @Override
-            public void run() {
-                Object o = core.getCurrentBinder();
-                if (o!=null){
-                    Activity activity = null;
-
-                    if (o instanceof Fragment){
-                        activity = ((Fragment) o).getActivity();
-                    }
-                    if (o instanceof Activity){
-                        activity = (Activity) o;
-                    }
-                    openTryExecuteIng = false;
-                    if (activity != null){
-
-                        LLog.print("尝试重新加载");
-                        if (AppUtils.isNetworkAvailable(activity)){
-                            activity.runOnUiThread(new Runnable() {
-                                @Override
-                                public void run() {
-                                    _webView.loadUrl(url);
-                                }
-                            });
-                        }else{
-                            tryReload(_webView,url);
-                        }
-
-
-                    }
-                }
-
-            }
-        },3 * 1000L);
     }
 
     /** 如果浏览器需要重新发送POST请求，可以通过这个时机来处理。默认是不重新发送数据 */
@@ -209,8 +114,10 @@ public class SysWebViewClient extends WebViewClient {
         super.doUpdateVisitedHistory(view, url, isReload);
     }
 
-    /** 提供应用程序同步一个处理按键事件的机会，菜单快捷键需要被过滤掉。如果返回true，webview不处理该事件，如果返回false，
-     * webview会一直处理这个事件，因此在view 链上没有一个父类可以响应到这个事件。默认行为是return false */
+    /** 提供应用程序同步一个处理按键事件的机会，菜单快捷键需要被过滤掉。
+     * 如果返回true，webview不处理该事件，
+     * 如果返回false，webview会一直处理这个事件，
+     * 因此在view 链上没有一个父类可以响应到这个事件。默认行为是return false */
     @Override
     public boolean shouldOverrideKeyEvent(WebView view, KeyEvent event) {
         return super.shouldOverrideKeyEvent(view, event);
@@ -245,8 +152,8 @@ public class SysWebViewClient extends WebViewClient {
     @Override
     public void onPageStarted(WebView webView, String url, Bitmap favicon) {
 //        LLog.print("onPageStarted "+ url);
-        webView.getSettings().setBlockNetworkImage(true);
-        progressHandler(1);
+//        webView.getSettings().setBlockNetworkImage(true);
+        progressHandler(url,0,false);
         super.onPageStarted(webView, url, favicon);
     }
 
@@ -254,8 +161,8 @@ public class SysWebViewClient extends WebViewClient {
     @Override
     public void onPageFinished(WebView webView, String url) {
 //        LLog.print("onPageFinished "+ url);
-        webView.getSettings().setBlockNetworkImage(false);
-        progressHandler(100);
+//        webView.getSettings().setBlockNetworkImage(false);
+        progressHandler(url,100,false);
         super.onPageFinished(webView, url);
     }
 

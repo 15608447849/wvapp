@@ -4,6 +4,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.ViewParent;
 import android.webkit.DownloadListener;
 
 import java.lang.ref.SoftReference;
@@ -25,16 +26,14 @@ public abstract class IWebViewInit<V extends View> {
 
     private SoftReference<Object> activitySoftReference;
 
-    public IWebViewInit(Object binder, ViewGroup group, IBridgeImp bridge) throws Exception{
-        activitySoftReference = new SoftReference<>(binder);
+    public IWebViewInit(Context context, IBridgeImp bridge) throws Exception{
         ParameterizedType parameterizedType = (ParameterizedType)this.getClass().getGenericSuperclass();
         Type[] typeArr = parameterizedType.getActualTypeArguments();
-        webView = (V)ObjectRefUtil.createObject((Class) typeArr[0],new Class[]{Context.class},group.getContext());
-        group.addView(webView,
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.MATCH_PARENT);
+        webView = (V)ObjectRefUtil.createObject((Class) typeArr[0],new Class[]{Context.class},context);
+
         initSetting(webView);
         proxy = new JSInterface(webView).setIBridgeImp(bridge);
+
     }
 
     public IJsBridge getProxy() {
@@ -45,9 +44,26 @@ public abstract class IWebViewInit<V extends View> {
         return webView;
     }
 
+    public void setCurrentBinder(Object binder){
+        activitySoftReference = new SoftReference<>(binder);
+    }
     // 获取当前绑定者
     public Object getCurrentBinder(){
         return activitySoftReference.get();
+    }
+
+    //关联图层
+    public void bindDisplayLayer(ViewGroup group){
+        if (group!=null){
+            group.addView(webView, ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
+        }
+    }
+
+    public void unbindDisplayLayer(){
+        ViewParent parent = webView.getParent();
+        if (parent instanceof ViewGroup) {
+            ((ViewGroup)parent).removeView(webView);
+        }
     }
 
     // 初始化
@@ -67,11 +83,10 @@ public abstract class IWebViewInit<V extends View> {
 
     public abstract void setDownloadListener(DownloadListener listener);
 
-    public static IWebViewInit createIWebView(String coreClassTypeName,Object binder,ViewGroup group, IBridgeImp bridge){
+    public static IWebViewInit createIWebView(String coreClassTypeName, Context context, IBridgeImp bridge){
         try {
-            return (IWebViewInit) ObjectRefUtil.createObject(coreClassTypeName, new Class[]{Object.class,ViewGroup.class, IBridgeImp.class}, binder, group, bridge);
+            return (IWebViewInit) ObjectRefUtil.createObject(coreClassTypeName, new Class[]{Context.class, IBridgeImp.class},context, bridge);
         } catch (Exception e) {
-            e.printStackTrace();
             LLog.print("加载内核失败, 实现类: "+ coreClassTypeName+", 原因: "+e);
         }
         return null;

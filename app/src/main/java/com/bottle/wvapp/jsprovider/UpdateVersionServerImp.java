@@ -11,6 +11,7 @@ import com.bottle.wvapp.tool.NotifyUer;
 import java.io.File;
 
 import lee.bottle.lib.toolset.http.HttpUtil;
+import lee.bottle.lib.toolset.log.LLog;
 import lee.bottle.lib.toolset.os.FrontNotification;
 import lee.bottle.lib.toolset.threadpool.IOUtils;
 import lee.bottle.lib.toolset.util.AppUtils;
@@ -104,9 +105,14 @@ public class UpdateVersionServerImp extends HttpUtil.CallbackAbs implements Runn
         }
 
         if (!isAuto) tryToast("正在下载新版本("+c.serverVersion+"),请稍等");
-        //下载apk
-        final File file = HttpServerImp.downloadFile(c.apkLink,NativeServerImp.app.getCacheDir() + "/temp.apk",this);
-        if (file == null) {
+
+        File apk = new File(NativeServerImp.app.getCacheDir() + "/temp.apk");
+        if (System.currentTimeMillis() - apk.lastModified() >  60 * 1000){
+            //下载apk
+            apk = HttpServerImp.downloadFile(c.apkLink,apk.getPath(),this);
+        }
+
+        if (apk == null) {
             if (!isAuto) tryToast("无法下载最新版本应用,请重新尝试");
             return;
         }
@@ -114,31 +120,67 @@ public class UpdateVersionServerImp extends HttpUtil.CallbackAbs implements Runn
         //打开安装对话框
         final BaseActivity activity = NativeServerImp.activityRef.get();
         if (activity == null) return;
+        boolean isChange = apk.setLastModified(System.currentTimeMillis());
+        if (!isChange){
+            LLog.print("无法修改APK最近更新时间");
+        }
+        final File _apk = apk;
         activity.runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                DialogUtil.build(activity,
-                        "版本更新",
-                        c.updateMessage,
-                        R.drawable.ic_update_version,
-                        "现在更新",
-                        "下次再说",
-                        null,
-                        0,
-                        new DialogInterface.OnClickListener() {
-                            @Override
-                            public void onClick(DialogInterface dialog, int which) {
-                                dialog.cancel();
-                                if (which == DialogInterface.BUTTON_POSITIVE){
-                                    //提示安装
-                                    AppUtils.installApk(NativeServerImp.app, file);
-                                }
-                            }
-                        });
-
+                if (NativeServerImp.config.forceUpdate == 0){
+                    normalUpdate(activity,_apk,c.updateMessage);
+                }else{
+                    forceUpdate(activity,_apk,c.updateMessage);
+                }
             }
         });
 
+    }
+
+    private void forceUpdate(final BaseActivity activity, final File file, String updateMessage) {
+        DialogUtil.build(activity,
+                "当前版本已过期,请更新",
+                updateMessage,
+                R.drawable.ic_update_version,
+                "现在更新",
+                "退出应用",
+                null,
+                0,
+                new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        dialog.cancel();
+                        if (which == DialogInterface.BUTTON_POSITIVE){
+                            //提示安装
+                            AppUtils.installApk(NativeServerImp.app, file);
+                        }else{
+//                            activity.finish();
+                            System.exit(0);
+                        }
+                    }
+                });
+    }
+
+    private void normalUpdate(BaseActivity activity,final File file,String updateMessage) {
+        DialogUtil.build(activity,
+                "版本更新",
+                updateMessage,
+                R.drawable.ic_update_version,
+                "现在更新",
+                "下次再说",
+                null,
+                0,
+                new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        dialog.cancel();
+                        if (which == DialogInterface.BUTTON_POSITIVE){
+                            //提示安装
+                            AppUtils.installApk(NativeServerImp.app, file);
+                        }
+                    }
+                });
     }
 
     @Override

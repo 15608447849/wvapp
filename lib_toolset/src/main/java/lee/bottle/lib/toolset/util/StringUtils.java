@@ -70,15 +70,14 @@ public class StringUtils {
         }
         return sb.toString()
                 .replaceAll("%","%25")
-                .replaceAll("\\+","%2B")
-                .replaceAll("\\s+","%20")
                 .replaceAll("/","%2F")
-                .replaceAll("\\?","%3F")
                 .replaceAll("#","%23")
                 .replaceAll("&","%26")
-                .replaceAll("=","%26")
+                .replaceAll("=","%3D")
+                .replaceAll("\\+","%2B")
+                .replaceAll("\\s+","%20")
+                .replaceAll("\\?","%3F")
                 ;
-
     }
 
     /**
@@ -137,4 +136,16 @@ public class StringUtils {
         return byteToHexString(getBytesMd5(str.getBytes()));
     }
 
+    public static void mapCopy(Map<String, String> source, Map<String, String> dist) {
+        if (source==null || source.size()==0 || dist == null){
+            return;
+        }
+        Iterator<Map.Entry<String,String>> it = source.entrySet().iterator();
+        while (it.hasNext()) {
+            Map.Entry<String,String> entry = it.next();
+            String key = entry.getKey();
+            String value = entry.getValue();
+            dist.put(key,value);
+        }
+    }
 }

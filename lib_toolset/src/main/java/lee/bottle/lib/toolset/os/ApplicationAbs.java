@@ -13,9 +13,13 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Timer;
 
 import lee.bottle.lib.toolset.log.LLog;
+import lee.bottle.lib.toolset.threadpool.IOUtils;
 import lee.bottle.lib.toolset.util.AppUtils;
+import lee.bottle.lib.toolset.util.FileUtils;
 import lee.bottle.lib.toolset.util.TimeUtils;
 
 
@@ -24,6 +28,82 @@ import lee.bottle.lib.toolset.util.TimeUtils;
  * email: 793065165@qq.com
  */
 public abstract class ApplicationAbs extends Application implements Application.ActivityLifecycleCallbacks {
+
+    private static HashMap<Class<?>,Object> applicationMap = new HashMap<>();
+
+    public static void putApplicationObject(Object install){
+        applicationMap.put(install.getClass(),install);
+//        LLog.print(install.getClass() + " 放入全局应用: "+ install);
+
+    }
+
+    public static <Target> Target getApplicationObject(Class<? extends Target> classKey){
+        Object install = applicationMap.get(classKey);
+//        LLog.print(classKey + " 获取全局应用: "+ install);
+        if (install == null) return null;
+        return  (Target)install;
+    }
+
+    public static void delApplicationObject(Class<?> classKey){
+        applicationMap.remove(classKey);
+    }
+
+    private static File applicationDir = null;
+
+    public static void setApplicationDir(final File dir) {
+        if (ApplicationAbs.applicationDir != null) return;
+        try {
+            if (!dir.exists() && !dir.mkdirs()) throw new IllegalArgumentException("无法创建");
+            File checkFile = new File(dir,"check");
+            // 存在检测删除 , 不存在检测创建
+            if (checkFile.exists() && !checkFile.delete() || !checkFile.exists() && !checkFile.createNewFile()){
+                throw new IllegalArgumentException("没有文件写入权限");
+            }
+        } catch (Exception e) {
+           LLog.print("设置应用目录("+dir+")失败,错误 "+ e);
+           return;
+        }
+        IOUtils.run(new Runnable() {
+            @Override
+            public void run() {
+                //删除时间大于7天的数据
+                FileUtils.clearFiles(dir, 7 * 24 * 60 * 60 * 1000L);
+            }
+        });
+
+        ApplicationAbs.applicationDir = dir;
+        LLog.print("设置成功应用目录: "+  ApplicationAbs.applicationDir );
+    }
+
+    private static long startTime = System.currentTimeMillis();
+
+    public static String runtimeStr(){
+        return TimeUtils.formatDuring(System.currentTimeMillis() - startTime);
+    }
+
+    public static File getApplicationDIR(String subDic){
+        try {
+            if (applicationDir == null){
+               throw new IllegalArgumentException("未设置应用目录");
+            }
+            File rootDir = null;
+            if (subDic==null){
+                rootDir = applicationDir;
+            }else{
+                rootDir = new File(applicationDir,subDic);
+            }
+
+            if (!rootDir.exists()){
+                if (!rootDir.mkdirs()){
+                    throw new IllegalArgumentException("无法创建文件夹: "+ rootDir);
+                }
+            }
+            return rootDir;
+        } catch (Exception e) {
+            //LLog.print("获取应用目录失败,错误 "+ e);
+        }
+        return null;
+    }
 
     /** 是否注册activity声明周期的回调管理 */
     private boolean isRegisterActivityLifecycleCallbacks = true;
@@ -130,6 +210,8 @@ public abstract class ApplicationAbs extends Application implements Application.
         if (isPrintLifeLog) LLog.format("---%s :: %s",activity,"onCreated");
         //竖屏锁定
         activity.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+        //横屏锁定
+//      activity.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
         //没有title
         //activity.getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
         //硬件加速
@@ -137,7 +219,7 @@ public abstract class ApplicationAbs extends Application implements Application.
         //应用运行时，保持屏幕高亮,不锁屏
         activity.getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         //设定软键盘的输入法模式 覆盖在图层上 不会改变布局
-        activity.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_NOTHING);
+//        activity.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_NOTHING);
     }
 
     @Override

@@ -41,7 +41,6 @@ public class CommunicationServerImp extends _PushMessageClientDisp {
                         //相同设备 并且 设备标识不相同
                         if (devType.equals(NativeServerImp.DEVTYPE) && !devID.equals(NativeServerImp.DEVID)){
                             if (compid == 0) {
-                                LLog.print("用户登出提醒");
                                 NativeServerImp.forceLogout();
                             }
                         }

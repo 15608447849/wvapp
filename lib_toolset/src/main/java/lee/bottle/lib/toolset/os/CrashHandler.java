@@ -6,7 +6,6 @@ import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.util.Log;
-
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -17,7 +16,6 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
-
 import lee.bottle.lib.toolset.util.AppUtils;
 import lee.bottle.lib.toolset.util.ErrorUtil;
 import lee.bottle.lib.toolset.util.TimeUtils;
@@ -63,13 +61,8 @@ public class CrashHandler implements Thread.UncaughtExceptionHandler {
     public void init(Context context) {
         if (context == null) throw new NullPointerException("app context is null.");
         contextRef = new SoftReference<>(context);
-        try {
-            //收集设备参数信息
-            collectDeviceInfo();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
+        //收集设备参数信息
+        collectDeviceInfo();
     }
 
     private Callback callback;

@@ -19,6 +19,7 @@ import java.net.URLConnection;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -160,10 +161,13 @@ public class HttpUtil {
 
         /** 连接超时 */
         private int connectTimeout = 60 * 1000;
+
         /** 读取超时 */
         private int readTimeout = 30 * 1000;
+
         /** header 参数 */
         private Map<String,String> params;
+
         /** 监听回调 */
         private Callback callback;
 
@@ -307,6 +311,18 @@ public class HttpUtil {
         public void run() {
             execute();
         }
+
+        // 返回值信息
+        private HashMap<String,String>  responseInfoMap = new HashMap<>();
+
+        private void setResponseContentType(String contentType) {
+            responseInfoMap.put("contentType",contentType);
+        }
+
+        public String getResponseContentType() {
+            return responseInfoMap.get("contentType");
+        }
+
     }
 
     //响应
@@ -543,9 +559,11 @@ public class HttpUtil {
             connectionAddHeadParams(con,request);
             con.connect();//连接
             int code = con.getResponseCode();
+            request.setResponseContentType(con.getContentType());
             String message = con.getResponseMessage();
 
             if ( code == HttpURLConnection.HTTP_OK || code == HttpURLConnection.HTTP_PARTIAL) {
+
                 in = con.getInputStream();
                 if (request.isText){
                     //访问文本信息
@@ -568,7 +586,6 @@ public class HttpUtil {
                 );
             }
         }catch (Exception e){
-
             if (callback!=null) callback.onError(e);
         }finally {
             closeIo(out,in);
@@ -643,7 +660,6 @@ public class HttpUtil {
         if (request.isBinaryStream){
             con.setRequestProperty("Content-Type", "application/octet-stream");//传输数据类型,流传输
         }
-
     }
 
     //添加头信息
@@ -672,7 +688,6 @@ public class HttpUtil {
     }
 
     public static String formText(String url, String type, Map<String,String> params){
-
         String text = null;
         HttpURLConnection con = null;
         try{

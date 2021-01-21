@@ -1,5 +1,4 @@
 package com.bottle.wvapp.jsprovider;
-
 import android.content.Intent;
 
 import java.lang.reflect.Method;
@@ -19,11 +18,13 @@ public class NativeBridgeImp implements IBridgeImp {
     }
 
     @Override
-    public Object invoke(String methodName, String data) throws Exception {
+    public Object invoke(String methodName, final String data) throws Exception {
         if (methodName.startsWith("ts:")){
             //转发协议  ts:服务名@类名@方法名@分页页码@分页条数@扩展字段
             String temp = methodName.replace("ts:","");
-            String[] args = temp.split("@");
+            final String[] args = temp.split("@");
+//            String result = NativePrevLoad.prevTransfer(args[0],args[1],args[2],Integer.parseInt(args[3]),args[4],args[5],data);
+//            if (result == null) result = NativeServerImp.transfer(args[0],args[1],args[2],Integer.parseInt(args[3]),Integer.parseInt(args[4]),args[5],data);
             return NativeServerImp.transfer(args[0],args[1],args[2],Integer.parseInt(args[3]),Integer.parseInt(args[4]),args[5],data);
         }
         Object val;

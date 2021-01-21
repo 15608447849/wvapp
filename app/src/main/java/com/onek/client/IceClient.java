@@ -5,7 +5,9 @@ import com.onek.server.inf.InterfacesPrx;
 import com.onek.server.inf.InterfacesPrxHelper;
 
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Locale;
+import java.util.Map;
 
 import Ice.Communicator;
 import Ice.ObjectPrx;
@@ -27,6 +29,7 @@ public class IceClient {
             this.request = new IRequest();
         }
     }
+
     private static final ThreadLocal<ReqStore> threadLocalStore = new ThreadLocal<>();
 
     private Communicator ic = null;
@@ -58,7 +61,6 @@ public class IceClient {
             if (host_port.length == 2){
                 address.append(String.format(Locale.CHINA,str, "tcp",host_port[0],host_port[1]));
             }
-
         }
         arr[0] = address.toString();
         return arr;
@@ -71,11 +73,11 @@ public class IceClient {
     public String getEnvId(){
         return Arrays.toString(args);
     }
+
     public IceClient setTimeout(int timeout) {
         this.timeout = timeout;
         return this;
     }
-
 
     synchronized
     public IceClient startCommunication() {
@@ -93,9 +95,20 @@ public class IceClient {
         return this;
     }
 
+    private static ThreadLocal<Map<String,InterfacesPrx>> threadLocalStoreInterfacesPrx = new ThreadLocal<>();
+
     public IceClient settingProxy(String serverName){
-        ObjectPrx base = ic.stringToProxy(serverName).ice_invocationTimeout(timeout);
-        InterfacesPrx curPrx =  InterfacesPrxHelper.checkedCast(base);
+        Map<String,InterfacesPrx> map = threadLocalStoreInterfacesPrx.get();
+        if (map == null){
+            map = new HashMap<>();
+            threadLocalStoreInterfacesPrx.set(map);
+        }
+        InterfacesPrx curPrx = map.get(serverName);
+        if (curPrx == null){
+            ObjectPrx base = ic.stringToProxy(serverName).ice_invocationTimeout(timeout);
+            curPrx = InterfacesPrxHelper.checkedCast(base);
+            map.put(serverName,curPrx);
+        }
         threadLocalStore.set(new ReqStore(curPrx));
         return this;
     }
@@ -104,7 +117,6 @@ public class IceClient {
         ReqStore store = threadLocalStore.get();
         return store == null? null : store.currentPrx;
     }
-
 
     public IceClient settingReq(String token,String cls,String med){
         ReqStore store = threadLocalStore.get();

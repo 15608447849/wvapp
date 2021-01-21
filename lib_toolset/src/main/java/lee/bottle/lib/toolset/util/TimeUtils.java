@@ -69,22 +69,32 @@ public class TimeUtils {
         arr[2] = day;
     }
     // 秒 转化 小时 ,分钟
-    public static String formatSec(long sec){
-        long hour,minute,second;
-        second = sec;
-        hour = second/3600;
-        minute = (second - hour*3600)/60;
-        second = (second-hour*3600)-(minute*60);
+    public static String formatDuring(long mss) {
+        long days = mss / 86400000L;
+        long hours = mss % 86400000L / 3600000L;
+        long minutes = mss % 3600000L / 60000L;
+        long seconds = mss % 60000L / 1000L;
         StringBuilder sb = new StringBuilder();
-        if (hour>0){
-            sb.append(hour).append("小时");
+        if (days > 0L) {
+            sb.append(days).append("天 ");
         }
-        if (minute>0){
-            sb.append(minute).append("分钟");
+
+        if (hours > 0L) {
+            sb.append(hours).append("小时 ");
         }
-        if (second>0){
-            sb.append(second).append("秒");
+
+        if (minutes > 0L) {
+            sb.append(minutes).append("分钟 ");
         }
+
+        if (seconds > 0L) {
+            sb.append(seconds).append("秒 ");
+        }
+
+        if (sb.toString().length() == 0) {
+            sb.append(mss).append("毫秒 ");
+        }
+
         return sb.toString();
     }
     //比较时间

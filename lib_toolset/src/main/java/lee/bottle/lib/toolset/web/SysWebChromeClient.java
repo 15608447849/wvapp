@@ -8,11 +8,10 @@ import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
 import android.webkit.WebView;
 
-import lee.bottle.lib.toolset.jsbridge.JSUtils;
 import lee.bottle.lib.toolset.log.LLog;
 import lee.bottle.lib.toolset.util.DialogUtil;
 
-import static lee.bottle.lib.toolset.jsbridge.JSUtils.progressHandler;
+import static lee.bottle.lib.toolset.web.JSUtils.progressHandler;
 
 /**
  * Created by Leeping on 2019/7/7.
@@ -29,8 +28,9 @@ public class SysWebChromeClient extends WebChromeClient {
     //进度状态
     @Override
     public void onProgressChanged(WebView view, int newProgress) {
-        progressHandler(newProgress);
+        progressHandler(view.getUrl(),newProgress,false);
     }
+
     @Override
     public boolean onJsAlert(WebView view, String url, String message,final JsResult result) {
         DialogUtil.dialogSimple(view.getContext(), message, "确认", new DialogUtil.Action0() {
@@ -44,12 +44,17 @@ public class SysWebChromeClient extends WebChromeClient {
     @Override
     public boolean onConsoleMessage(ConsoleMessage consoleMessage) {
         String fileName =  consoleMessage.sourceId();
-        LLog.print(
-                "浏览器控制台-["+consoleMessage.messageLevel()+"]\n"+consoleMessage.message()
-                        + (consoleMessage.messageLevel().name().equalsIgnoreCase("error") ? "\n" + fileName +":"+consoleMessage.lineNumber():"")
-        );
 
-//        LLog.print("WEB LOG \n\t" + consoleMessage.message());
+//        LLog.print(
+//                "浏览器-["+consoleMessage.messageLevel()+"]\n"+consoleMessage.message()
+//                        + (consoleMessage.messageLevel().name().equalsIgnoreCase("error") ?
+//                        "\n" + fileName +":"+consoleMessage.lineNumber():"")
+//        );
+
+        //LLog.print("浏览器\t" +fileName+"("+ consoleMessage.lineNumber() +")\n" + consoleMessage.message());
+//        if ( consoleMessage.message().contains("JNB ok")){
+//            JSUtils.progressHandler(null,100,true);
+//        }
         return true;
     }
 
@@ -79,7 +84,5 @@ public class SysWebChromeClient extends WebChromeClient {
         //文件选择
         return JSUtils.onShowFileChooser(core.getCurrentBinder(),webView,filePathCallback,fileChooserParams);
     }
-
-
 
 }

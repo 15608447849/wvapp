@@ -11,14 +11,16 @@ import com.tencent.mm.opensdk.modelpay.PayReq;
 import com.tencent.mm.opensdk.openapi.IWXAPI;
 import com.tencent.mm.opensdk.openapi.WXAPIFactory;
 
+import java.io.File;
 import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 
 import lee.bottle.lib.imagepick.ImagePicker;
 import lee.bottle.lib.toolset.log.LLog;
+import lee.bottle.lib.toolset.os.ApplicationAbs;
 import lee.bottle.lib.toolset.util.AppUtils;
 import lee.bottle.lib.toolset.util.GsonUtils;
+import lee.bottle.lib.toolset.web.JSUtils;
 
 import static android.app.Activity.RESULT_OK;
 import static android.content.Intent.FLAG_ACTIVITY_NEW_TASK;
@@ -59,7 +61,7 @@ public class NativeMethodCallImp{
 
     /** 文件上传 */
     private String fileUpload(String json){
-        HttpServerImp.JSUploadFile bean = GsonUtils.jsonToJavaBean(json, HttpServerImp.JSUploadFile.class);
+        HttpServerImp.UploadTask bean = GsonUtils.jsonToJavaBean(json, HttpServerImp.UploadTask.class);
         if (bean == null) return null;
         return HttpServerImp.updateFile(bean);
     }
@@ -69,8 +71,6 @@ public class NativeMethodCallImp{
         if (NativeServerImp.activityRef.get()==null) return;
         AppUtils.callPhoneNo(NativeServerImp.activityRef.get(),phone);
     }
-
-
 
     /** 打开qq */
     private void openTel(String qq){
@@ -88,7 +88,24 @@ public class NativeMethodCallImp{
         }
     }
 
-    /**版本更新*/
+
+    /** 打开/关闭连接 */
+    public void communication(String type){
+        NativeServerImp.communication(type);
+    }
+
+    /** 版本信息 */
+    public String versionInfo(){
+        return "-"+getVersionName(NativeServerImp.app);
+    }
+
+    /** web页面加载完成 */
+    public void pageLoadComplete(String url){
+        LLog.print("JS页面加载完成通知: "+ url);
+        NativeServerImp.webPageLoadComplete(url);
+    }
+
+    /** 版本更新*/
     private void versionUpdate(){
         UpdateVersionServerImp.execute(false);
     }
@@ -136,24 +153,6 @@ public class NativeMethodCallImp{
         return wxpayRes;
     }
 
-    /** 打开/关闭连接 */
-    public void communication(String type){
-        NativeServerImp.communication(type);
-    }
-
-    /** 版本信息 */
-    public String versionInfo(){
-        return getVersionName(NativeServerImp.app)
-                .replace("B", NativeServerImp.config.backVersion)
-                .replace("W",NativeServerImp.sp.getInt("webPageVersion",0)+"");
-    }
-
-    /** 文件删除 */
-    public String delFiles(String json){
-        List<String> list = GsonUtils.json2List(json,String.class);
-        LLog.print("删除文件: "+ list);
-        return HttpServerImp.deleteFileOnRemoteServer(NativeServerImp.getSpecFileUrl("deleteUrl"),list);
-    }
 
     /** 内置浏览器打开链接 */
     public void localBrowserOpenUrl(final String url) {
@@ -184,11 +183,23 @@ public class NativeMethodCallImp{
     }
 
     /** 清理缓存 */
-    public void clearCache(String flag){
-        BaseActivity activity = NativeServerImp.activityRef.get();
+    public void clearCache(){
+        final BaseActivity activity = NativeServerImp.activityRef.get();
         if (activity!=null){
-            boolean isDelete = Boolean.getBoolean(flag);
-            activity.clearWeb(isDelete);
+            activity.clearWeb(true);
+        }
+        //除缓存文件夹
+        final File dict = ApplicationAbs.getApplicationDIR(null);
+        if (dict != null){
+            boolean isDel = dict.delete();
+            if (!isDel && activity!=null){
+                activity.runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        AppUtils.toast(activity,"缓存清理失败,请手动删除"+dict);
+                    }
+                });
+            }
         }
     }
 }

@@ -444,4 +444,20 @@ public class FileUtils {
         }
     }
 
+    public static void clearFiles(File dir, long invTime) {
+        if (dir.exists()){
+            File[] files = dir.listFiles();
+            for (File file : files){
+                if (file.isDirectory()){
+                    clearFiles(file,invTime);
+                }
+                if (file.isFile()){
+                    long lastTime = file.lastModified();
+                    if (System.currentTimeMillis() - lastTime >  invTime){
+                        file.delete();
+                    }
+                }
+            }
+        }
+    }
 }

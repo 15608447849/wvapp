@@ -1,5 +1,7 @@
 package lee.bottle.lib.toolset.log;
 
+import android.util.Log;
+
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
@@ -121,7 +123,7 @@ public class LLog{
             try {
                 execute(objects);
             } catch (Exception e) {
-                e.printStackTrace();
+                Log.e("LLOG 日志输出器","无法写入日志文件, error = " + e);
             }
         }
     }

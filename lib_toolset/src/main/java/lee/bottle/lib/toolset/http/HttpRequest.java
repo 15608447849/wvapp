@@ -22,6 +22,7 @@ public class HttpRequest extends HttpUtil.CallbackAbs  {
 
     private String text;
     private Exception exception;
+    private HttpUtil.Callback callback;
 
     public HttpRequest bindParam(StringBuffer sb,Map<String,String > map){
         Iterator<Map.Entry<String,String>> it = map.entrySet().iterator();
@@ -101,7 +102,6 @@ public class HttpRequest extends HttpUtil.CallbackAbs  {
         return this;
     }
 
-
     /**
      * 上传流
      */
@@ -150,7 +150,8 @@ public class HttpRequest extends HttpUtil.CallbackAbs  {
                     .setFileFormSubmit()
                     .setParams(headParams)
                     .addFormItemList(formItems)
-                    .upload().execute();
+                    .upload()
+                    .execute();
         }
         return this;
     }
@@ -201,24 +202,45 @@ public class HttpRequest extends HttpUtil.CallbackAbs  {
     }
 
 
+    public HttpRequest setCallback(HttpUtil.Callback callback) {
+        this.callback = callback;
+        return this;
+    }
+
+    @Override
+    public void onProgress(File file, long progress, long total) {
+        if (callback!= null) callback.onProgress(file,progress,total);
+    }
+
     @Override
     public void onResult(HttpUtil.Response response) {
         this.text = response.getMessage();
+        if (callback!=null) callback.onResult(response);
     }
 
     @Override
     public void onError(Exception e) {
         exception = e;
         this.text = null;
+        if (callback!= null) callback.onError(e);
     }
 
+    private String responseContentType;
+
     public boolean download(String url,File file){
-        if (file.exists() && file.isFile()) file.delete();
+        if (file.exists() && file.isFile()) {
+            if (!file.delete()) return false;
+        }
+
         HttpUtil.Request r = new HttpUtil.Request(url,this);
         r.setDownloadFileLoc(file);
         r.download();
         r.execute();
+        responseContentType = r.getResponseContentType();
         return file.exists() && file.length() > 0;
     }
 
+    public String getResponseContentType() {
+        return responseContentType;
+    }
 }

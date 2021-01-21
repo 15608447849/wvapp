@@ -11,6 +11,8 @@ import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.graphics.Bitmap;
+import android.graphics.drawable.BitmapDrawable;
+import android.graphics.drawable.Drawable;
 import android.location.LocationManager;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
@@ -24,6 +26,7 @@ import android.provider.ContactsContract;
 import android.telephony.TelephonyManager;
 import android.view.View;
 import android.view.inputmethod.InputMethodManager;
+import android.widget.ImageView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -34,11 +37,11 @@ import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.net.NetworkInterface;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -132,37 +135,44 @@ public class AppUtils {
         if (manager != null) {
             try {
                 NetworkInfo info = manager.getActiveNetworkInfo();
-                LLog.print("网络状态: " + (info != null && info.isAvailable()));
                 if (info != null && info.isAvailable()) {
                     return true;
                 }
-            } catch (Exception e) {
-                e.printStackTrace();
+            } catch (Exception ignored) {
+
             }
         }
         return false;
     }
 
-    public static byte[] getLocalFileByte(File image) {
-        byte[] buffer = null;
-        try {
-            FileInputStream fis = new FileInputStream(image);
-            ByteArrayOutputStream bos = new ByteArrayOutputStream(1000);
-            byte[] b = new byte[1000];
+    public static void getLocalFileToOutputStream(File file, OutputStream out) throws Exception{
+        try (FileInputStream fis = new FileInputStream(file)){
+            byte[] b = new byte[4096];
             int n;
             while ((n = fis.read(b)) != -1) {
-                bos.write(b, 0, n);
+                out.write(b, 0, n);
             }
-            fis.close();
-            bos.close();
-            buffer = bos.toByteArray();
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
+        }
+    }
+
+    //将文件转换成Byte数组
+    public static byte[] getBytesByFile(File file) {
+        int len = 1024;
+        try( FileInputStream fis = new FileInputStream(file)){
+           try(ByteArrayOutputStream bos = new ByteArrayOutputStream(len)){
+               byte[] b = new byte[len];
+               int n;
+               while ((n = fis.read(b)) != -1) {
+                   bos.write(b, 0, n);
+               }
+               return bos.toByteArray();
+           }
+        } catch (Exception e) {
             e.printStackTrace();
         }
-        return buffer;
+        return null;
     }
+
 
     public static boolean unZipToFolder(InputStream zipFileStream, File dir) {
         try (ZipInputStream inZip = new ZipInputStream(zipFileStream)){
@@ -467,6 +477,18 @@ public class AppUtils {
         intent.setAction(Intent.ACTION_CALL);
         intent.setData(Uri.parse("tel:"+phoneNo));
         activity.startActivity(intent);
+    }
+
+    public static void releaseImageView(ImageView iv) {
+        if (iv == null) return;
+        Drawable drawable = iv.getDrawable();
+        if (drawable instanceof BitmapDrawable) {
+            BitmapDrawable bitmapDrawable = (BitmapDrawable) drawable;
+            Bitmap bitmap = bitmapDrawable.getBitmap();
+            if (bitmap != null && !bitmap.isRecycled()) {
+                bitmap.recycle();
+            }
+        }
     }
 
 }
