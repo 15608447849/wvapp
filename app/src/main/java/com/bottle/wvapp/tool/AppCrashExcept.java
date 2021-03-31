@@ -3,6 +3,7 @@ package com.bottle.wvapp.tool;
 import android.app.Application;
 
 import com.bottle.wvapp.jsprovider.HttpServerImp;
+import com.bottle.wvapp.jsprovider.NativeServerImp;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -11,6 +12,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 
 import lee.bottle.lib.toolset.log.LLog;
 import lee.bottle.lib.toolset.os.CrashHandler;
@@ -21,71 +24,68 @@ import lee.bottle.lib.toolset.threadpool.IOUtils;
  * email: 793065165@qq.com
  * 应用错误捕获
  */
-public class AppCrashExcept implements CrashHandler.Callback {
+public class AppCrashExcept extends Thread implements CrashHandler.Callback {
+    // 异常文件列表
+    private final BlockingQueue<File> crashFileQueue = new LinkedBlockingQueue<>();
+
     private final Application application;
+
     public AppCrashExcept(Application application) {
         this.application = application;
+        setDaemon(true);
+        start();
     }
+
     @Override
     public void devInfo(final Map<String, String> devInfoMap,final String mapStr) {
-        IOUtils.run(new Runnable() {
-            @Override
-            public void run() {
-                try{
-                    File devInfo = new File(application.getCacheDir(),"dev.info");
-                    if (!devInfo.exists()){
-                        //写入文件
-                        try(OutputStreamWriter writer = new OutputStreamWriter(new FileOutputStream(devInfo), StandardCharsets.UTF_8)){
-                            writer.write(mapStr);
-                        }catch (Exception e){
-                            e.printStackTrace();
-                            return;
-                        }
-                    }
-
-                    String remotePath = "/app/logs/"+devInfoMap.get("型号")+"/";
-                    List<HttpServerImp.UploadFileItem> list = new ArrayList<>();
-                    HttpServerImp.UploadFileItem item = new HttpServerImp.UploadFileItem();
-                    item.remotePath = remotePath;
-                    item.fileName = "dev.info";
-                    item.uri = devInfo.getPath();
-                    item.uploadSuccessDelete = true;
-                    list.add(item);
-                    //获取本地logs文件目录, 发送所有日志到服务器
-                    File dir = new File(LLog.getBuild().getLogFolderPath());
-                    File[] logFiles = dir.listFiles();
-                    if (logFiles==null||logFiles.length==0) return;
-                    for (File logFile : logFiles){
-                        item = new HttpServerImp.UploadFileItem();
-                        item.remotePath = remotePath;
-                        item.fileName = logFile.getName();
-                        item.uri = logFile.getAbsolutePath();
-                        item.uploadSuccessDelete = true;
-                        list.add(item);
-                    }
-                    HttpServerImp.UploadFileItem[] array = new HttpServerImp.UploadFileItem[list.size()];
-                    list.toArray(array);
-                    HttpServerImp.addUpdateFileToQueue(array);
-                }catch (Exception e){
-                    e.printStackTrace();
-                }
-            }
-        });
+        NativeServerImp.bindApplication(application, devInfoMap);
+        //遍历错误文件,加入队列
+        File crashDict = CrashHandler.getCrashDict(application);
+        File[] crashFileArray = crashDict.listFiles();
+        for (File crashFile : crashFileArray){
+            crashFileQueue.offer(crashFile);
+        }
     }
 
     @Override
-    public void crash(final String crashFilePath,final Throwable ex) {
+    public void crash(final File crashFile,final Throwable ex) {
+        ex.printStackTrace();
         IOUtils.run(new Runnable() {
             @Override
             public void run() {
-                LLog.print("报错("+ ex.getMessage() +")日志文件: " + crashFilePath);
-                HttpServerImp.UploadFileItem item = new HttpServerImp.UploadFileItem();
-                item.remotePath = "/app/crash";
-                item.fileName = crashFilePath.substring(crashFilePath.lastIndexOf("/")+1);
-                item.uri = crashFilePath;
-                item.uploadSuccessDelete = true;
-                HttpServerImp.addUpdateFileToQueue(item);
+                StringBuilder s = new StringBuilder();
+                s.append("token").append("=").append(NativeServerImp.getDevToken()).append("\n");
+                s.append("companyID").append("=").append(NativeServerImp.refreshCompanyInfoAndOutput(true)).append("\n");
+                try (FileOutputStream fos = new FileOutputStream(crashFile,true)){
+                    fos.write(s.toString().getBytes());
+                    fos.flush();
+                }catch (Exception ignored){ }
+                // 加入异常文件列表
+                crashFileQueue.offer(crashFile);
             }
         });
     }
+
+
+    @Override
+    public void run() {
+        // 定时检测异常捕获文件,上传
+        while (true){
+            try{
+                File crashFile = crashFileQueue.take();
+                LLog.print("上传错误文件: "+ crashFile);
+
+                HttpServerImp.UploadFileItem item = new HttpServerImp.UploadFileItem();
+                item.uri = crashFile.getCanonicalPath();
+                item.remotePath = "/app/crash";
+                item.fileName = crashFile.getName();
+                item.uploadSuccessDelete = true;
+
+                HttpServerImp.addUpdateFileToQueue(item);
+            }catch (Exception e){
+                e.printStackTrace();
+            }
+        }
+    }
+
 }

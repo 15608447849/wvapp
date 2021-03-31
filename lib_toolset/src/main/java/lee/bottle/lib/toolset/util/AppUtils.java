@@ -24,12 +24,14 @@ import android.os.Looper;
 import android.os.Parcelable;
 import android.provider.ContactsContract;
 import android.telephony.TelephonyManager;
+import android.view.Gravity;
 import android.view.View;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.ImageView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.RequiresApi;
 import androidx.core.content.FileProvider;
 
 import java.io.BufferedOutputStream;
@@ -52,6 +54,7 @@ import java.util.zip.ZipInputStream;
 
 import lee.bottle.lib.toolset.log.LLog;
 
+import static android.Manifest.permission.CALL_PHONE;
 import static android.Manifest.permission.READ_PHONE_STATE;
 import static android.content.Context.TELEPHONY_SERVICE;
 import static android.content.Intent.FLAG_ACTIVITY_NEW_TASK;
@@ -282,11 +285,55 @@ public class AppUtils {
         }
         return version;
     }
+
     //简单信息弹窗
-    public static void toast(@NonNull Context context, @NonNull String message){
+    public static void toastLong(@NonNull Context context, @NonNull String message){
         if (!checkUIThread() ) return;
-        Toast.makeText(context,message, Toast.LENGTH_SHORT).show();
+
+        try {
+            Toast toast = Toast.makeText(context,message, Toast.LENGTH_LONG);
+            if (toast!=null){
+                toast.show();
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
+
+    //简单信息弹窗
+    public static void toastShort(@NonNull Context context, @NonNull String message){
+        if (!checkUIThread() ) return;
+
+        try {
+            Toast toast = Toast.makeText(context,message, Toast.LENGTH_SHORT);
+            if (toast!=null){
+                toast.show();
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    //简单信息弹窗
+    public static void toastCustom(@NonNull Context context, @NonNull String message,int duration,int gravity,View view){
+        if (!checkUIThread() ) return;
+
+        try {
+            Toast toast = Toast.makeText(context,message, Toast.LENGTH_SHORT);
+            if (toast!=null){
+                if (gravity>0){
+                    toast.setGravity(gravity,0,0);
+                }
+                if (view!=null){
+                    toast.setView(view);
+                }
+                toast.show();
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
     //把bitmap 转file
     public static boolean bitmap2File(Bitmap bitmap, File file){
         try {
@@ -440,39 +487,13 @@ public class AppUtils {
         return null;
     }
 
-    /**
-     *  获取设备IMEI
-     * <uses-permission android:name="android.permission.READ_PHONE_STATE"/>
-     */
-    @SuppressLint({"MissingPermission", "HardwareIds"})
-    public static String devOnlyCode(Context context){
-        StringBuilder sb = new StringBuilder();
-
-        sb.append(Build.FINGERPRINT).append(";").
-        append( Arrays.toString(Build.SUPPORTED_ABIS) ).append(";");
-        //物理地址
-        sb.append(devMAC(context)).append(";");
-
-        if (checkPermissionExist(context,READ_PHONE_STATE)){
-            TelephonyManager telephonyMgr = (TelephonyManager)context.getSystemService(TELEPHONY_SERVICE);
-            if (telephonyMgr != null){
-                String deviceID  = telephonyMgr.getDeviceId();
-                if (deviceID!=null){
-                    sb.append(deviceID ).append(";");
-                    String sel = android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O ? Build.getSerial() : Build.SERIAL;
-                    sb.append(sel).append(";");
-                }
-            }
-        }
-        return sb.toString();
-    }
 
 
     /**
      * 拨打电话
      *<uses-permission android:name="android.permission.CALL_PHONE" />
      */
-    public static void callPhoneNo(Activity activity,String phoneNo){
+    public static void callPhoneNo(Activity activity, String phoneNo){
         Intent intent = new Intent();
         intent.setAction(Intent.ACTION_CALL);
         intent.setData(Uri.parse("tel:"+phoneNo));

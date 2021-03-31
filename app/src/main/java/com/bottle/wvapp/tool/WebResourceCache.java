@@ -37,12 +37,14 @@ import static lee.bottle.lib.toolset.util.AppUtils.getBytesByFile;
  */
 public class WebResourceCache extends TimerTask implements JSUtils.WebResourceRequestI {
 
+    private static final long CLEAR_TIME = 3 * 60 * 60 * 1000L;
+
     private LruCache<String,byte[]> resourceMemCache = new LruCache<>(((int)Runtime.getRuntime().maxMemory())/1024/4);
 
     public WebResourceCache() {
         Timer timer = ApplicationAbs.getApplicationObject(Timer.class);
         if (timer==null) return;
-        timer.schedule(this,1000L);
+        timer.schedule(this,1000L, CLEAR_TIME);
     }
 
     @Override
@@ -51,15 +53,14 @@ public class WebResourceCache extends TimerTask implements JSUtils.WebResourceRe
     }
 
     private void clearTimerStart() {
-        LLog.print("缓存资源监控器");
+//        LLog.print("缓存资源监控器 启动");
         try{
             File dir = ApplicationAbs.getApplicationDIR("资源缓存");
             if (dir != null){
                 File[] files = dir.listFiles();
                 for (File file : files){
                     String fn = file.getName();
-
-                    if (System.currentTimeMillis() - file.lastModified() > 7 * 24 * 60 * 60 * 1000L){
+                    if (System.currentTimeMillis() - file.lastModified() > CLEAR_TIME){
                         boolean delSuccess = file.delete();
                         if (!delSuccess){
                             LLog.print("删除缓存资源("+ fn +") 失败");
@@ -114,17 +115,19 @@ public class WebResourceCache extends TimerTask implements JSUtils.WebResourceRe
             if (endingStr.equals("mp3")){
                 mimeType = "audio/mpeg";
             }
-            if (endingStr.equals("js")){
-                mimeType = "application/javascript";
-            }
-            if (endingStr.equals("css")){
-                mimeType = "text/css";
-            }
+
+//            if (endingStr.equals("js")){
+//                mimeType = "application/javascript";
+//            }
+//            if (endingStr.equals("css")){
+//                mimeType = "text/css";
+//            }
 
             if (mimeType == null){
-//                LLog.print("请求加载资源URL: "+ url);
+//                LLog.print("[缓存] 无法缓存URL: "+ url);
                 return null;
             }
+//                LLog.print("[缓存] 允许缓存URL: "+ url);
 
             md5 = StringUtils.strMD5(url);
 

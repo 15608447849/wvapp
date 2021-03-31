@@ -6,22 +6,31 @@ import android.content.SharedPreferences;
 import android.view.View;
 import android.webkit.JavascriptInterface;
 
+import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.net.UnknownHostException;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Queue;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 
 import lee.bottle.lib.toolset.log.LLog;
 import lee.bottle.lib.toolset.threadpool.IOUtils;
+import lee.bottle.lib.toolset.util.AppUtils;
+import lee.bottle.lib.toolset.util.ErrorUtil;
 import lee.bottle.lib.toolset.util.GsonUtils;
 
-import static lee.bottle.lib.toolset.util.ErrorUtil.printExceptInfo;
 import static lee.bottle.lib.toolset.util.StringUtils.getDecodeJSONStr;
 
 /**
  * js / native 通讯接口
  */
 @SuppressLint("JavascriptInterface")
-public class JSInterface implements IJsBridge {
+public class JSInterface extends Thread implements IJsBridge {
 
     public  static  boolean isDebug = false;
 
@@ -43,6 +52,8 @@ public class JSInterface implements IJsBridge {
         this.webView = webView;
         sp = webView.getContext().getSharedPreferences("web_store",Context.MODE_PRIVATE);
         addJavascriptInterface();
+        setDaemon(true);
+        start();
     }
 
     private void addJavascriptInterface() {
@@ -65,7 +76,24 @@ public class JSInterface implements IJsBridge {
         }
         return this;
     }
+
     private final HashMap<String, IJsBridge.JSCallback> jsCallbackMap = new HashMap<>();
+
+    // 错误请求列表
+    private final BlockingQueue<String[]> errorQueue = new LinkedBlockingQueue<>();
+
+    @Override
+    public void run() {
+        while (true){
+            try{
+                String[] reqArr = errorQueue.take();
+                invoke(reqArr[0],reqArr[1],reqArr[2]);
+
+            }catch (Exception e){
+                e.printStackTrace();
+            }
+        }
+    }
 
     /**
      * js -> native
@@ -80,22 +108,51 @@ public class JSInterface implements IJsBridge {
             public void run() {
                 //异步执行
                 Object value ;
+                Throwable targetEx = null;
                 try {
                   value = hImp.invoke(methodName,data);
                 } catch (Exception e) {
-                    Throwable targetEx = e;
+                    targetEx = e;
                     if (e instanceof InvocationTargetException) {
                         targetEx =((InvocationTargetException)e).getTargetException();
                     }
-                    LLog.print("js调用native错误  methodName = "+ methodName +" , data = " +data +"\n"+printExceptInfo(targetEx));
-                    value = "bridge execute error:\t"+ targetEx;
+
+                    HashMap<String,Object> map = new HashMap<>();
+                    map.put("code",-1);
+                    map.put("message","NATIVE ERROR");
+                    map.put("error",targetEx.getMessage());
+                    value = map;
                 }
 
                 if (callback_id == null) return;
 
-
                 final String result  = value == null ? null :
                         value instanceof String ? getDecodeJSONStr(value.toString()) : GsonUtils.javaBeanToJson(value);
+
+                if (targetEx!=null){
+                    if (targetEx.getCause() instanceof IOException){
+                        try {
+                            errorQueue.put(new String[]{methodName,data,callback_id});
+                            return;
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
+                    }else{
+                        LLog.print("js调用native错误"
+                                + "\nmethodName = "+ methodName
+                                + "\ndata = " + data
+                                + "\nresult = "+ result
+                                + "\n"+ ErrorUtil.printExceptInfo(targetEx)
+                        );
+
+                        webView.post(new Runnable() {
+                            @Override
+                            public void run() {
+                                AppUtils.toastShort(webView.getContext(),"网络异常或服务器连接失败");
+                            }
+                        });
+                    }
+                }
 
                 webView.post(new Runnable() {
                     @Override

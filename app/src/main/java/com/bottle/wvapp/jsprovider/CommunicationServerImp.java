@@ -29,7 +29,7 @@ public class CommunicationServerImp extends _PushMessageClientDisp {
             public void run() {
                 try {
                     //刷新用户/ 企业信息
-                    int compid = NativeServerImp.refreshCompanyInfo(true);
+                    int compid = NativeServerImp.refreshCompanyInfoAndOutput(true);
                     LLog.print("公司标识 " + compid + " ,收到服务器推送消息\t" + message);
                     String prop = message.substring(0,message.indexOf(":"));
                     String msg = message.substring(message.indexOf(":")+1);

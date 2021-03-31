@@ -9,8 +9,10 @@ import android.webkit.WebChromeClient;
 import android.webkit.WebView;
 
 import lee.bottle.lib.toolset.log.LLog;
+import lee.bottle.lib.toolset.util.AppUtils;
 import lee.bottle.lib.toolset.util.DialogUtil;
 
+import static android.webkit.ConsoleMessage.MessageLevel.ERROR;
 import static lee.bottle.lib.toolset.web.JSUtils.progressHandler;
 
 /**
@@ -28,16 +30,24 @@ public class SysWebChromeClient extends WebChromeClient {
     //进度状态
     @Override
     public void onProgressChanged(WebView view, int newProgress) {
+//        LLog.print("onProgressChanged "+ view.getUrl() +" 进度: "+ newProgress);
         progressHandler(view.getUrl(),newProgress,false);
     }
 
     @Override
-    public boolean onJsAlert(WebView view, String url, String message,final JsResult result) {
-        DialogUtil.dialogSimple(view.getContext(), message, "确认", new DialogUtil.Action0() {
-            @Override
-            public void onAction0() { result.confirm();
-            }
-        });
+    public boolean onJsAlert(final WebView view, String url, final String message, final JsResult result) {
+
+        if (JSUtils.onAlertI!=null){
+            JSUtils.onAlertI.onJsAlert(view,url,message,result);
+        }else{
+            view.post(new Runnable() {
+                @Override
+                public void run() {
+                    AppUtils.toastLong(view.getContext(),message);
+                    result.confirm();
+                }
+            });
+        }
         return true;
     }
 
@@ -45,13 +55,16 @@ public class SysWebChromeClient extends WebChromeClient {
     public boolean onConsoleMessage(ConsoleMessage consoleMessage) {
         String fileName =  consoleMessage.sourceId();
 
-//        LLog.print(
-//                "浏览器-["+consoleMessage.messageLevel()+"]\n"+consoleMessage.message()
-//                        + (consoleMessage.messageLevel().name().equalsIgnoreCase("error") ?
-//                        "\n" + fileName +":"+consoleMessage.lineNumber():"")
-//        );
+        if (consoleMessage.messageLevel()==ERROR){
+            LLog.print(
+                    "浏览器-["+consoleMessage.messageLevel()+"]\n"+consoleMessage.message()
+                            + (consoleMessage.messageLevel().name().equalsIgnoreCase("error") ?
+                            "\n" + fileName +":"+consoleMessage.lineNumber():"")
+            );
+        }
 
-        //LLog.print("浏览器\t" +fileName+"("+ consoleMessage.lineNumber() +")\n" + consoleMessage.message());
+
+//        LLog.print("浏览器\t" +fileName+"("+ consoleMessage.lineNumber() +")\n" + consoleMessage.message());
 //        if ( consoleMessage.message().contains("JNB ok")){
 //            JSUtils.progressHandler(null,100,true);
 //        }

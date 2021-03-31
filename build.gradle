@@ -12,6 +12,7 @@ buildscript {
 //        maven {
 //            url 'https://download.01.org/crosswalk/releases/crosswalk/android/maven2'
 //        }
+//        mavenCentral()
     }
 
     dependencies {
@@ -33,7 +34,11 @@ allprojects {
 
         google()
         jcenter()
+
 //        mavenCentral()
+
+        maven { url "https://oss.sonatype.org/content/repositories/snapshots" }
+
 //        maven{ url 'https://maven.aliyun.com/repository/public'}
 //        maven { url "https://www.jitpack.io" }
 //        maven { url "https://maven.google.com" }

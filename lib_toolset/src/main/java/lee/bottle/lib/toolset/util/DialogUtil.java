@@ -1,5 +1,6 @@
 package lee.bottle.lib.toolset.util;
 
+import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.DatePickerDialog;
 import android.app.ProgressDialog;
@@ -104,7 +105,14 @@ public class DialogUtil {
         if (token!=0){
             dialog.getWindow().setType(token);
         }
-        dialog.show();
+        if (context instanceof Activity){
+            if (!((Activity) context).isFinishing()){
+                dialog.show();
+            }
+        }else{
+            dialog.show();
+        }
+
         return dialog;
     }
 

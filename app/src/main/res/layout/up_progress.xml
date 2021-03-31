@@ -11,7 +11,8 @@
         android:layout_height="50dp"
         android:layout_gravity="center"
         android:layout_margin="5dp"
-        android:indeterminateDuration="300" />
+        android:indeterminateDuration="300"
+        android:visibility="gone"/>
     <TextView
         android:id="@+id/progress_tv"
         android:layout_width="0dp"

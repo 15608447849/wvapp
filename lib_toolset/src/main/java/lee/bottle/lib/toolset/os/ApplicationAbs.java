@@ -3,8 +3,11 @@ package lee.bottle.lib.toolset.os;
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.Application;
+import android.content.Context;
 import android.content.pm.ActivityInfo;
+import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
 import android.util.Log;
 import android.view.WindowManager;
 
@@ -13,14 +16,23 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 import java.util.Timer;
 
 import lee.bottle.lib.toolset.log.LLog;
 import lee.bottle.lib.toolset.threadpool.IOUtils;
 import lee.bottle.lib.toolset.util.AppUtils;
 import lee.bottle.lib.toolset.util.FileUtils;
+import lee.bottle.lib.toolset.util.ObjectRefUtil;
 import lee.bottle.lib.toolset.util.TimeUtils;
+
+import static android.Manifest.permission.CALL_PHONE;
+import static android.Manifest.permission.WRITE_EXTERNAL_STORAGE;
+import static lee.bottle.lib.toolset.util.AppUtils.checkPermissionExist;
 
 
 /**
@@ -29,29 +41,64 @@ import lee.bottle.lib.toolset.util.TimeUtils;
  */
 public abstract class ApplicationAbs extends Application implements Application.ActivityLifecycleCallbacks {
 
-    private static HashMap<Class<?>,Object> applicationMap = new HashMap<>();
 
-    public static void putApplicationObject(Object install){
-        applicationMap.put(install.getClass(),install);
-//        LLog.print(install.getClass() + " 放入全局应用: "+ install);
+    // 进程PID存储文件
+    private static final String PID_FILE_NAME = "pid_recode_catalog";
+    // 应用首次启动时间
+    private static final long startTime = System.currentTimeMillis();
+    // 应用全局对象
+    private final static HashMap<Class<?>,Object> applicationMap = new HashMap<>();
+    // activity启动的列表
+    private static final Map<String,List<Activity>> activityMaps = new HashMap<>();
+    // 应用文件存储目录
+    private static File applicationDir = null;
+    /** 是否注册activity声明周期的回调管理 */
+    private boolean isRegisterActivityLifecycleCallbacks = true;
+    // 是否打印activity生命周期
+    private boolean isPrintLifeLog = false;
 
+    /* 获取应用运行时长 */
+    public static String runtimeStr(){
+        return TimeUtils.formatDuring(System.currentTimeMillis() - startTime);
     }
 
+    /* 设置应用全局对象 */
+    public static void putApplicationObject(Object install){
+        applicationMap.put(install.getClass(),install);
+//        LLog.print(install.getClass() + " [加入] 全局对象: "+ install);
+    }
+
+    /* 设置应用全局对象 */
+    public static void putApplicationObject(Class<?> classKey,Object install){
+        try {
+            install.getClass().asSubclass(classKey);
+            applicationMap.put(classKey,install);
+//            LLog.print( classKey + " [加入] 全局对象: "+ install);
+        } catch (Exception e) {
+            LLog.print(install.getClass() + " [加入] 全局对象失败: "+ e);
+        }
+    }
+
+    /* 获取应用全局对象 */
     public static <Target> Target getApplicationObject(Class<? extends Target> classKey){
         Object install = applicationMap.get(classKey);
-//        LLog.print(classKey + " 获取全局应用: "+ install);
+//        LLog.print(classKey + " [获取] 全局对象 "+ install);
         if (install == null) return null;
         return  (Target)install;
     }
 
+    /* 删除应用全局对象*/
     public static void delApplicationObject(Class<?> classKey){
-        applicationMap.remove(classKey);
+        Object install = applicationMap.remove(classKey);
+//        LLog.print( classKey + " [移除] 全局对象 "+ install);
     }
 
-    private static File applicationDir = null;
 
-    public static void setApplicationDir(final File dir) {
+    /* 设置应用文件存储目录 */
+    private static void setApplicationDir(final File dir) {
+
         if (ApplicationAbs.applicationDir != null) return;
+
         try {
             if (!dir.exists() && !dir.mkdirs()) throw new IllegalArgumentException("无法创建");
             File checkFile = new File(dir,"check");
@@ -63,30 +110,18 @@ public abstract class ApplicationAbs extends Application implements Application.
            LLog.print("设置应用目录("+dir+")失败,错误 "+ e);
            return;
         }
-        IOUtils.run(new Runnable() {
-            @Override
-            public void run() {
-                //删除时间大于7天的数据
-                FileUtils.clearFiles(dir, 7 * 24 * 60 * 60 * 1000L);
-            }
-        });
 
         ApplicationAbs.applicationDir = dir;
-        LLog.print("设置成功应用目录: "+  ApplicationAbs.applicationDir );
+//        LLog.print("成功设置应用目录: "+  ApplicationAbs.applicationDir );
     }
 
-    private static long startTime = System.currentTimeMillis();
-
-    public static String runtimeStr(){
-        return TimeUtils.formatDuring(System.currentTimeMillis() - startTime);
-    }
-
+    /* 获取应用文件存储目录 */
     public static File getApplicationDIR(String subDic){
         try {
             if (applicationDir == null){
                throw new IllegalArgumentException("未设置应用目录");
             }
-            File rootDir = null;
+            File rootDir;
             if (subDic==null){
                 rootDir = applicationDir;
             }else{
@@ -100,19 +135,58 @@ public abstract class ApplicationAbs extends Application implements Application.
             }
             return rootDir;
         } catch (Exception e) {
-            //LLog.print("获取应用目录失败,错误 "+ e);
+            LLog.print("获取应用目录失败: "+ e);
         }
         return null;
     }
 
-    /** 是否注册activity声明周期的回调管理 */
-    private boolean isRegisterActivityLifecycleCallbacks = true;
+    private synchronized static void addActivityToMap(Activity activity){
+        String classPath = activity.getClass().getName();
+        List<Activity> list = activityMaps.get(classPath);
+        if (list == null){
+            list = new ArrayList<>();
+            activityMaps.put(classPath,list);
+        }
+        list.add(activity);
+//        LLog.print("[添加Activity]  " + activity +" 当前数量: " + list.size());
+    }
+
+    private synchronized static void removeActivityToMap(Activity activity){
+        String classPath = activity.getClass().getName();
+        List<Activity> list = activityMaps.get(classPath);
+        if (list!=null){
+            Iterator<Activity> iterator = list.iterator();
+            while (iterator.hasNext()){
+                Activity next = iterator.next();
+                if (next.equals(activity)){
+                    iterator.remove();
+//                    LLog.print("[移除Activity]  " + activity);
+                }
+            }
+        }
+    }
+
+    public static void setApplicationDir_OS_M(Context context, String dictName) {
+        File dict;
+
+        if (android.os.Build.VERSION.SDK_INT < Build.VERSION_CODES.M || checkPermissionExist(context,WRITE_EXTERNAL_STORAGE)){
+            dict = Environment.getExternalStorageDirectory();
+        }else{
+            dict = context.getFilesDir();
+        }
+
+        if (dictName!=null && dictName.length()>0){
+            dict = new File(dict, dictName);
+        }
+
+        ApplicationAbs.applicationDir = null;
+        ApplicationAbs.setApplicationDir(dict);
+    }
+
 
     protected void setRegisterActivityLifecycleCallbacks(boolean flag) {
         this.isRegisterActivityLifecycleCallbacks =  flag;
     }
-
-    private boolean isPrintLifeLog = false;
 
     public void setPrintLifeLog(boolean flag) {
         isPrintLifeLog = flag;
@@ -128,6 +202,7 @@ public abstract class ApplicationAbs extends Application implements Application.
         CrashHandler.getInstance().init(getApplicationContext());
         String progressName = AppUtils.getCurrentProcessName(getApplicationContext());
         onCreateByAllProgress(progressName);
+
         if ( isRegisterActivityLifecycleCallbacks ) registerActivityLifecycleCallbacks(this);//注册 activity 生命周期管理
         if (AppUtils.checkCurrentIsMainProgress(getApplicationContext(),progressName)){
             onCreateByApplicationMainProgress(progressName);
@@ -147,47 +222,69 @@ public abstract class ApplicationAbs extends Application implements Application.
                 .setDateFormat(TimeUtils.getSimpleDateFormat("[MM/dd HH:mm]"))
                 .setLogFileName(processName+"_"+ TimeUtils.formatUTCByCurrent("MMdd"))
                 .setWriteFile(true);
-                //存储应用进程号
+                // 存储应用进程号
                 storeProcessPidToFile(processName,android.os.Process.myPid());
     }
 
+    /* 记录所有进程的PID */
     private void storeProcessPidToFile(String processName, int pid) {
         try {
-            File dirs = new File(getCacheDir().getPath()+"/pids");
-            if (!dirs.exists()) dirs.mkdirs();
-            File file  = new File(dirs,processName);
-            if (!file.exists()) file.createNewFile();
-            FileWriter writer = new FileWriter(file);
-            writer.write(pid+"\n");
-            writer.flush();
-            writer.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
+            File dirs = new File(getCacheDir(),PID_FILE_NAME);
 
-    public void killAllProcess(boolean containSelf){
-        try {
-            File dirs = new File(getCacheDir().getPath()+"/pids");
-            if (dirs.exists()) {
-
-                for (File file : dirs.listFiles()){
-                    BufferedReader reader = new BufferedReader(new FileReader(file));
-                    String sPid = reader.readLine();
-                    reader.close();
-                    file.delete();
-                    int pid = Integer.parseInt(sPid);
-                    if (pid == android.os.Process.myPid()) continue;
-                    android.os.Process.killProcess(pid);
-
+            if (!dirs.exists()) {
+                if (!dirs.mkdirs()){
+                    return;
                 }
             }
-           if (containSelf) android.os.Process.killProcess(android.os.Process.myPid());
-        } catch (IOException e) {
-            e.printStackTrace();
+
+            File file  = new File(dirs,processName);
+            if (!file.exists()) {
+                if (!file.createNewFile()){
+                    return;
+                }
+            }
+
+            try(FileWriter writer = new FileWriter(file)){
+                writer.write(pid + "\n");
+                writer.flush();
+            }
+
+
+        } catch (Exception e) {
+            LLog.print("记录进程PID失败: "+ e);
         }
     }
 
+    /* 杀死当前存在的所有进程 , true-包括自己 */
+    public void killAllProcess(boolean containSelf){
+        try {
+
+            File dirs = new File(getCacheDir(),PID_FILE_NAME);
+
+            if (dirs.exists()) {
+                for (File file : dirs.listFiles()){
+                    int pid = 0;
+                    try(BufferedReader reader = new BufferedReader(new FileReader(file))){
+                        pid = Integer.parseInt(reader.readLine());
+                    }catch (IOException e){
+                      LLog.print("根据PID文件杀死进程,读取文件失败: "+ e);
+                    }
+
+                     if (!file.delete()){
+                         LLog.print("根据PID文件杀死进程,删除文件失败,文件路径: "+ file);
+                     }
+
+                    if (pid==0 || pid == android.os.Process.myPid()) continue;
+                    android.os.Process.killProcess(pid);
+                }
+            }
+
+           if (containSelf) android.os.Process.killProcess(android.os.Process.myPid());
+
+        } catch (Exception e) {
+            LLog.print("根据PID文件杀死进程失败: "+ e);
+        }
+    }
 
     /**
      * 主包名进程 初始化创建
@@ -207,6 +304,8 @@ public abstract class ApplicationAbs extends Application implements Application.
     @SuppressLint("SourceLockedOrientationActivity")
     @Override
     public void onActivityCreated(Activity activity, Bundle savedInstanceState) {
+        addActivityToMap(activity);
+
         if (isPrintLifeLog) LLog.format("---%s :: %s",activity,"onCreated");
         //竖屏锁定
         activity.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
@@ -249,6 +348,8 @@ public abstract class ApplicationAbs extends Application implements Application.
 
     @Override
     public void onActivityDestroyed(Activity activity) {
+        removeActivityToMap(activity);
         if (isPrintLifeLog) LLog.format("---%s :: %s",activity,"onDestroyed");
     }
+
 }

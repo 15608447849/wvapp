@@ -47,6 +47,7 @@ public abstract class IWebViewInit<V extends View> {
     public void setCurrentBinder(Object binder){
         activitySoftReference = new SoftReference<>(binder);
     }
+
     // 获取当前绑定者
     public Object getCurrentBinder(){
         return activitySoftReference.get();
@@ -65,6 +66,7 @@ public abstract class IWebViewInit<V extends View> {
             ((ViewGroup)parent).removeView(webView);
         }
     }
+
 
     // 初始化
     protected abstract void initSetting(V webView);
@@ -90,5 +92,19 @@ public abstract class IWebViewInit<V extends View> {
             LLog.print("加载内核失败, 实现类: "+ coreClassTypeName+", 原因: "+e);
         }
         return null;
+    }
+
+
+    public void bind(Object binder,ViewGroup viewGroup,DownloadListener listener){
+        this.setCurrentBinder(binder);
+        this.setDownloadListener(listener);
+        this.bindDisplayLayer(viewGroup);
+//        LLog.print(this+" 绑定 "+ binder);
+    }
+    public void unbind(){
+        this.setCurrentBinder(null);
+        this.setDownloadListener(null);
+        this.unbindDisplayLayer();
+//        LLog.print(this+" 解绑 ");
     }
 }

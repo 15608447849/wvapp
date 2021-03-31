@@ -30,6 +30,48 @@ import lee.bottle.lib.toolset.http.HttpRequest;
 import lee.bottle.lib.toolset.jsbridge.JSUtils;
 import lee.bottle.lib.toolset.log.LLog;
 import lee.bottle.lib.toolset.os.ApplicationAbs;
+//            Manifest.permission.RECEIVE_SMS, //接收短信
+//            Manifest.permission.READ_SMS // 读取短信
+//短信广播接收者
+private static BroadcastReceiver receiver = new BroadcastReceiver() {
+@Override
+public void onReceive(Context context, Intent intent) {
+        Bundle bundle = intent.getExtras();//通过getExtras()方法获取短信内容
+        if (bundle != null) {
+        Object[] pdus = (Object[]) bundle.get("pdus");//根据pdus关键字获取短信字节数组，数组内的每个元素都是一条短信
+        if (pdus!=null){
+        String format = intent.getStringExtra("format");
+        for (Object object : pdus) {
+
+        SmsMessage message;//将字节数组转化为Message对象
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+        message = SmsMessage.createFromPdu((byte[])object,format);
+        }else{
+        message = SmsMessage.createFromPdu((byte[])object);
+        }
+        String sender = message.getOriginatingAddress();//获取短信手机号
+        String body = message.getMessageBody();
+        LLog.print("SMS广播接收:" + sender+">> 短信内容: "+ body);
+        NativeServerImp.sendSmsCodeToJS(body);
+        }
+        }
+
+        }
+        }
+        };
+
+
+
+private void bindSMSBroad() {
+        IntentFilter filter = new IntentFilter();
+        filter.addAction("android.provider.Telephony.SMS_RECEIVED" );
+        registerReceiver(receiver,filter);//注册广播接收器
+        }
+
+private void unbindSMSBroad() {
+        unregisterReceiver(receiver);//解绑广播接收器
+        }
+
 
 // 强制登出提示框
 //        final BaseActivity activity = activityRef.get();
@@ -316,3 +358,55 @@ public class LaunchPage{
     }
 
 }
+
+
+//  错误捕获类实现中方法
+
+  /*
+        IOUtils.run(new Runnable() {
+            @Override
+            public void run() {
+                try{
+                    File devInfo = new File(application.getCacheDir(),"dev.info");
+                    if (!devInfo.exists()){
+                        //写入文件
+                        try(OutputStreamWriter writer = new OutputStreamWriter(
+                                new FileOutputStream(devInfo),
+                                StandardCharsets.UTF_8)){
+                            writer.write(mapStr);
+                        }catch (Exception e){
+                            e.printStackTrace();
+                            return;
+                        }
+                    }
+
+                    String remotePath = "/app/logs/"+devInfoMap.get("型号")+"/";
+                    List<HttpServerImp.UploadFileItem> list = new ArrayList<>();
+                    HttpServerImp.UploadFileItem item = new HttpServerImp.UploadFileItem();
+                    item.remotePath = remotePath;
+                    item.fileName = "dev.info";
+                    item.uri = devInfo.getPath();
+                    item.uploadSuccessDelete = true;
+                    list.add(item);
+
+                    //获取本地logs文件目录, 发送所有日志到服务器
+                    File dir = new File(LLog.getBuild().getLogFolderPath());
+                    File[] logFiles = dir.listFiles();
+                    if (logFiles==null||logFiles.length==0) return;
+                    for (File logFile : logFiles){
+                        item = new HttpServerImp.UploadFileItem();
+                        item.remotePath = remotePath;
+                        item.fileName = logFile.getName();
+                        item.uri = logFile.getAbsolutePath();
+                        item.uploadSuccessDelete = true;
+                        list.add(item);
+                    }
+                    HttpServerImp.UploadFileItem[] array = new HttpServerImp.UploadFileItem[list.size()];
+                    list.toArray(array);
+                    HttpServerImp.addUpdateFileToQueue(array);
+                }catch (Exception e){
+                    e.printStackTrace();
+                }
+            }
+        });
+        */

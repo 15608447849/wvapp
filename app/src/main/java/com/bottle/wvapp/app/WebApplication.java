@@ -22,16 +22,19 @@ public class WebApplication extends ApplicationAbs  {
 
     @Override
     protected void onCreateByApplicationMainProgress(String processName) {
+        // 设置全局定时器
+        ApplicationAbs.putApplicationObject(new Timer());
+        // 设置全局应用目录
+        ApplicationAbs.setApplicationDir_OS_M(this,"1k.一块医药");
+        // 设置全局异常捕获
         setCrashCallback(new AppCrashExcept(this));
-        ApplicationAbs.setApplicationDir(new File(Environment.getExternalStorageDirectory(), "1k.一块医药"));
-        NativeServerImp.bindApplication(this);
-        IOUtils.run(new Runnable() {
-            @Override
-            public void run() {
-                NativeServerImp.launch();
-            }
-        });
-    }
+        // 设置全局webView
+        ApplicationAbs.putApplicationObject(
+                IWebViewInit.class,IWebViewInit.createIWebView("lee.bottle.lib.toolset.web.SysCore",
+                this, NativeServerImp.iBridgeImp));
+
+
+}
 
     @Override
     protected void onCreateByAllProgress(String processName) {

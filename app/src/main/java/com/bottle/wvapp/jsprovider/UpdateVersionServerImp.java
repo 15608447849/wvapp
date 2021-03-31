@@ -49,12 +49,12 @@ public class UpdateVersionServerImp extends HttpUtil.CallbackAbs implements Runn
     }
 
     private static void tryToast(final String message) {
-            final Activity activity = NativeServerImp.activityRef.get();
+            final Activity activity = NativeServerImp.getBaseActivity();
             if (activity!=null){
                 activity.runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-                        AppUtils.toast(activity,message);
+                        AppUtils.toastShort(activity,message);
                     }
                 });
             }
@@ -118,7 +118,7 @@ public class UpdateVersionServerImp extends HttpUtil.CallbackAbs implements Runn
         }
 
         //打开安装对话框
-        final BaseActivity activity = NativeServerImp.activityRef.get();
+        final BaseActivity activity = NativeServerImp.getBaseActivity();
         if (activity == null) return;
         boolean isChange = apk.setLastModified(System.currentTimeMillis());
         if (!isChange){
@@ -188,10 +188,11 @@ public class UpdateVersionServerImp extends HttpUtil.CallbackAbs implements Runn
         //打开进度指示条的通知栏
         int current = (int)( (progress * 100f) / total );
         if (notification!=null) notification.setProgress(100, current);
-        if (NativeServerImp.activityRef.get()!=null && current>0){
-            progressBarCircleDialogUpdate(NativeServerImp.activityRef.get(),"程序更新中\n当前进度:"+current+"/"+100);
+        Activity activity = NativeServerImp.getBaseActivity();
+        if (activity!=null && current>0){
+            progressBarCircleDialogUpdate(activity,"程序更新中\n当前进度:"+current+"/"+100);
             if (current == 100){
-                progressBarCircleDialogStop(NativeServerImp.activityRef.get());
+                progressBarCircleDialogStop(activity);
             }
         }
     }

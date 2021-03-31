@@ -4,11 +4,14 @@ import android.content.Intent;
 import android.content.res.Configuration;
 import android.content.res.Resources;
 import android.os.Build;
+import android.os.Bundle;
 import android.os.Handler;
+import android.os.PersistableBundle;
 import android.view.ViewGroup;
 import android.webkit.DownloadListener;
 import android.widget.Toast;
 
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.bottle.wvapp.jsprovider.NativeServerImp;
@@ -34,18 +37,25 @@ public class BaseActivity extends AppCompatActivity {
     protected void loadWebMainPage(String webMainUrl, ViewGroup viewGroup, DownloadListener listener) {
         //加载页面
         if (android.os.Build.VERSION.SDK_INT < Build.VERSION_CODES.M){
-            AppUtils.toast(this,"抱歉,应用无法兼容ANDROID 6.0以下版本");
+            AppUtils.toastLong(this,"应用暂不支持 Android 6.0 以下版本");
             return;
         }
 
-        if (iWebViewInit == null){
-            iWebViewInit = IWebViewInit.createIWebView("lee.bottle.lib.toolset.web.SysCore", this,  NativeServerImp.iBridgeImp);
+        //尝试从application中获取webview
+        iWebViewInit = ApplicationAbs.getApplicationObject(IWebViewInit.class);
+
+        /*if (iWebViewInit == null){
+            iWebViewInit = IWebViewInit.createIWebView("lee.bottle.lib.toolset.web.SysCore",this,NativeServerImp.iBridgeImp);
             if (iWebViewInit!=null){
-                iWebViewInit.setCurrentBinder(this);
-                iWebViewInit.bindDisplayLayer(viewGroup);
+                ApplicationAbs.putApplicationObject(IWebViewInit.class,iWebViewInit);
             }
+        }*/
+
+        if (iWebViewInit == null) {
+            throw new RuntimeException("没有可用的WebView实例");
         }
-        if (iWebViewInit!=null) iWebViewInit.setDownloadListener(listener);
+
+        iWebViewInit.bind(this,viewGroup,listener);
         this.webMainUrl = webMainUrl;
         openWebPage(this.webMainUrl);
     }
@@ -56,9 +66,9 @@ public class BaseActivity extends AppCompatActivity {
 
     public void openWebPage(String url){
         if (iWebViewInit!=null){
-            LLog.print("打开链接: "+ url);
             clearWeb(true);
             iWebViewInit.getProxy().loadUrl(url);
+            LLog.print("打开链接: "+ url);
         }
     }
 
@@ -72,6 +82,8 @@ public class BaseActivity extends AppCompatActivity {
         setIntent(intent);
 
     }
+
+    private boolean isExit;
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
@@ -106,18 +118,35 @@ public class BaseActivity extends AppCompatActivity {
             }
 
             mHandler.removeCallbacks(resetBack);
-
+            isExit = true;
             super.onBackPressed();
         }
     }
+
+    @Override
+    protected void onCreate(@Nullable Bundle savedInstanceState) {
+        NativeServerImp.bindActivity(this);
+        super.onCreate(savedInstanceState);
+    }
+
     @Override
     protected void onDestroy() {
-        clearWeb(true);
+        NativeServerImp.unbindActivity();
         if (iWebViewInit!=null){
-            iWebViewInit.unbindDisplayLayer();
+            iWebViewInit.unbind();
+
             iWebViewInit = null;
         }
         super.onDestroy();
+    }
+
+    @Override
+    public void finish() {
+        if (isExit){
+            super.finish();
+        }else{
+            moveTaskToBack(true);
+        }
     }
 
     // 解决系统改变字体大小的时候导致的界面布局混乱的问题

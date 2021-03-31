@@ -4,73 +4,70 @@
     xmlns:tools="http://schemas.android.com/tools"
     package="com.bottle.wvapp">
 
-    <dist:module dist:instant="true" />
-    <!--网络连接-->
-    <uses-permission android:name="android.permission.INTERNET"/>
-    <!--网络状态查看-->
-    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
-    <!--访问无线状态权限-->
-    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
-
-    <!--允许程序设置内置sd卡的写权限-->
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
-    <!--挂载SD卡-->
-    <!--<uses-permission android:name="android.permission.MOUNT_UNMOUNT_FILESYSTEMS" />-->
-    <!--读取文件-->
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
-    <!--读取通讯录-->
-    <!--<uses-permission android:name="android.permission.READ_CONTACTS"/>-->
-    <!--获取手机状态-->
-    <uses-permission android:name="android.permission.READ_PHONE_STATE"/>
-    <!--获取手机设置-->
-    <uses-permission android:name="android.permission.READ_SETTINGS" />
-    <!--写入手机设置-->
-    <!--<uses-permission android:name="android.permission.WRITE_SETTINGS" />-->
-    <!--拨号-->
-    <uses-permission android:name="android.permission.CALL_PHONE" />
-    <!--相机-->
-    <uses-permission android:name="android.permission.CAMERA" />
-    <!--震动 -->
-    <uses-permission android:name="android.permission.VIBRATE" />
-    <!--请求安装包-->
-    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES"/>
-    <!--读取短信权限-->
+    <dist:module dist:instant="true" /> <!-- 网络连接 -->
+    <uses-permission android:name="android.permission.INTERNET" /> <!-- 网络状态查看 -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" /> <!-- 访问无线状态权限 -->
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" /> <!-- 允许程序设置内置sd卡的写权限 -->
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" /> <!-- 挂载SD卡 -->
+    <!-- <uses-permission android:name="android.permission.MOUNT_UNMOUNT_FILESYSTEMS" /> -->
+    <!-- 读取文件 -->
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" /> <!-- 读取通讯录 -->
+    <!-- <uses-permission android:name="android.permission.READ_CONTACTS"/> -->
+    <!-- 获取手机状态 -->
+    <uses-permission android:name="android.permission.READ_PHONE_STATE" /> <!-- 获取手机设置 -->
+    <uses-permission android:name="android.permission.READ_SETTINGS" /> <!-- 写入手机设置 -->
+    <!-- <uses-permission android:name="android.permission.WRITE_SETTINGS" /> -->
+    <!-- 拨号 -->
+    <uses-permission android:name="android.permission.CALL_PHONE" /> <!-- 相机 -->
+    <uses-permission android:name="android.permission.CAMERA" /> <!-- 震动 -->
+    <uses-permission android:name="android.permission.VIBRATE" /> <!-- 请求安装包 -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" /> <!-- 读取短信权限 -->
     <uses-permission android:name="android.permission.RECEIVE_SMS" />
     <uses-permission android:name="android.permission.READ_SMS" />
 
+
+
     <application
-        android:name="com.bottle.wvapp.app.WebApplication"
+        android:name=".app.WebApplication"
         android:allowBackup="true"
-        android:icon="@mipmap/ic_launcher"
+        android:hardwareAccelerated="true"
+        android:icon="${app_icon}"
         android:label="@string/app_name"
-        android:roundIcon="@mipmap/ic_launcher"
+        android:roundIcon="${app_icon}"
         android:supportsRtl="true"
         android:theme="@style/AppTheme"
         android:usesCleartextTraffic="true"
-        android:hardwareAccelerated="true"
-        tools:targetApi="m">
+        tools:targetApi="m"
+        android:requestLegacyExternalStorage="true">
 
-        <uses-library android:name="org.apache.http.legacy" android:required="false" />
+        <uses-library
+            android:name="org.apache.http.legacy"
+            android:required="false" />
 
-        <!--主服务-->
+
+        <!-- 启动 -->
         <activity
-            android:name="com.bottle.wvapp.activitys.NativeActivity"
-            android:launchMode="singleInstance"
+            android:name=".activitys.NativeActivity"
             android:configChanges="orientation|keyboardHidden"
-            >
+            android:launchMode="singleInstance">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
+
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+
         </activity>
 
-        <!--微信支付-->
+        <!-- 微信支付 -->
         <activity
             android:name=".wxapi.WXPayEntryActivity"
             android:exported="true"
-            android:launchMode="singleTop"/>
+            android:launchMode="singleTop" />
 
-        <!--适配android 7.0-->
+        <!-- 页面错误 -->
+        <activity android:name=".activitys.ErrorActivity" android:launchMode="singleInstance" />
+
+        <!-- 适配android 7.0 -->
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"
@@ -81,7 +78,5 @@
                 android:resource="@xml/file_paths" />
         </provider>
     </application>
-
-
 
 </manifest>

@@ -23,6 +23,7 @@ import androidx.annotation.Nullable;
 import lee.bottle.lib.toolset.log.LLog;
 import lee.bottle.lib.toolset.util.AppUtils;
 
+import static lee.bottle.lib.toolset.web.JSUtils.loadErrorI;
 import static lee.bottle.lib.toolset.web.JSUtils.progressHandler;
 
 /**
@@ -32,6 +33,8 @@ import static lee.bottle.lib.toolset.web.JSUtils.progressHandler;
 public class SysWebViewClient extends WebViewClient {
 
     private SysCore core;
+
+    private int errorCount = 0;
 
     SysWebViewClient(lee.bottle.lib.toolset.web.SysCore sysCore) {
         core = sysCore;
@@ -44,7 +47,7 @@ public class SysWebViewClient extends WebViewClient {
      */
     @Override
     public boolean shouldOverrideUrlLoading(WebView view, String url) {
-        LLog.print("shouldOverrideUrlLoading\n\t"+url);
+//        LLog.print("shouldOverrideUrlLoading\n\t"+url);
         view.loadUrl(url);
         return true;
     }
@@ -80,22 +83,38 @@ public class SysWebViewClient extends WebViewClient {
         super.onReceivedHttpError(webView, request, errorResponse);
     }
 
+
+
+
     /** 访问地址错误回调 */
     @Override
     public void onReceivedError(WebView webView, WebResourceRequest webResourceRequest, WebResourceError webResourceError) {
+
+        errorCount++;
+
         Uri url = webResourceRequest.getUrl();
+
         if (url==null || url.getHost()==null || url.getHost().contains("localhost")) return;
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            LLog.print("页面加载错误: " + webResourceRequest.getUrl()
-                    + "\n\r" + webResourceRequest.getRequestHeaders()
-                    + "\n\r"+webResourceError.getDescription());
+
+            /*LLog.print("( " + errorCount + " ) 页面加载错误"
+                    + "\n请求URL:\t" + webResourceRequest.getUrl()
+                    + "\n访问URL:\t" + webView.getUrl()
+                    + "\n访问原始URL:\t" + webView.getOriginalUrl()
+                    //+ "\n请求头:\r" + webResourceRequest.getRequestHeaders()
+                    + "\n错误码:\r"+webResourceError.getErrorCode()+" "+webResourceError.getDescription()
+                    + "\n错误说明:\r"+JSUtils.webViewErrorCodeConvertString(webResourceError.getErrorCode())
+            );*/
+
+            //AppUtils.toast(webView.getContext(),JSUtils.webViewErrorCodeConvertString(webResourceError.getErrorCode()));
         }
-        if (!AppUtils.isNetworkAvailable(webView.getContext())){
-            // 加载错误页面
-            AppUtils.toast(webView.getContext(),"网络连接不可用");
+
+        if (loadErrorI!=null){
+            loadErrorI.onReceivedError(webView,webResourceRequest,webResourceError,errorCount);
         }
-        //super.onReceivedError(webView, webResourceRequest, webResourceError);
+
+        super.onReceivedError(webView, webResourceRequest, webResourceError);
     }
 
     /** 如果浏览器需要重新发送POST请求，可以通过这个时机来处理。默认是不重新发送数据 */
@@ -151,7 +170,7 @@ public class SysWebViewClient extends WebViewClient {
     /** 在页面加载开始时调用*/
     @Override
     public void onPageStarted(WebView webView, String url, Bitmap favicon) {
-//        LLog.print("onPageStarted "+ url);
+//        LLog.print(this+ " onPageStarted "+ url);
 //        webView.getSettings().setBlockNetworkImage(true);
         progressHandler(url,0,false);
         super.onPageStarted(webView, url, favicon);
@@ -162,6 +181,7 @@ public class SysWebViewClient extends WebViewClient {
     public void onPageFinished(WebView webView, String url) {
 //        LLog.print("onPageFinished "+ url);
 //        webView.getSettings().setBlockNetworkImage(false);
+
         progressHandler(url,100,false);
         super.onPageFinished(webView, url);
     }
@@ -177,6 +197,7 @@ public class SysWebViewClient extends WebViewClient {
     public void onPageCommitVisible(WebView view, String url) {
         super.onPageCommitVisible(view, url);
     }
+
     /** 通知主机应用程序处理SSL客户端证书请求。如果需要，主机应用程序负责显示UI并提供密钥。有三种方式来响应：proceed(), cancel()或ignore()。WebVIEW将调用响应存储在内存中（对于应用程序的生命周期）如果proceed() 或 cancel()被调用并且个对同样的主机：端口不会再次调用onReceivedClientCertRequest()。如果调用ignore()，WebVIEW不会存储响应。要注意多层chromium网络栈可能会缓存相应，所以最好的行为就是忽略（ignore）。这个方法在UI线程上被调用。在回调期间，连接被挂起。*/
     @Override
     public void onReceivedClientCertRequest(WebView view, ClientCertRequest request) {

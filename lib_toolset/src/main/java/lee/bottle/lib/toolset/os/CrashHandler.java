@@ -16,6 +16,8 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+
+import lee.bottle.lib.toolset.log.LLog;
 import lee.bottle.lib.toolset.util.AppUtils;
 import lee.bottle.lib.toolset.util.ErrorUtil;
 import lee.bottle.lib.toolset.util.TimeUtils;
@@ -53,6 +55,14 @@ public class CrashHandler implements Thread.UncaughtExceptionHandler {
     //用来存储设备信息和异常信息
     private final Map<String, String> devInfoMap = new HashMap<>();
 
+    public static File getCrashDict(Context context){
+        File dict = new File(context.getFilesDir(),"crash");
+        if (!dict.exists()){
+            dict.mkdirs();
+        }
+        return dict;
+    }
+
     /**
      * 初始化
      *
@@ -87,14 +97,17 @@ public class CrashHandler implements Thread.UncaughtExceptionHandler {
         } catch (PackageManager.NameNotFoundException ignored) {
             devInfoMap.put("应用信息", "获取应用信息失败");
         }
+
         devInfoMap.put("系统生厂商", Build.BRAND);
         devInfoMap.put("硬件制造商", Build.MANUFACTURER);
         devInfoMap.put("型号", Build.MODEL);
         devInfoMap.put("cpu", Arrays.toString(Build.SUPPORTED_ABIS));
         devInfoMap.put("指纹", Build.FINGERPRINT);
+
         devInfoMap.put("序列号", Build.SERIAL);
 
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O){
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O
+                && android.os.Build.VERSION.SDK_INT<= Build.VERSION_CODES.P){
             int hasPermission = mContext.checkSelfPermission(READ_PHONE_STATE);
             //没有授权
              if (hasPermission == PackageManager.PERMISSION_GRANTED){
@@ -129,23 +142,30 @@ public class CrashHandler implements Thread.UncaughtExceptionHandler {
         if (ex == null) return false;
         Context mContext = contextRef.get();
         if (mContext == null) return false;
-        StringBuffer sb = printDevInfo();
-        sb.append(ErrorUtil.printExceptInfo(ex));
+        long timeStamp = new Date().getTime();
+
+        StringBuilder sb = new StringBuilder();
+
+        sb.append(timeStamp).append("\n");// 错误时间
+        sb.append(printDevInfo()).append("\n\n"); // 设备信息
+        sb.append(ErrorUtil.printExceptInfo(ex)).append("\n");// 错误信息
 
         try {
             //保存文件
             String progressName = AppUtils.getCurrentProcessName(mContext);
-            String fileName = TimeUtils.formatUTC(new Date().getTime(),"yyyy_MM_dd_HH_mm_ss") + ".log";
-            String filePath = mContext.getFilesDir()+File.separator+"crash"+File.separator+progressName;
-            File dirFile = new File(filePath);
-            if (!dirFile.exists()) dirFile.mkdirs();
-            String fpStr = dirFile.getCanonicalFile()+File.separator+fileName;
+            String fileName = TimeUtils.formatUTC(timeStamp,"yyyy_MM_dd_HH_mm_ss_SSS")+"_" + progressName + ".log";
+
+            File crashFile = new File(getCrashDict(mContext),fileName);
+
             try(OutputStreamWriter out =
-                        new OutputStreamWriter(new FileOutputStream(fpStr), StandardCharsets.UTF_8)){
+                        new OutputStreamWriter(new FileOutputStream(crashFile), StandardCharsets.UTF_8)){
                 out.write(sb.toString());
+                out.flush();
             }
+
             //发送日志
-            if (callback != null) callback.crash(fpStr,ex);
+            if (callback != null) callback.crash(crashFile,ex);
+
         } catch (IOException e) {
             Log.w("异常处理器","工作异常,原因:"+e);
             return false;
@@ -155,19 +175,19 @@ public class CrashHandler implements Thread.UncaughtExceptionHandler {
     }
 
     //写入设备信息
-    private StringBuffer printDevInfo() {
-        StringBuffer sb = new StringBuffer();
+    private String printDevInfo() {
+        StringBuilder sb = new StringBuilder();
         for (Map.Entry<String, String> entry : devInfoMap.entrySet()) {
             String key = entry.getKey();
             String value = entry.getValue();
-            sb.append(key + "=" + value + "\n");
+            sb.append("\n").append(key).append("=").append(value);
         }
-        return sb;
+        return sb.toString();
     }
 
     public interface Callback{
         void devInfo(Map<String,String> devInfoMap,String mapStr);
-        void crash(String crashFilePath,Throwable ex);
+        void crash(File crashFile,Throwable ex);
     }
 
 }

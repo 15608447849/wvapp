@@ -3,6 +3,7 @@ package com.bottle.wvapp.jsprovider;
 import android.app.Activity;
 import android.content.Intent;
 import android.net.Uri;
+import android.os.Build;
 
 import com.alipay.sdk.app.PayTask;
 import com.bottle.wvapp.activitys.BaseActivity;
@@ -13,6 +14,7 @@ import com.tencent.mm.opensdk.openapi.WXAPIFactory;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Map;
 
 import lee.bottle.lib.imagepick.ImagePicker;
@@ -20,10 +22,13 @@ import lee.bottle.lib.toolset.log.LLog;
 import lee.bottle.lib.toolset.os.ApplicationAbs;
 import lee.bottle.lib.toolset.util.AppUtils;
 import lee.bottle.lib.toolset.util.GsonUtils;
-import lee.bottle.lib.toolset.web.JSUtils;
 
+import static android.Manifest.permission.CALL_PHONE;
 import static android.app.Activity.RESULT_OK;
 import static android.content.Intent.FLAG_ACTIVITY_NEW_TASK;
+import static com.bottle.wvapp.jsprovider.NativeServerImp.devInfoMap;
+import static com.bottle.wvapp.jsprovider.NativeServerImp.getDevToken;
+import static lee.bottle.lib.toolset.util.AppUtils.checkPermissionExist;
 import static lee.bottle.lib.toolset.util.AppUtils.getVersionName;
 import static lee.bottle.lib.toolset.util.StringUtils.mapToString;
 
@@ -32,13 +37,27 @@ import static lee.bottle.lib.toolset.util.StringUtils.mapToString;
  */
 public class NativeMethodCallImp{
 
+    /** 获取设备信息 */
+    private String getDeviceInfoMap(){
+        LLog.print("获取本机设备信息: "+ devInfoMap);
+
+        HashMap<String,String> map = new HashMap<>();
+        map.put("devCPU",devInfoMap.get("cpu"));
+        map.put("devHardwareManufacturer",devInfoMap.get("硬件制造商"));
+        map.put("devOS","android-"+devInfoMap.get("安卓系统版本号"));
+        map.put("devModel",devInfoMap.get("型号"));
+        devInfoMap.put("devToken", getDevToken());// token
+        return GsonUtils.javaBeanToJson(map);
+    }
+
     //图片选择结果集
     private ArrayList<String> imagePaths;
     private static int REQUEST_SELECT_IMAGES_CODE = 255;
 
     /** 打开图片选择器 */
     private String openImageSelect(){
-        if (NativeServerImp.activityRef.get() == null) throw new NullPointerException("fragment is null");
+        Activity activity = NativeServerImp.getBaseActivity();
+        if (activity == null) throw new NullPointerException("activity is null");
         String url = "";
         imagePaths = null;
         ImagePicker.getInstance()
@@ -50,7 +69,7 @@ public class NativeMethodCallImp{
                 .setMaxCount(1)//设置最大选择图片数目(默认为1，单选)
 //                .setImagePaths(imagePaths)//保存上一次选择图片的状态，如果不需要可以忽略
                 .setImageLoader(new GlideLoader(NativeServerImp.app.getApplicationContext()))//设置自定义图片加载器
-                .start(NativeServerImp.activityRef.get(),REQUEST_SELECT_IMAGES_CODE);
+                .start(activity,REQUEST_SELECT_IMAGES_CODE);
         //等待结果
         NativeServerImp.threadWait();
         if (imagePaths!=null && imagePaths.size()==1){
@@ -68,8 +87,17 @@ public class NativeMethodCallImp{
 
     /** 拨号 */
     private void callPhone(String phone){
-        if (NativeServerImp.activityRef.get()==null) return;
-        AppUtils.callPhoneNo(NativeServerImp.activityRef.get(),phone);
+        Activity activity = NativeServerImp.getBaseActivity();
+        if (activity == null) return;
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            if (!checkPermissionExist(activity,CALL_PHONE)){
+                activity.requestPermissions(new String[]{CALL_PHONE},127);
+                return;
+            }
+        }
+
+        AppUtils.callPhoneNo(activity,phone);
     }
 
     /** 打开qq */
@@ -101,7 +129,6 @@ public class NativeMethodCallImp{
 
     /** web页面加载完成 */
     public void pageLoadComplete(String url){
-        LLog.print("JS页面加载完成通知: "+ url);
         NativeServerImp.webPageLoadComplete(url);
     }
 
@@ -157,6 +184,9 @@ public class NativeMethodCallImp{
     /** 内置浏览器打开链接 */
     public void localBrowserOpenUrl(final String url) {
         LLog.print("JS请求打开链接: "+url);
+
+
+        // 外部连接打开
         if (url.endsWith("?openType=outBrowser")){
             Intent intent=new Intent();
             intent.setFlags(FLAG_ACTIVITY_NEW_TASK);
@@ -164,30 +194,27 @@ public class NativeMethodCallImp{
             Uri content_url  = Uri.parse(url);
             intent.setData(content_url );
             NativeServerImp.app.startActivity(intent);
-        }else{
-            /*Intent intent = new Intent(NativeServerImp.activityRef.get(), WebActivity.class);
-            intent.putExtra("loadUrl",url);
-            intent.setFlags(FLAG_ACTIVITY_NEW_TASK);
-            NativeServerImp.app.startActivity(intent);*/
-            Activity activity = NativeServerImp.activityRef.get();
-            if(activity!=null && NativeServerImp.activityRef.get() instanceof BaseActivity){
-                final BaseActivity baseActivity = (BaseActivity) activity;
-                baseActivity.runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        baseActivity.openWebPage(url);
-                    }
-                });
-            }
+            return;
         }
+
+
+        final BaseActivity activity = NativeServerImp.getBaseActivity();
+
+        if(activity!=null){
+            activity.runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    activity.openWebPage(url);
+                }
+            });
+        }
+
+
     }
 
     /** 清理缓存 */
     public void clearCache(){
-        final BaseActivity activity = NativeServerImp.activityRef.get();
-        if (activity!=null){
-            activity.clearWeb(true);
-        }
+        final BaseActivity activity = NativeServerImp.getBaseActivity();
         //除缓存文件夹
         final File dict = ApplicationAbs.getApplicationDIR(null);
         if (dict != null){
@@ -196,10 +223,12 @@ public class NativeMethodCallImp{
                 activity.runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-                        AppUtils.toast(activity,"缓存清理失败,请手动删除"+dict);
+                        activity.clearWeb(true);
+                        //AppUtils.toastShort(activity,"缓存清理已完成");
                     }
                 });
             }
         }
     }
+
 }
