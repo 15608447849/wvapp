@@ -2,6 +2,7 @@ package com.bottle.wvapp.tool;
 
 
 import android.app.Notification;
+import android.app.NotificationManager;
 import android.content.Context;
 import android.content.Intent;
 
@@ -37,6 +38,11 @@ public class NotifyUer {
         build.setWhen(System.currentTimeMillis());
         build.setTicker(message);
         build.generateNotification().showNotification();
+    }
+
+    public static void cacheAllMessageByExistNotify(Context context){
+        NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+        notificationManager.cancelAll();
     }
 
     public static FrontNotification createDownloadApkNotify(Context context,String title){

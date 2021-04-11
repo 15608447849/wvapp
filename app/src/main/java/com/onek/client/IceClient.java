@@ -90,7 +90,11 @@ public class IceClient {
     synchronized
     public IceClient stopCommunication() {
         if (ic != null) {
-            ic.destroy();
+            try {
+                ic.destroy();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         }
         return this;
     }
@@ -187,6 +191,17 @@ public class IceClient {
     }
 
 
-
+    public void sendMessageToClient(String serverName, String identity, String message) {
+        InterfacesPrx curPrx = null;
+        if (serverName != null) {
+            ObjectPrx base = this.ic.stringToProxy(serverName).ice_invocationTimeout(this.timeout);
+            curPrx = InterfacesPrxHelper.checkedCast(base);
+        }
+        if (curPrx == null) {
+            throw new IllegalArgumentException("请设置正确的IM服务名");
+        } else {
+            curPrx.sendMessageToClient(identity, message);
+        }
+    }
 
 }

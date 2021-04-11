@@ -26,14 +26,16 @@ public abstract class IWebViewInit<V extends View> {
 
     private SoftReference<Object> activitySoftReference;
 
-    public IWebViewInit(Context context, IBridgeImp bridge) throws Exception{
-        ParameterizedType parameterizedType = (ParameterizedType)this.getClass().getGenericSuperclass();
-        Type[] typeArr = parameterizedType.getActualTypeArguments();
-        webView = (V)ObjectRefUtil.createObject((Class) typeArr[0],new Class[]{Context.class},context);
-
-        initSetting(webView);
-        proxy = new JSInterface(webView).setIBridgeImp(bridge);
-
+    public IWebViewInit(Context context, IBridgeImp bridge){
+        try {
+            ParameterizedType parameterizedType = (ParameterizedType)this.getClass().getGenericSuperclass();
+            Type[] typeArr = parameterizedType.getActualTypeArguments();
+            webView = (V)ObjectRefUtil.createObject((Class) typeArr[0],new Class[]{Context.class},context);
+            initSetting(webView);
+            proxy = new JSInterface(webView).setIBridgeImp(bridge);
+        } catch (Exception e) {
+            throw new RuntimeException("无法创建 "+ getClass());
+        }
     }
 
     public IJsBridge getProxy() {
@@ -61,10 +63,11 @@ public abstract class IWebViewInit<V extends View> {
     }
 
     public void unbindDisplayLayer(){
-        ViewParent parent = webView.getParent();
-        if (parent instanceof ViewGroup) {
-            ((ViewGroup)parent).removeView(webView);
+        ViewParent parent = getWebView().getParent();
+        if (parent != null) {
+            ((ViewGroup) parent).removeView(getWebView());
         }
+        clearViews();
     }
 
 
@@ -77,8 +80,12 @@ public abstract class IWebViewInit<V extends View> {
     // 清理
     public abstract void clear(boolean includeDiskFiles);
 
+    // 清理图层
+    public abstract void clearViews();
+
+
     //关闭
-    public abstract void close(ViewGroup view);
+    public abstract void close();
 
     //图片选择处理回调
     public abstract void onActivityResultHandle(int requestCode, int resultCode, Intent data);
@@ -96,11 +103,13 @@ public abstract class IWebViewInit<V extends View> {
 
 
     public void bind(Object binder,ViewGroup viewGroup,DownloadListener listener){
+        unbind();
         this.setCurrentBinder(binder);
         this.setDownloadListener(listener);
         this.bindDisplayLayer(viewGroup);
-//        LLog.print(this+" 绑定 "+ binder);
+        LLog.print(this+" 绑定 "+ binder);
     }
+
     public void unbind(){
         this.setCurrentBinder(null);
         this.setDownloadListener(null);

@@ -31,8 +31,15 @@ import static lee.bottle.lib.toolset.util.StringUtils.getDecodeJSONStr;
  */
 @SuppressLint("JavascriptInterface")
 public class JSInterface extends Thread implements IJsBridge {
-
     public  static  boolean isDebug = false;
+
+    private static final String DATA_STORAGE_FLAG = "web_store";
+
+    public static SharedPreferences sharedStorage(Context context){
+//        return context.getSharedPreferences(DATA_STORAGE_FLAG,Context.MODE_PRIVATE);
+        return context.getSharedPreferences(DATA_STORAGE_FLAG,Context.MODE_MULTI_PROCESS);
+    }
+
 
     private static final String NAME = "native";
 
@@ -42,7 +49,6 @@ public class JSInterface extends Thread implements IJsBridge {
 
     private final static String JS_INTERFACE_NAME = JAVA_SCRIPT + "JNB._callbackInvoke('%s','%s')";// js callback function
 
-    private final SharedPreferences sp;
 
     private final View webView;
 
@@ -50,7 +56,6 @@ public class JSInterface extends Thread implements IJsBridge {
 
     public JSInterface(View webView) {
         this.webView = webView;
-        sp = webView.getContext().getSharedPreferences("web_store",Context.MODE_PRIVATE);
         addJavascriptInterface();
         setDaemon(true);
         start();
@@ -222,12 +227,14 @@ public class JSInterface extends Thread implements IJsBridge {
         }
     }
 
+
+
    // 存储
     @JavascriptInterface
     @Override
     public void putData(String key,String val){
-        if (isDebug)    LLog.print("web 存储 : " + key  + "=" + val);
-        SharedPreferences sp = webView.getContext().getSharedPreferences("web_store",Context.MODE_PRIVATE);
+        if (isDebug) LLog.print("web 存储 : " + key  + "=" + val);
+        SharedPreferences sp = sharedStorage(webView.getContext());
         sp.edit().putString(key,val).apply();
     }
 
@@ -235,9 +242,9 @@ public class JSInterface extends Thread implements IJsBridge {
     @JavascriptInterface
     @Override
     public String getData(String key){
-
+        SharedPreferences sp = sharedStorage(webView.getContext());
         String val = sp.getString(key,"");
-        if (isDebug)    LLog.print("web 取值 : " + key +"="+val);
+        if (isDebug) LLog.print("web 取值 : " + key +"="+val);
         return val;
     }
 
@@ -245,8 +252,8 @@ public class JSInterface extends Thread implements IJsBridge {
     @JavascriptInterface
     @Override
     public void delData(String key){
-        if (isDebug)    LLog.print("web 删除 : " + key );
-        SharedPreferences sp = webView.getContext().getSharedPreferences("web_store",Context.MODE_PRIVATE);
+        if (isDebug) LLog.print("web 删除 : " + key );
+        SharedPreferences sp = sharedStorage(webView.getContext());
         sp.edit().remove(key).apply();
     }
 }

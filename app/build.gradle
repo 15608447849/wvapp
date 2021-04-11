@@ -4,14 +4,15 @@ apply plugin: 'kotlin-android-extensions'
 
 
 
-def appVersion = 56
+def appVersion = 57
 def iceTag = "DRUG"
+
 
 def webHomeUrl = "https://wx.onekdrug.com/" //生产地址
 def address = "tcp:reg.onekdrug.com:4161;tcp:ice.onekdrug.com:4161" //生产
 def appIcon = "@mipmap/ic_launcher"
 
-//def webHomeUrl = "http://wx.onek56.com" //测试地址
+//def webHomeUrl = "http://wx.onek56.com/" //测试地址
 //def address = "114.115.168.87:4061" //测试
 //def appIcon = "@mipmap/ic_launch_test"
 

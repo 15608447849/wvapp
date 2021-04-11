@@ -2,6 +2,8 @@ package com.bottle.wvapp.jsprovider;
 
 import android.net.Uri;
 
+import com.bottle.wvapp.app.DataResult;
+
 import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;

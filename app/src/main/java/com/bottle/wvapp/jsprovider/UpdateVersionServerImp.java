@@ -1,6 +1,7 @@
 package com.bottle.wvapp.jsprovider;
 
 import android.app.Activity;
+import android.app.Application;
 import android.content.DialogInterface;
 import android.os.Build;
 
@@ -27,26 +28,30 @@ import static com.bottle.wvapp.tool.UploadProgressWindow.progressBarCircleDialog
  */
 public class UpdateVersionServerImp extends HttpUtil.CallbackAbs implements Runnable{
 
-    private static volatile boolean isExecute = false;
+    private static Application app;
 
-    private final boolean isAuto;
+    /* 是否正在执行中 */
+    private static volatile boolean isExecute = false;
 
     private static  FrontNotification notification;
 
-    private UpdateVersionServerImp(boolean isAuto) {
-        this.isAuto = isAuto;
+    /* 初始化 */
+    static void init(Application application){
+        app = application;
     }
 
     static void execute(boolean isAuto){
 
-        if (NativeServerImp.app == null ) throw new RuntimeException("应用未初始化");
+        if (app == null ) throw new RuntimeException("应用未初始化");
 
         if (isExecute) {
-            if (!isAuto) tryToast("正在检查版本信息,请稍等");
+            if (!isAuto) tryToast(" 正在检查版本信息,请稍等 ");
             return;
         }
+
         IOUtils.run(new UpdateVersionServerImp(isAuto));
     }
+
 
     private static void tryToast(final String message) {
             final Activity activity = NativeServerImp.getBaseActivity();
@@ -58,7 +63,13 @@ public class UpdateVersionServerImp extends HttpUtil.CallbackAbs implements Runn
                     }
                 });
             }
+    }
 
+    private final boolean isAuto;
+
+    /* 私有构造*/
+    private UpdateVersionServerImp(boolean isAuto) {
+        this.isAuto = isAuto;
     }
 
     @Override
@@ -72,7 +83,7 @@ public class UpdateVersionServerImp extends HttpUtil.CallbackAbs implements Runn
 
     static boolean checkAppVersionMatch(int remote) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M || remote==0)  return true;
-        int localVersion = AppUtils.getVersionCode(NativeServerImp.app);
+        int localVersion = AppUtils.getVersionCode(app);
 //        LLog.print("当前应用版本号: "+ localVersion+" , 服务器版本号: "+ remote);
         return  localVersion>= remote;
     }
@@ -81,7 +92,7 @@ public class UpdateVersionServerImp extends HttpUtil.CallbackAbs implements Runn
     private void openProgress() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             if (notification == null) {
-                notification = NotifyUer.createDownloadApkNotify(NativeServerImp.app.getApplicationContext(), "下载apk文件");
+                notification = NotifyUer.createDownloadApkNotify(app, "下载apk文件");
                 notification.setProgress(100, 0);
             }
         }
@@ -106,7 +117,7 @@ public class UpdateVersionServerImp extends HttpUtil.CallbackAbs implements Runn
 
         if (!isAuto) tryToast("正在下载新版本("+c.serverVersion+"),请稍等");
 
-        File apk = new File(NativeServerImp.app.getCacheDir() + "/temp.apk");
+        File apk = new File(app.getCacheDir() + "/temp.apk");
         if (System.currentTimeMillis() - apk.lastModified() >  60 * 1000){
             //下载apk
             apk = HttpServerImp.downloadFile(c.apkLink,apk.getPath(),this);
@@ -153,7 +164,7 @@ public class UpdateVersionServerImp extends HttpUtil.CallbackAbs implements Runn
                         dialog.cancel();
                         if (which == DialogInterface.BUTTON_POSITIVE){
                             //提示安装
-                            AppUtils.installApk(NativeServerImp.app, file);
+                            AppUtils.installApk(app, file);
                         }else{
 //                            activity.finish();
                             System.exit(0);
@@ -177,7 +188,7 @@ public class UpdateVersionServerImp extends HttpUtil.CallbackAbs implements Runn
                         dialog.cancel();
                         if (which == DialogInterface.BUTTON_POSITIVE){
                             //提示安装
-                            AppUtils.installApk(NativeServerImp.app, file);
+                            AppUtils.installApk(app, file);
                         }
                     }
                 });

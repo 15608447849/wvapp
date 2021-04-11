@@ -6,8 +6,6 @@ import android.content.Intent;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.Environment;
-import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
@@ -18,25 +16,19 @@ import android.webkit.WebResourceError;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebView;
 import android.widget.FrameLayout;
-import android.widget.ProgressBar;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.coordinatorlayout.widget.CoordinatorLayout;
 
-import com.bottle.wvapp.BuildConfig;
 import com.bottle.wvapp.R;
+import com.bottle.wvapp.app.ApplicationDevInfo;
 import com.bottle.wvapp.jsprovider.HttpServerImp;
 import com.bottle.wvapp.jsprovider.NativeServerImp;
 import com.bottle.wvapp.tool.WebResourceCache;
 import com.google.android.material.snackbar.Snackbar;
 
 import java.io.File;
-import java.io.UnsupportedEncodingException;
-import java.net.URLEncoder;
 import java.util.ArrayList;
-import java.util.Timer;
-import java.util.TimerTask;
 
 import lee.bottle.lib.toolset.http.HttpUtil;
 import lee.bottle.lib.toolset.log.LLog;
@@ -48,6 +40,7 @@ import lee.bottle.lib.toolset.util.FileUtils;
 import lee.bottle.lib.toolset.web.JSUtils;
 
 import static com.bottle.wvapp.BuildConfig._WEB_HOME_URL;
+import static com.bottle.wvapp.app.BusinessData.refreshCompanyInfoAndOutput;
 
 /**
  * Created by Leeping on 2019/5/17.
@@ -67,11 +60,18 @@ public class NativeActivity extends BaseActivity implements PermissionApply.Call
 
 
     //权限申请
-    private PermissionApply permissionApply =  new PermissionApply(this,permissionArray,this);
+    private PermissionApply permissionApply =  new PermissionApply(this, permissionArray,this);
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
 
+        // 加载设备标识
+        ApplicationDevInfo.load(getApplication());
+
+        // 绑定activity
+        NativeServerImp.bindActivity(this);
+
+        permissionApply.permissionCheck(); //权限检测
 //        LLog.print(this+" 创建 Application: " + getApplication());
         int uiOptions = View.SYSTEM_UI_FLAG_HIDE_NAVIGATION | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY | View.SYSTEM_UI_FLAG_FULLSCREEN;
 
@@ -91,23 +91,23 @@ public class NativeActivity extends BaseActivity implements PermissionApply.Call
         JSUtils.onAlertI = new JSUtils.AlertMessageI() {
             @Override
             public void onJsAlert(final WebView view, final String url, final String message, final JsResult result) {
-                LLog.print("[onJsAlert] " + message);
                 result.confirm();
-
-                DialogUtil.dialogSimple(view.getContext(), message, "确认", new DialogUtil.Action0() {
-                    @Override
-                    public void onAction0() {
-                        result.confirm();
-                    }
-                });
+                LLog.print("[onJsAlert] " + message);
+                AppUtils.toastLong(view.getContext(), message);
+//                DialogUtil.dialogSimple(view.getContext(), message, "确认", new DialogUtil.Action0() {
+//                    @Override
+//                    public void onAction0() {
+//                        result.confirm();
+//                    }
+//                });
             }
         };
 
-        /* web页面加载层 */
+        /* web页面容器层 */
         final FrameLayout layout = findViewById(R.id.container);
 
         /* 加载页面 */
-        loadWebMainPage(_WEB_HOME_URL,layout,this);
+        loadWebMainPage(layout,this);
     }
 
 
@@ -120,7 +120,7 @@ public class NativeActivity extends BaseActivity implements PermissionApply.Call
                 Uri uri =  webResourceRequest.getUrl();
 
 
-                if (uri == null || !uri.toString().startsWith(_WEB_HOME_URL)) return;
+                if (uri == null || !uri.toString().startsWith(webMainUrl)) return;
 
                 String extension = MimeTypeMap.getFileExtensionFromUrl(uri.toString());
 
@@ -137,15 +137,15 @@ public class NativeActivity extends BaseActivity implements PermissionApply.Call
                     intent.putExtra("errorText",errorText);
                 }
 
-                if (uri.toString().equals(_WEB_HOME_URL)){
-                    intent.putExtra("reload",true);
-                }
-
-                if (extension!=null && (extension.equals("js") || extension.equals("css"))) {
+                if (JSUtils.webProgressI==null && extension!=null && (extension.equals("js") || extension.equals("css"))) {
                    if (errorText!=null && errorText.length()>0){
                        Snackbar.make(webView,errorText,Snackbar.LENGTH_SHORT).show();
                    }
                     return;
+                }
+
+                if (JSUtils.webProgressI!=null || uri.toString().equals(_WEB_HOME_URL)){
+                    intent.putExtra("reload",true);
                 }
 
                 if (errorCode<0 && errorCode!=-1 && errorCode!=-15){
@@ -159,12 +159,16 @@ public class NativeActivity extends BaseActivity implements PermissionApply.Call
         JSUtils.webProgressI = new JSUtils.WebProgressI() {
             @Override
             public void updateProgress(String url,int current,boolean isForce) {
+                //LLog.print("链接加载进度: "+ url+" , "+ current+" , " + isForce);
                 if (current>=100 && isForce){
                     stopLaunch();
+                    JSUtils.webProgressI = null;
                 }
             }
         };
     }
+
+
 
     /*private TimerTask stopLaunchImageShowWebTimeTask = null;
 
@@ -198,7 +202,7 @@ public class NativeActivity extends BaseActivity implements PermissionApply.Call
                 getWindow().getDecorView().setSystemUiVisibility(0);
                 getWindow().clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
 
-                // 展开 webview 容器层
+                // 展开 webView 容器层
                 FrameLayout frameLayout = findViewById(R.id.container);
                 ViewGroup.LayoutParams layoutParams = frameLayout.getLayoutParams();
 //                LLog.print("展开 WEB VIEW 容器, 当前大小: "+ layoutParams.width+","+layoutParams.height);
@@ -256,14 +260,12 @@ public class NativeActivity extends BaseActivity implements PermissionApply.Call
     //授权成功回调
     @Override
     public void onPermissionsGranted() {
-        ApplicationAbs.setApplicationDir_OS_M(this,"1k.一块医药");
-        NativeServerImp.loadDEVID();
-    }
-
-    @Override
-    protected void onPause() {
-        super.onPause();
-        overridePendingTransition(0, 0);
+        // 刷新设备标识
+        ApplicationDevInfo.load(getApplication());
+        // 刷新本地企业信息
+        int compId = refreshCompanyInfoAndOutput(true,NativeServerImp.client);
+        //重新加载页面
+        if (compId > 0) reloadWebMainPage();
     }
 
     //忽略电源回调
@@ -273,11 +275,20 @@ public class NativeActivity extends BaseActivity implements PermissionApply.Call
     }
 
     @Override
+    protected void onPause() {
+        super.onPause();
+        overridePendingTransition(0, 0);
+    }
+
+
+    @Override
     protected void onResume() {
         super.onResume();
-        permissionApply.permissionCheck(); //权限检测
+//        permissionApply.permissionCheck(); //权限检测
         Intent intent = getIntent();
         if (intent != null){
+
+            LLog.print("onResume intent = "+ intent);
 
             boolean isReload = intent.getBooleanExtra("reload",false);
             intent.removeExtra("reload");
@@ -287,17 +298,31 @@ public class NativeActivity extends BaseActivity implements PermissionApply.Call
             intent.removeExtra("notify_param");
             if (list!=null) NativeServerImp.notifyEntryToJs(list.get(0)); //跳转到指定页面
 
+            // 强制退出
+            boolean isForceLogout = intent.getBooleanExtra("forceLogout",false);
+            intent.removeExtra("forceLogout");
+            if (isForceLogout) NativeServerImp.forceLogout();
+
+            // 支付结果
+            String pushPaySuccessMessageToJsStr = intent.getStringExtra("pushPaySuccessMessageToJs");
+            intent.removeExtra("pushPaySuccessMessageToJs");
+            if (pushPaySuccessMessageToJsStr!=null)  NativeServerImp.pushPaySuccessMessageToJs(pushPaySuccessMessageToJsStr);
+
+            // 推送消息
+            String pushMessageToJsStr = intent.getStringExtra("pushMessageToJs");
+            intent.removeExtra("pushMessageToJs");
+            if (pushMessageToJsStr!=null)  NativeServerImp.pushMessageToJs(pushMessageToJsStr);
+
         }
     }
+
+
 
     @Override
     protected void onDestroy() {
 //        LLog.print(this+" 销毁 Application: " + getApplication());
-//        Timer timer = ApplicationAbs.getApplicationObject(Timer.class);
-//        if (timer!=null){
-//            ApplicationAbs.delApplicationObject(Timer.class);
-//            timer.cancel();
-//        }
+
+        NativeServerImp.unbindActivity();
         super.onDestroy();
     }
 

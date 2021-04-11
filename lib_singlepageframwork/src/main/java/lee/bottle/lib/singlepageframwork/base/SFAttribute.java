@@ -45,11 +45,8 @@ public final class SFAttribute {
         this.tagName = tagName;
         if (map!=null){
             this.args = new Bundle();
-            Iterator<Map .Entry<String,String>> it = map.entrySet().iterator();
-            while (it.hasNext()){
-                Map .Entry<String,String> entry = it.next();
-                this.args.putString(entry.getKey(),entry.getValue());
-                it.remove();
+            for (Map.Entry<String, String> entry : map.entrySet()) {
+                this.args.putString(entry.getKey(), entry.getValue());
             }
         }
     }

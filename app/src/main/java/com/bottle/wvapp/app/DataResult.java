@@ -1,4 +1,4 @@
-package com.bottle.wvapp.jsprovider;
+package com.bottle.wvapp.app;
 
 import android.Manifest;
 import android.content.DialogInterface;
@@ -10,7 +10,8 @@ import android.os.Build;
  * Created by Leeping on 2020/10/29.
  * email: 793065165@qq.com
  */
-class DataResult {
+public class DataResult {
     public int code;
     public String message;
+    public int compId;
 }

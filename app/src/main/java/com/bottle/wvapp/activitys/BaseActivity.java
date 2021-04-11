@@ -4,60 +4,44 @@ import android.content.Intent;
 import android.content.res.Configuration;
 import android.content.res.Resources;
 import android.os.Build;
-import android.os.Bundle;
 import android.os.Handler;
-import android.os.PersistableBundle;
 import android.view.ViewGroup;
 import android.webkit.DownloadListener;
 import android.widget.Toast;
 
-import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.bottle.wvapp.jsprovider.NativeServerImp;
 
-import lee.bottle.lib.toolset.jsbridge.IWebViewInit;
 import lee.bottle.lib.toolset.log.LLog;
-import lee.bottle.lib.toolset.os.ApplicationAbs;
 import lee.bottle.lib.toolset.util.AppUtils;
+
+import static com.bottle.wvapp.BuildConfig._WEB_HOME_URL;
 
 /**
  * Created by Leeping on 2020/10/19.
  * email: 793065165@qq.com
  */
 public class BaseActivity extends AppCompatActivity {
-    private Handler mHandler = new Handler();
 
     /* webView实现 */
-    private IWebViewInit iWebViewInit;
-
-    private String webMainUrl;
+    private lee.bottle.lib.toolset.web.SysCore iWebViewInit;
+    protected Handler mHandler = new Handler();
+    protected String webMainUrl = _WEB_HOME_URL;
 
     //初始化应用
-    protected void loadWebMainPage(String webMainUrl, ViewGroup viewGroup, DownloadListener listener) {
+    protected void loadWebMainPage(ViewGroup viewGroup, DownloadListener listener) {
         //加载页面
         if (android.os.Build.VERSION.SDK_INT < Build.VERSION_CODES.M){
             AppUtils.toastLong(this,"应用暂不支持 Android 6.0 以下版本");
             return;
         }
 
-        //尝试从application中获取webview
-        iWebViewInit = ApplicationAbs.getApplicationObject(IWebViewInit.class);
-
-        /*if (iWebViewInit == null){
-            iWebViewInit = IWebViewInit.createIWebView("lee.bottle.lib.toolset.web.SysCore",this,NativeServerImp.iBridgeImp);
-            if (iWebViewInit!=null){
-                ApplicationAbs.putApplicationObject(IWebViewInit.class,iWebViewInit);
-            }
-        }*/
-
-        if (iWebViewInit == null) {
-            throw new RuntimeException("没有可用的WebView实例");
-        }
+        iWebViewInit = new lee.bottle.lib.toolset.web.SysCore(this, NativeServerImp.iBridgeImp);
 
         iWebViewInit.bind(this,viewGroup,listener);
-        this.webMainUrl = webMainUrl;
-        openWebPage(this.webMainUrl);
+
+        reloadWebMainPage();
     }
 
     public void reloadWebMainPage(){
@@ -123,19 +107,12 @@ public class BaseActivity extends AppCompatActivity {
         }
     }
 
-    @Override
-    protected void onCreate(@Nullable Bundle savedInstanceState) {
-        NativeServerImp.bindActivity(this);
-        super.onCreate(savedInstanceState);
-    }
 
     @Override
     protected void onDestroy() {
-        NativeServerImp.unbindActivity();
         if (iWebViewInit!=null){
             iWebViewInit.unbind();
-
-            iWebViewInit = null;
+            iWebViewInit=null;
         }
         super.onDestroy();
     }
@@ -144,6 +121,7 @@ public class BaseActivity extends AppCompatActivity {
     public void finish() {
         if (isExit){
             super.finish();
+            android.os.Process.killProcess(android.os.Process.myPid());
         }else{
             moveTaskToBack(true);
         }

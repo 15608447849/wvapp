@@ -93,7 +93,7 @@ public class LLog{
 
     //打印
     public static void print(Object... objects){
-        printTag("<<LEE LOG>>",objects);
+        printTag("<<LEE LOG "+android.os.Process.myPid()+">>",objects);
     }
     //打印
     public static void printTag(String tag, Object... objects){

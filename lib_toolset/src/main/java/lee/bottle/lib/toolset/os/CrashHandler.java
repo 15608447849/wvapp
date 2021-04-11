@@ -55,6 +55,11 @@ public class CrashHandler implements Thread.UncaughtExceptionHandler {
     //用来存储设备信息和异常信息
     private final Map<String, String> devInfoMap = new HashMap<>();
 
+    //设备信息
+    public Map<String, String> getDevInfoMap() {
+        return devInfoMap;
+    }
+
     public static File getCrashDict(Context context){
         File dict = new File(context.getFilesDir(),"crash");
         if (!dict.exists()){
@@ -79,7 +84,7 @@ public class CrashHandler implements Thread.UncaughtExceptionHandler {
 
     public void setCallback(Callback callback) {
         this.callback = callback;
-        if (callback != null) callback.devInfo(devInfoMap, printDevInfo().toString());
+        if (callback != null) callback.devInfo(devInfoMap, printDevInfo());
     }
 
     @SuppressLint("HardwareIds")
@@ -118,7 +123,8 @@ public class CrashHandler implements Thread.UncaughtExceptionHandler {
         devInfoMap.put("安卓系统版本号",Build.VERSION.RELEASE);
         devInfoMap.put("安卓SDK",Build.VERSION.SDK_INT+"");
         devInfoMap.put("分辨率",mContext.getResources().getDisplayMetrics().toString());
-        if (callback != null) callback.devInfo(devInfoMap,printDevInfo().toString());
+        if (callback != null) callback.devInfo(devInfoMap,printDevInfo());
+        return;
     }
 
     /**

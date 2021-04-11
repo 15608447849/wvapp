@@ -24,13 +24,12 @@
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" /> <!-- 读取短信权限 -->
     <uses-permission android:name="android.permission.RECEIVE_SMS" />
     <uses-permission android:name="android.permission.READ_SMS" />
-
-
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
 
     <application
         android:name=".app.WebApplication"
         android:allowBackup="true"
-        android:hardwareAccelerated="true"
+
         android:icon="${app_icon}"
         android:label="@string/app_name"
         android:roundIcon="${app_icon}"
@@ -38,34 +37,36 @@
         android:theme="@style/AppTheme"
         android:usesCleartextTraffic="true"
         tools:targetApi="m"
-        android:requestLegacyExternalStorage="true">
+        android:requestLegacyExternalStorage="true"
+        android:hardwareAccelerated="false"
+        android:largeHeap="true">
 
         <uses-library
             android:name="org.apache.http.legacy"
             android:required="false" />
 
-
         <!-- 启动 -->
         <activity
             android:name=".activitys.NativeActivity"
             android:configChanges="orientation|keyboardHidden"
-            android:launchMode="singleInstance">
+            android:launchMode="singleTop">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-
         </activity>
+
+        <!-- 页面错误 -->
+        <activity android:name=".activitys.ErrorActivity" android:launchMode="singleInstance" />
+
+        <!-- IM后台服务 -->
+        <service android:name=".services.IMService" android:process=":IM"/>
 
         <!-- 微信支付 -->
         <activity
             android:name=".wxapi.WXPayEntryActivity"
             android:exported="true"
             android:launchMode="singleTop" />
-
-        <!-- 页面错误 -->
-        <activity android:name=".activitys.ErrorActivity" android:launchMode="singleInstance" />
 
         <!-- 适配android 7.0 -->
         <provider

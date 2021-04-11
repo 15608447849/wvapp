@@ -180,6 +180,7 @@ public abstract class ApplicationAbs extends Application implements Application.
         }
 
         ApplicationAbs.applicationDir = null;
+
         ApplicationAbs.setApplicationDir(dict);
     }
 
@@ -223,13 +224,13 @@ public abstract class ApplicationAbs extends Application implements Application.
                 .setLogFileName(processName+"_"+ TimeUtils.formatUTCByCurrent("MMdd"))
                 .setWriteFile(true);
                 // 存储应用进程号
-                storeProcessPidToFile(processName,android.os.Process.myPid());
+                storeProcessPidToFile(this,processName,android.os.Process.myPid());
     }
 
     /* 记录所有进程的PID */
-    private void storeProcessPidToFile(String processName, int pid) {
+    private static void storeProcessPidToFile(Context context,String processName, int pid) {
         try {
-            File dirs = new File(getCacheDir(),PID_FILE_NAME);
+            File dirs = new File(context.getCacheDir(),PID_FILE_NAME);
 
             if (!dirs.exists()) {
                 if (!dirs.mkdirs()){
@@ -256,10 +257,10 @@ public abstract class ApplicationAbs extends Application implements Application.
     }
 
     /* 杀死当前存在的所有进程 , true-包括自己 */
-    public void killAllProcess(boolean containSelf){
+    public static void killAllProcess(Context context,boolean containSelf){
         try {
 
-            File dirs = new File(getCacheDir(),PID_FILE_NAME);
+            File dirs = new File(context.getCacheDir(),PID_FILE_NAME);
 
             if (dirs.exists()) {
                 for (File file : dirs.listFiles()){

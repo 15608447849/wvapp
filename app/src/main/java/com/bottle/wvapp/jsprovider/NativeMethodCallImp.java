@@ -12,22 +12,22 @@ import com.tencent.mm.opensdk.modelpay.PayReq;
 import com.tencent.mm.opensdk.openapi.IWXAPI;
 import com.tencent.mm.opensdk.openapi.WXAPIFactory;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
 import lee.bottle.lib.imagepick.ImagePicker;
 import lee.bottle.lib.toolset.log.LLog;
-import lee.bottle.lib.toolset.os.ApplicationAbs;
+import lee.bottle.lib.toolset.os.CrashHandler;
 import lee.bottle.lib.toolset.util.AppUtils;
 import lee.bottle.lib.toolset.util.GsonUtils;
 
 import static android.Manifest.permission.CALL_PHONE;
 import static android.app.Activity.RESULT_OK;
 import static android.content.Intent.FLAG_ACTIVITY_NEW_TASK;
-import static com.bottle.wvapp.jsprovider.NativeServerImp.devInfoMap;
-import static com.bottle.wvapp.jsprovider.NativeServerImp.getDevToken;
+
+
+import static com.bottle.wvapp.app.ApplicationDevInfo.getMemDevToken;
 import static lee.bottle.lib.toolset.util.AppUtils.checkPermissionExist;
 import static lee.bottle.lib.toolset.util.AppUtils.getVersionName;
 import static lee.bottle.lib.toolset.util.StringUtils.mapToString;
@@ -39,14 +39,15 @@ public class NativeMethodCallImp{
 
     /** 获取设备信息 */
     private String getDeviceInfoMap(){
-        LLog.print("获取本机设备信息: "+ devInfoMap);
+        Map<String,String> devInfoMap = CrashHandler.getInstance().getDevInfoMap();
 
         HashMap<String,String> map = new HashMap<>();
         map.put("devCPU",devInfoMap.get("cpu"));
         map.put("devHardwareManufacturer",devInfoMap.get("硬件制造商"));
         map.put("devOS","android-"+devInfoMap.get("安卓系统版本号"));
         map.put("devModel",devInfoMap.get("型号"));
-        devInfoMap.put("devToken", getDevToken());// token
+        map.put("devToken", getMemDevToken());// token
+        LLog.print("JS获取本机设备信息: "+ map);
         return GsonUtils.javaBeanToJson(map);
     }
 
@@ -68,7 +69,7 @@ public class NativeMethodCallImp{
                 .setSingleType(true)//设置图片视频不能同时选择
                 .setMaxCount(1)//设置最大选择图片数目(默认为1，单选)
 //                .setImagePaths(imagePaths)//保存上一次选择图片的状态，如果不需要可以忽略
-                .setImageLoader(new GlideLoader(NativeServerImp.app.getApplicationContext()))//设置自定义图片加载器
+                .setImageLoader(new GlideLoader(activity))//设置自定义图片加载器
                 .start(activity,REQUEST_SELECT_IMAGES_CODE);
         //等待结果
         NativeServerImp.threadWait();
@@ -102,10 +103,12 @@ public class NativeMethodCallImp{
 
     /** 打开qq */
     private void openTel(String qq){
+        Activity activity = NativeServerImp.getBaseActivity();
+        if (activity==null) return;
         String url="mqqwpa://im/chat?chat_type=wpa&uin="+qq;
         Intent i = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
         i.setFlags(FLAG_ACTIVITY_NEW_TASK);
-        NativeServerImp.app.startActivity(i);
+        activity.startActivity(i);
     }
 
     void onActivityResultHandle(int requestCode, int resultCode, Intent data) {
@@ -119,12 +122,14 @@ public class NativeMethodCallImp{
 
     /** 打开/关闭连接 */
     public void communication(String type){
-        NativeServerImp.communication(type);
+//        NativeServerImp.communication(type);
     }
 
     /** 版本信息 */
     public String versionInfo(){
-        return "-"+getVersionName(NativeServerImp.app);
+        Activity activity = NativeServerImp.getBaseActivity();
+        if (activity==null) return "-x";
+        return "-"+getVersionName(activity);
     }
 
     /** web页面加载完成 */
@@ -139,7 +144,7 @@ public class NativeMethodCallImp{
 
     /** 支付宝支付 */
     public int alipay(String json){
-        Activity activity = NativeServerImp.payPrevHandle();
+        Activity activity = NativeServerImp.getBaseActivity();
         if (activity == null) return -1;
         //获取支付信息
         Map map = NativeServerImp.payHandle(json,"alipay");
@@ -153,17 +158,17 @@ public class NativeMethodCallImp{
 
     public IWXAPI wxapi;
     public int wxpayRes = -1;
-
     /** 微信支付 */
     public int wxpay(String json){
         wxpayRes = -1;
-        Activity activity = NativeServerImp.payPrevHandle();
+        Activity activity = NativeServerImp.getBaseActivity();
         if (activity == null) return wxpayRes;
+
         //获取支付信息 https://www.jianshu.com/p/84eac713f007
         Map map = NativeServerImp.payHandle(json,"wxpay");
         LLog.print(GsonUtils.javaBeanToJson("尝试微信支付,后台结果： " + GsonUtils.javaBeanToJson(map)));
         if(wxapi == null){
-            wxapi = WXAPIFactory.createWXAPI(NativeServerImp.app,null);
+            wxapi = WXAPIFactory.createWXAPI(activity,null);
             wxapi.registerApp(String.valueOf(map.get("appid")));
         }
         PayReq req = new PayReq();
@@ -183,9 +188,12 @@ public class NativeMethodCallImp{
 
     /** 内置浏览器打开链接 */
     public void localBrowserOpenUrl(final String url) {
+        final BaseActivity activity = NativeServerImp.getBaseActivity();
+        if (activity==null) return;
+
+        if (url.endsWith("/pages/index/index?.pdf")) return; // 移除BD平台
+
         LLog.print("JS请求打开链接: "+url);
-
-
         // 外部连接打开
         if (url.endsWith("?openType=outBrowser")){
             Intent intent=new Intent();
@@ -193,42 +201,28 @@ public class NativeMethodCallImp{
             intent.setAction("android.intent.action.VIEW");
             Uri content_url  = Uri.parse(url);
             intent.setData(content_url );
-            NativeServerImp.app.startActivity(intent);
+            activity.startActivity(intent);
             return;
         }
 
-
-        final BaseActivity activity = NativeServerImp.getBaseActivity();
-
-        if(activity!=null){
-            activity.runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    activity.openWebPage(url);
-                }
-            });
-        }
-
-
+        activity.runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                activity.openWebPage(url);
+            }
+        });
     }
 
     /** 清理缓存 */
     public void clearCache(){
         final BaseActivity activity = NativeServerImp.getBaseActivity();
-        //除缓存文件夹
-        final File dict = ApplicationAbs.getApplicationDIR(null);
-        if (dict != null){
-            boolean isDel = dict.delete();
-            if (!isDel && activity!=null){
-                activity.runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        activity.clearWeb(true);
-                        //AppUtils.toastShort(activity,"缓存清理已完成");
-                    }
-                });
+        if (activity==null) return;
+        activity.runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                activity.clearWeb(true);
             }
-        }
+        });
     }
 
 }

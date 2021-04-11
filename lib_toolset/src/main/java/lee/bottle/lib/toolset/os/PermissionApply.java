@@ -59,15 +59,21 @@ public class PermissionApply {
     public boolean isPermissionsDenied(){
         return isPermissionsDenied;
     }
+
     //应用权限检测
     public void permissionCheck() {
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M){
+            getPermissions();
+        }
+
+        /*if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M){
             if (getPermissions()){
                 callback.onPermissionsGranted();
             }
         }else{
             callback.onPermissionsGranted();
-        }
+        }*/
     }
     /**
      * 请求用户给予悬浮窗的权限
@@ -145,7 +151,16 @@ public class PermissionApply {
 
     /** activity 权限申请回调 */
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults){
-        LLog.print("权限", "结果:\n"+ Arrays.toString(permissions)+"\n"+ Arrays.toString(grantResults) );
+
+        if (permissions!=null && grantResults!=null && permissions.length == grantResults.length){
+            StringBuilder sb = new StringBuilder();
+            sb.append("应用权限申请结果:\n");
+            for (int i = 0; i<permissions.length;i++){
+                sb.append(permissions[i]).append(" > ").append(grantResults[i]==-1?" 拒绝 ":" 允许 ").append("\n");
+            }
+            LLog.print(sb.toString());
+        }
+
         if (requestCode == SDK_PERMISSION_REQUEST) {
             isPermissionsDenied = false; //假设授权没有被拒绝
             for (int result : grantResults) {

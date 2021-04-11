@@ -25,6 +25,7 @@ import lee.bottle.lib.toolset.log.LLog;
 import lee.bottle.lib.toolset.os.ApplicationAbs;
 import lee.bottle.lib.toolset.threadpool.IOUtils;
 import lee.bottle.lib.toolset.util.AppUtils;
+import lee.bottle.lib.toolset.util.FileUtils;
 import lee.bottle.lib.toolset.util.StringUtils;
 import lee.bottle.lib.toolset.web.JSUtils;
 
@@ -35,42 +36,51 @@ import static lee.bottle.lib.toolset.util.AppUtils.getBytesByFile;
  * email: 793065165@qq.com
  * 多媒体资源存储
  */
-public class WebResourceCache extends TimerTask implements JSUtils.WebResourceRequestI {
+public class WebResourceCache implements JSUtils.WebResourceRequestI {
 
-    private static final long CLEAR_TIME = 3 * 60 * 60 * 1000L;
+    private static final long CLEAR_TIME = 24 * 60 * 60 * 1000L; // 一天
 
-    private LruCache<String,byte[]> resourceMemCache = new LruCache<>(((int)Runtime.getRuntime().maxMemory())/1024/4);
+    private static final int cacheSize = (int) (Runtime.getRuntime().maxMemory()/8);
+
+    private final LruCache<String,byte[]> resourceMemCache
+            = new LruCache<String,byte[]>(cacheSize){
+        //private long totalSize = 0;
+        @Override
+        protected int sizeOf(@NonNull String key, @NonNull byte[] value) {
+            /*LLog.print("资源内存缓存 "+ key+" = "+ value.length +
+                    " , 已处理总大小: "+ FileUtils.byteLength2StringShow(totalSize) +
+                    " , 最大内存大小: "+ FileUtils.byteLength2StringShow(cacheSize) +
+                    " , 实际存储大小: "+ FileUtils.byteLength2StringShow(size()) );
+            totalSize+=value.length;*/
+            return value.length;
+        }
+    };
 
     public WebResourceCache() {
-        Timer timer = ApplicationAbs.getApplicationObject(Timer.class);
-        if (timer==null) return;
-        timer.schedule(this,1000L, CLEAR_TIME);
+
+        IOUtils.run(new Runnable() {
+            @Override
+            public void run() {
+                loadDiskCache();
+            }
+        });
     }
 
-    @Override
-    public void run() {
-        clearTimerStart();
-    }
-
-    private void clearTimerStart() {
-//        LLog.print("缓存资源监控器 启动");
+    private void loadDiskCache() {
         try{
             File dir = ApplicationAbs.getApplicationDIR("资源缓存");
-            if (dir != null){
-                File[] files = dir.listFiles();
+            if (dir == null) return;
+
+            File[] files = dir.listFiles();
+            if (files!=null){
                 for (File file : files){
-                    String fn = file.getName();
-                    if (System.currentTimeMillis() - file.lastModified() > CLEAR_TIME){
-                        boolean delSuccess = file.delete();
-                        if (!delSuccess){
-                            LLog.print("删除缓存资源("+ fn +") 失败");
-                        }
-                    }else{
-                        byte[] bytes = getBytesByFile(file);
-                        if (bytes != null) resourceMemCache.put(fn,bytes);
+                    byte[] cacheByte = getBytesByFile(file);
+                    if (cacheByte!=null){
+                        resourceMemCache.put(file.getName(),cacheByte);
                     }
                 }
             }
+
         }catch (Exception ignored){
         }
     }
@@ -84,6 +94,7 @@ public class WebResourceCache extends TimerTask implements JSUtils.WebResourceRe
         if (scheme == null) return null;
         int endingA = url.lastIndexOf(".");
         int endingB = url.lastIndexOf("?");
+//        LLog.print(endingA+" "+ endingB+" >> " + uri);
 
         //后缀
         final String endingStr = url.substring(endingA+1 ,  endingB>0 && endingB>endingA?  endingB : url.length());
@@ -132,14 +143,14 @@ public class WebResourceCache extends TimerTask implements JSUtils.WebResourceRe
             md5 = StringUtils.strMD5(url);
 
             final File dir = ApplicationAbs.getApplicationDIR("资源缓存");
-            if(dir == null || (!dir.exists() && !dir.mkdir())) return null;//无法创建缓存目录
+            if(dir == null) return null; //无法创建缓存目录
 
             resourceFile = new File(dir,md5);
             downloadLocalStorePath = resourceFile.getPath()+".TEMP";
         }
 
         if (resourceFile == null || !resourceFile.exists() || resourceFile.length()==0) {
-            backDownload(url,downloadLocalStorePath);
+            backDownload(url,downloadLocalStorePath);// 进入后台下载
             return null;
         }
 
@@ -151,21 +162,30 @@ public class WebResourceCache extends TimerTask implements JSUtils.WebResourceRe
             final String _url = url;
             final String _downloadLocalStorePath = downloadLocalStorePath;
             final String _md5 = md5;
-            final boolean isDownload = endingB>0 && (System.currentTimeMillis() - readFile.lastModified() > 60*60*1000L);
+            final boolean isDownload = endingB>0 && (System.currentTimeMillis() - readFile.lastModified() > CLEAR_TIME);
             IOUtils.run(new Runnable() {
                 @Override
                 public void run() {
                     try {
                         if (_md5!=null){
                             byte[] cacheBytes = resourceMemCache.get(_md5);
+                            //LLog.print("内存获取> "+ _md5+" 大小: "+ FileUtils.byteLength2StringShow(cacheBytes.length));
+                            if (cacheBytes==null) {
+                                //通过本地文件获取,同时存入内存缓存
+                                cacheBytes = getBytesByFile(readFile);
+                                if (cacheBytes!=null){
+                                    resourceMemCache .put(_md5,cacheBytes);
+                                }
+                            }
+
                             if (cacheBytes!=null){
 //                                LLog.print(_url +" 缓存获取资源");
                                 out.write(cacheBytes, 0, cacheBytes.length);
-                                return;
                             }
                         }
+
 //                        LLog.print(_url +" 本地文件获取资源");
-                        AppUtils.getLocalFileToOutputStream(readFile,out);
+//                        AppUtils.getLocalFileToOutputStream(readFile,out);
                     } catch (Exception e) {
                         LLog.print("无法读取资源文件("+readFile+") 错误: " + e);
                     }finally {
@@ -176,9 +196,10 @@ public class WebResourceCache extends TimerTask implements JSUtils.WebResourceRe
                     }
                 }
             });
+
             return new WebResourceResponse(mimeType,"UTF-8",inputStream);
         } catch (IOException e) {
-            e.printStackTrace();
+            LLog.print("缓存资源读取错误 : " + e);
         }
         return null;
     }
@@ -196,7 +217,9 @@ public class WebResourceCache extends TimerTask implements JSUtils.WebResourceRe
                         String newFileName = temp.getName().replace(".TEMP","");
                         boolean isSuccess = temp.renameTo(new File(temp.getParentFile(),newFileName));
                         if (isSuccess){
-                            if (bytes != null) resourceMemCache.put(newFileName,bytes);
+                            if (bytes != null) {
+                                resourceMemCache.put(newFileName,bytes);
+                            }
                         }
 //                        LLog.print("下载("+downloadResourceUrl+") 缓存资源("+temp+") 重命名 (" + newFileName+ ") "+ (isSuccess?"成功":"失败"));
                     }

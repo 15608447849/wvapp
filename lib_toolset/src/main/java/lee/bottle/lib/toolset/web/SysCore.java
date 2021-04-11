@@ -7,13 +7,17 @@ import android.content.Intent;
 import android.net.Uri;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.ViewParent;
 import android.webkit.DownloadListener;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 
+import java.io.File;
+
 import lee.bottle.lib.toolset.jsbridge.IBridgeImp;
 import lee.bottle.lib.toolset.jsbridge.IWebViewInit;
 import lee.bottle.lib.toolset.log.LLog;
+import lee.bottle.lib.toolset.os.ApplicationAbs;
 
 /**
  * Created by Leeping on 2019/7/7.
@@ -21,7 +25,7 @@ import lee.bottle.lib.toolset.log.LLog;
  */
 public class SysCore extends IWebViewInit<WebView> implements DownloadListener {
 
-    public SysCore(Context context, IBridgeImp bridge) throws Exception {
+    public SysCore(Context context, IBridgeImp bridge){
         super(context, bridge);
     }
 
@@ -62,13 +66,19 @@ public class SysCore extends IWebViewInit<WebView> implements DownloadListener {
 
         //应用缓存API是否可用
         settings.setAppCacheEnabled(true);
-        settings.setAppCachePath(context.getDir("appcache", 0).getPath());
+
+        File webCacheDir = ApplicationAbs.getApplicationDIR("WEB缓存");
+        if (webCacheDir == null){
+            webCacheDir = context.getDir("WEB缓存", 0);
+        }
+        settings.setAppCachePath(webCacheDir.getPath());
 
         //数据库
         settings.setDatabaseEnabled(true);
 
         //DOM存储API是否可用
         settings.setDomStorageEnabled(true);
+
         //地图
         settings.setGeolocationEnabled(true);
         //定位数据库的保存路径，为了确保定位权限和缓存位置的持久化，该方法应该传入一个应用可写的路径。
@@ -85,7 +95,9 @@ public class SysCore extends IWebViewInit<WebView> implements DownloadListener {
         settings.setLoadsImagesAutomatically(true);
         //是否禁止网络图片加载
         settings.setBlockNetworkImage(false);
-        settings.setCacheMode(WebSettings.LOAD_CACHE_ELSE_NETWORK);
+
+        settings.setCacheMode(WebSettings.LOAD_NO_CACHE);
+//        settings.setCacheMode(WebSettings.LOAD_CACHE_ELSE_NETWORK);
         settings.setRenderPriority(WebSettings.RenderPriority.HIGH);
         settings.setDefaultTextEncodingName("UTF-8");
 
@@ -121,10 +133,19 @@ public class SysCore extends IWebViewInit<WebView> implements DownloadListener {
     }
 
     @Override
-    public void close(ViewGroup viewGroup) {
-        viewGroup.removeView(getWebView());
+    public void clearViews(){
+        getWebView().clearView();
+        getWebView().removeAllViews();
+    }
+
+    @Override
+    public void close() {
+        clear(true);
+        unbindDisplayLayer();
         getWebView().pauseTimers();
         getWebView().stopLoading();
+        getWebView().getSettings().setJavaScriptEnabled(false);
+        getWebView().destroy();
     }
 
     @Override
