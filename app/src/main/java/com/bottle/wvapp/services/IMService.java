@@ -172,6 +172,7 @@ public class IMService extends Service {
         timer.cancel();
         communicationClose();
         receive.isRunning = false;
+        client.stopCommunication();
         super.onDestroy();
     }
 
