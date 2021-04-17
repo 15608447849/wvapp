@@ -20,9 +20,7 @@ public class WebApplication extends ApplicationAbs  {
         setCrashCallback(new AppCrashExcept(this));
         // 初始化后端交互服务器
         NativeServerImp.init(this);
-        // 打开通讯
-        Intent intent = new Intent(this, IMService.class);
-        startService(intent);
+
     }
 
     @Override

@@ -18,16 +18,18 @@ public class BusinessData {
     }
 
     //获取公司码
-    public static int refreshCompanyInfoAndOutput(boolean passLocal, IceClient iceClient) {
-        SharedPreferences sp = JSInterface.sharedStorage(app);
-        if ( sp != null) {
-            String devToken = ApplicationDevInfo.getShareDevToken(app);
-            return _companyID(sp,devToken,passLocal,iceClient);
+    public static int getCurrentDevCompanyID(boolean passLocal, IceClient iceClient) {
+        if (app!=null){
+            SharedPreferences sp = JSInterface.sharedStorage(app);
+            if ( sp != null) {
+                String devToken = ApplicationDevInfo.getShareDevToken(app);
+                return _getCompanyIDByToken(sp,devToken,passLocal,iceClient);
+            }
         }
         return 0;
     }
 
-    private static int _companyID(SharedPreferences sp, String devToken,boolean passLocal, IceClient iceClient) {
+    private static int _getCompanyIDByToken(SharedPreferences sp, String devToken, boolean passLocal, IceClient iceClient) {
         // 是否通过后台获取
         boolean isNetwork = false;
 
@@ -42,16 +44,16 @@ public class BusinessData {
 
         if (StringUtils.isEmpty(json) && iceClient!=null){
             //本地不存在时->网络获取
-            json = iceClient.setServerAndRequest(devToken,
-                    "userServer",
-                    "LoginRegistrationModule",
-                    "appStoreInfo").execute();
+            json = iceClient
+                    .setServerAndRequest(devToken,
+                    "userServer", "LoginRegistrationModule", "appStoreInfo")
+                    .execute();
             isNetwork = true;
 //                LLog.print("服务器\t公司信息:\t" + json);
         }
 
 
-        DataResult result = GsonUtils.jsonToJavaBean(json,DataResult.class);
+        BaseResult result = GsonUtils.jsonToJavaBean(json, BaseResult.class);
 
         if (result!=null && result.code!=-1 && result.compId>0) {
             if (isNetwork) {

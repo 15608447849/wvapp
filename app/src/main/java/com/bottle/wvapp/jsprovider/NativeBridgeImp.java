@@ -65,8 +65,7 @@ public class NativeBridgeImp implements IBridgeImp {
 
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
-        NativeServerImp.caller.onActivityResultHandle(requestCode,resultCode,data);
-        NativeServerImp.threadNotify();
+        // pass
     }
 
 }

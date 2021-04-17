@@ -5,11 +5,14 @@ import android.content.Intent;
 import android.os.Bundle;
 
 import com.bottle.wvapp.jsprovider.NativeServerImp;
+import com.tencent.mm.opensdk.constants.ConstantsAPI;
 import com.tencent.mm.opensdk.modelbase.BaseReq;
 import com.tencent.mm.opensdk.modelbase.BaseResp;
+import com.tencent.mm.opensdk.openapi.IWXAPI;
 import com.tencent.mm.opensdk.openapi.IWXAPIEventHandler;
 
 import lee.bottle.lib.toolset.log.LLog;
+import lee.bottle.lib.toolset.os.ApplicationAbs;
 import lee.bottle.lib.toolset.util.GsonUtils;
 
 /**
@@ -21,22 +24,35 @@ public class WXPayEntryActivity extends Activity implements IWXAPIEventHandler {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        NativeServerImp.caller.wxapi.handleIntent(getIntent(), this);
+        IWXAPI wxapi = ApplicationAbs.getApplicationObject(IWXAPI.class);
+        if (wxapi!=null){
+            wxapi.handleIntent(getIntent(), this);
+        }
+
     }
     @Override
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
         setIntent(intent);
-        NativeServerImp.caller.wxapi.handleIntent(intent, this);
+        IWXAPI wxapi = ApplicationAbs.getApplicationObject(IWXAPI.class);
+        if (wxapi!=null){
+            wxapi.handleIntent(getIntent(), this);
+        }
     }
+
+
     @Override
     public void onReq(BaseReq req) {
+
     }
+
     @Override
     public void onResp(BaseResp resp) {
-        LLog.print("微信支付结果: " + GsonUtils.javaBeanToJson(resp));
-        NativeServerImp.caller.wxpayRes = resp.errCode;
-        NativeServerImp.threadNotify();
+        if(resp.getType() == ConstantsAPI.COMMAND_PAY_BY_WX){
+            // 0 成功, -1 错误, -2 用户取消
+            LLog.print("本机微信支付结果: " + GsonUtils.javaBeanToJson(resp));
+            NativeServerImp.caller.wxpayNotify(resp.errCode);
+        }
         finish();
     }
 }

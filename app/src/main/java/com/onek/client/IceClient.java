@@ -10,6 +10,7 @@ import java.util.Locale;
 import java.util.Map;
 
 import Ice.Communicator;
+import Ice.ObjectAdapter;
 import Ice.ObjectPrx;
 import Ice.Util;
 
@@ -30,9 +31,14 @@ public class IceClient {
         }
     }
 
-    private static final ThreadLocal<ReqStore> threadLocalStore = new ThreadLocal<>();
+    private final ThreadLocal<ReqStore> threadLocalStore = new ThreadLocal<>();
+    private final ThreadLocal<Map<String,InterfacesPrx>> threadLocalStoreInterfacesPrx = new ThreadLocal<>();
 
+    /* 通讯对象 */
     private Communicator ic = null;
+
+    /* 本地通讯端点 */
+    private Ice.ObjectAdapter localAdapter;
 
     private final String[] args ;
 
@@ -66,12 +72,9 @@ public class IceClient {
         return arr;
     }
 
-    public Communicator iceCommunication(){
-        return ic;
-    }
-
-    public String getEnvId(){
-        return Arrays.toString(args);
+    public ObjectAdapter getLocalAdapter(){
+        if (ic == null) throw new IllegalStateException("ICE COMMUNICATION NOT START.");
+        return localAdapter;
     }
 
     public IceClient setTimeout(int timeout) {
@@ -83,6 +86,8 @@ public class IceClient {
     public IceClient startCommunication() {
         if (ic == null) {
             ic = Util.initialize(args);
+            localAdapter = ic.createObjectAdapter("");
+            localAdapter.activate();
         }
         return this;
     }
@@ -99,32 +104,33 @@ public class IceClient {
         return this;
     }
 
-    private static ThreadLocal<Map<String,InterfacesPrx>> threadLocalStoreInterfacesPrx = new ThreadLocal<>();
-
     public IceClient settingProxy(String serverName){
         Map<String,InterfacesPrx> map = threadLocalStoreInterfacesPrx.get();
         if (map == null){
             map = new HashMap<>();
             threadLocalStoreInterfacesPrx.set(map);
         }
+
         InterfacesPrx curPrx = map.get(serverName);
         if (curPrx == null){
             ObjectPrx base = ic.stringToProxy(serverName).ice_invocationTimeout(timeout);
             curPrx = InterfacesPrxHelper.checkedCast(base);
             map.put(serverName,curPrx);
         }
+
+        // 设置当前线程的代理对象并创建请求
         threadLocalStore.set(new ReqStore(curPrx));
         return this;
     }
 
     public InterfacesPrx getProxy(){
         ReqStore store = threadLocalStore.get();
-        return store == null? null : store.currentPrx;
+        return store == null ? null : store.currentPrx;
     }
 
     public IceClient settingReq(String token,String cls,String med){
         ReqStore store = threadLocalStore.get();
-        if (store!=null  && store.request!=null){
+        if (store!=null && store.request!=null){
             store.request.cls = cls;
             store.request.method = med;
             store.request.param.token = token;
@@ -137,15 +143,16 @@ public class IceClient {
     }
 
     public IceClient setServerAndRequest(String serverName,String clazz,String method){
-        return settingProxy(serverName).settingReq("",clazz,method);
+        return setServerAndRequest("",serverName,clazz,method);
     }
 
-    public IceClient setArrayParams(Object... objects){
-        String[] arr = new String[objects.length];
-        for (int i = 0; i< objects.length; i++) {
-            arr[i] = String.valueOf(objects[i]);
+    public IceClient setPageInfo(int index, int number) {
+        ReqStore store = threadLocalStore.get();
+        if (store!=null  && store.request!=null){
+            store.request.param.pageIndex = index;
+            store.request.param.pageNumber = number;
         }
-        return settingParam(arr);
+        return this;
     }
 
     public IceClient setExtend(String extend){
@@ -160,15 +167,6 @@ public class IceClient {
         ReqStore store = threadLocalStore.get();
         if (store!=null  && store.request!=null){
             store. request.param.json = json;
-        }
-        return this;
-    }
-
-    public IceClient setPageInfo(int index, int number) {
-        ReqStore store = threadLocalStore.get();
-        if (store!=null  && store.request!=null){
-            store.request.param.pageIndex = index;
-            store.request.param.pageNumber = number;
         }
         return this;
     }
@@ -194,7 +192,7 @@ public class IceClient {
     public void sendMessageToClient(String serverName, String identity, String message) {
         InterfacesPrx curPrx = null;
         if (serverName != null) {
-            ObjectPrx base = this.ic.stringToProxy(serverName).ice_invocationTimeout(this.timeout);
+            ObjectPrx base = ic.stringToProxy(serverName).ice_invocationTimeout(this.timeout);
             curPrx = InterfacesPrxHelper.checkedCast(base);
         }
         if (curPrx == null) {

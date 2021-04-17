@@ -6,11 +6,14 @@ import android.content.Intent;
 import android.net.Uri;
 import android.os.Build;
 
+import java.util.HashMap;
+import java.util.Map;
+
 /**
  * Created by Leeping on 2020/10/29.
  * email: 793065165@qq.com
  */
-public class DataResult {
+public class BaseResult {
     public int code;
     public String message;
     public int compId;

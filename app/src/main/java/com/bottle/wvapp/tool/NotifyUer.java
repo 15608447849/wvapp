@@ -11,6 +11,8 @@ import com.bottle.wvapp.activitys.NativeActivity;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Timer;
+import java.util.TimerTask;
 
 import lee.bottle.lib.toolset.os.FrontNotification;
 
@@ -19,7 +21,9 @@ import lee.bottle.lib.toolset.os.FrontNotification;
  * email: 793065165@qq.com
  */
 public class NotifyUer {
+    private static Timer timer = new Timer();
     private static int currentId =  1;
+
     public static void createMessageNotify(Context context, String message, String... params) {
         FrontNotification.Build build = new FrontNotification.Build(context).setId(currentId++);
         Intent intent = new Intent(context, NativeActivity.class);
@@ -40,9 +44,23 @@ public class NotifyUer {
         build.generateNotification().showNotification();
     }
 
-    public static void cacheAllMessageByExistNotify(Context context){
-        NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
-        notificationManager.cancelAll();
+    public static void createMessageNotifyTips(final Context context, String message) {
+        final int channelID = currentId++;
+        FrontNotification.Build build = new FrontNotification.Build(context).setId(channelID);
+        build.setFlags(new int[]{Notification.FLAG_SHOW_LIGHTS,Notification.FLAG_AUTO_CANCEL});
+        build.setGroup("messageTipsList");
+        build.setDefaults(Notification.DEFAULT_ALL);
+        build.setIcon(R.mipmap.ic_launcher);
+        build.setText( context.getString(R.string.app_name),message,"新消息");
+        build.setWhen(System.currentTimeMillis());
+        build.setTicker(message);
+        build.generateNotification().showNotification();
+        timer.schedule(new TimerTask() {
+            @Override
+            public void run() {
+              cacheAllMessageByExistNotifySpecID(context,channelID);
+            }
+        },5000);
     }
 
     public static FrontNotification createDownloadApkNotify(Context context,String title){
@@ -57,7 +75,16 @@ public class NotifyUer {
                 .setSmallIcon(R.drawable.ic_update_version)
                .setText(context.getString(R.string.app_name),title ,"下载完成自动关闭")
                 .generateNotification();
+    }
 
+    public static void cacheAllMessageByExistNotifySpecID(Context context,int channelID){
+        NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+        notificationManager.cancel(channelID);
+    }
+
+    public static void cacheAllMessageByExistNotify(Context context){
+        NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+        notificationManager.cancelAll();
     }
 
 }

@@ -14,7 +14,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 import lee.bottle.lib.toolset.os.CrashHandler;
 import lee.bottle.lib.toolset.threadpool.IOUtils;
 
-import static com.bottle.wvapp.app.BusinessData.refreshCompanyInfoAndOutput;
+import static com.bottle.wvapp.app.BusinessData.getCurrentDevCompanyID;
 
 /**
  * Created by Leeping on 2020/10/29.
@@ -55,7 +55,7 @@ public class AppCrashExcept extends Thread implements CrashHandler.Callback {
             public void run() {
                 StringBuilder s = new StringBuilder();
                 s.append("token").append("=").append(ApplicationDevInfo.getMemDevToken()).append("\n");
-                s.append("companyID").append("=").append(refreshCompanyInfoAndOutput(false,null)).append("\n");
+                s.append("companyID").append("=").append(getCurrentDevCompanyID(false,null)).append("\n");
                 try (FileOutputStream fos = new FileOutputStream(crashFile,true)){
                     fos.write(s.toString().getBytes());
                     fos.flush();

@@ -4,15 +4,17 @@ apply plugin: 'kotlin-android-extensions'
 
 
 
-def appVersion = 57
+def appVersion = 58
 def iceTag = "DRUG"
 
-
+def fileServerUrl = "https://www.onekdrug.com:9999"
 def webHomeUrl = "https://wx.onekdrug.com/" //生产地址
 def address = "tcp:reg.onekdrug.com:4161;tcp:ice.onekdrug.com:4161" //生产
 def appIcon = "@mipmap/ic_launcher"
 
+//def fileServerUrl = "http://114.116.155.221:9999"
 //def webHomeUrl = "http://wx.onek56.com/" //测试地址
+////def webHomeUrl = "http://www.baidu.com/" //测试地址
 //def address = "114.115.168.87:4061" //测试
 //def appIcon = "@mipmap/ic_launch_test"
 
@@ -36,6 +38,7 @@ android {
         buildConfigField("String", "_ADDRESS", "\"${address}\"")
         buildConfigField("String", "_ARGS", "\"${args}\"")
         buildConfigField("String", "_WEB_HOME_URL", "\"${webHomeUrl}\"")
+        buildConfigField("String", "_FILE_SERVER_URL", "\"${fileServerUrl}\"")
 
 //        ndk {
 //            abiFilters"armeabi-v7a","x86"/

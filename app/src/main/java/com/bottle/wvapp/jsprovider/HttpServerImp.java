@@ -2,15 +2,13 @@ package com.bottle.wvapp.jsprovider;
 
 import android.net.Uri;
 
-import com.bottle.wvapp.app.DataResult;
+import com.bottle.wvapp.BuildConfig;
+import com.bottle.wvapp.app.BaseResult;
 
 import java.io.File;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.TimeUnit;
 
 import lee.bottle.lib.toolset.http.HttpRequest;
 import lee.bottle.lib.toolset.http.HttpUtil;
@@ -25,40 +23,22 @@ import lee.bottle.lib.toolset.util.TimeUtils;
  * 提供给移动端的文件上传/下载
  */
 public final class HttpServerImp {
-    private static String defaultURL = "https://www.onekdrug.com:9999";
 
-    /* 文件服务地址信息 */
-    private static Map<String,String> fileServerMap = new HashMap<>();
-
-    /* 文件上传的地址 上传-upUrl 下载-downPrev 删除-deleteUrl */
-    private static String getSpecFileUrl(String type){
-        return fileServerMap.get(type);
-    }
+    private static String defaultURL = BuildConfig._FILE_SERVER_URL;
 
     static String downURLPrev(){
-        String url = getSpecFileUrl("downPrev");
-        return url == null ? defaultURL : url;
-    }
-    private static String uploadURL(){
-        String url = getSpecFileUrl("upUrl");
-        return url == null ? defaultURL+"/upload" : url;
+        return defaultURL;
     }
 
-    static void initFileServerMap(Map map){
-        if (map == null) return;
-        for (Object key : map.keySet()){
-            String _key = String.valueOf(key);
-            String _value = String.valueOf(map.get(key));
-            fileServerMap.put(_key,_value);
-        }
-        startUploadThread();
+    private static String uploadURL(){
+        return defaultURL+"/upload";
     }
 
     //上传任务子项
     public static final class UploadFileItem {
         public String uri;//上传的文件的本地路径
-        public String remotePath;//指定保存的路径
-        public String fileName;//指定保存的文件名
+        public String remotePath;// 指定保存的路径
+        public String fileName;// 指定保存的文件名
         public boolean uploadSuccessDelete = false;
     }
 
@@ -107,7 +87,7 @@ public final class HttpServerImp {
          public void run() {
              while (true){
                  try {
-                     Task task = taskQueue.poll(5, TimeUnit.SECONDS);
+                     Task task = taskQueue.take();
                      if (task == null) continue;
                      try {
                          if (task.uploadTask != null){
@@ -123,11 +103,6 @@ public final class HttpServerImp {
              }
          }
      };
-
-    private static void startUploadThread() {
-        taskQueueThread.setDaemon(true);
-        taskQueueThread.start();
-    }
 
     //多个文件上传 加入队列
     public static void addUpdateFileToQueue(UploadFileItem... items){
@@ -171,7 +146,7 @@ public final class HttpServerImp {
         String result =  httpRequest.fileUploadUrl(uploadURL).getRespondContent();
         if (deleteList.size() >0 && result!=null){
             //删除文件
-            DataResult result1Bean = GsonUtils.jsonToJavaBean(result, DataResult.class);
+            BaseResult result1Bean = GsonUtils.jsonToJavaBean(result, BaseResult.class);
             if (result1Bean!=null && result1Bean.code == 200){
                 for (File file: deleteList) {
                     if (!file.delete()){
@@ -200,6 +175,12 @@ public final class HttpServerImp {
         HttpRequest httpRequest = new HttpRequest().accessUrl(url);
         if (httpRequest.getException()!=null) throw httpRequest.getException();
         return httpRequest.getRespondContent();
+    }
+
+    /* 启动上传线程 */
+    static void startUploadThread() {
+        taskQueueThread.setDaemon(true);
+        taskQueueThread.start();
     }
 
 }

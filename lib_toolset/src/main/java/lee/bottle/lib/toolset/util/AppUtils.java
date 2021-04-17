@@ -413,7 +413,7 @@ public class AppUtils {
     public static void installApk(Context context, File apkFile) {
         try {
 
-            LLog.print("安装: " + apkFile +" , 存在 = "+ apkFile.exists());
+            LLog.print("安装APK: " + apkFile);
             if (!apkFile.exists()) return;
             Intent intent = new Intent();
             intent.setAction(Intent.ACTION_VIEW);

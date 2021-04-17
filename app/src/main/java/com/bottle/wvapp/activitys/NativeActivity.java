@@ -40,7 +40,7 @@ import lee.bottle.lib.toolset.util.FileUtils;
 import lee.bottle.lib.toolset.web.JSUtils;
 
 import static com.bottle.wvapp.BuildConfig._WEB_HOME_URL;
-import static com.bottle.wvapp.app.BusinessData.refreshCompanyInfoAndOutput;
+import static com.bottle.wvapp.app.BusinessData.getCurrentDevCompanyID;
 
 /**
  * Created by Leeping on 2019/5/17.
@@ -138,7 +138,7 @@ public class NativeActivity extends BaseActivity implements PermissionApply.Call
                 }
 
                 if (JSUtils.webProgressI==null && extension!=null && (extension.equals("js") || extension.equals("css"))) {
-                   if (errorText!=null && errorText.length()>0){
+                   if (errorText.length() > 0){
                        Snackbar.make(webView,errorText,Snackbar.LENGTH_SHORT).show();
                    }
                     return;
@@ -263,7 +263,7 @@ public class NativeActivity extends BaseActivity implements PermissionApply.Call
         // 刷新设备标识
         ApplicationDevInfo.load(getApplication());
         // 刷新本地企业信息
-        int compId = refreshCompanyInfoAndOutput(true,NativeServerImp.client);
+        int compId = getCurrentDevCompanyID(true,NativeServerImp.client);
         //重新加载页面
         if (compId > 0) reloadWebMainPage();
     }
@@ -288,7 +288,7 @@ public class NativeActivity extends BaseActivity implements PermissionApply.Call
         Intent intent = getIntent();
         if (intent != null){
 
-            LLog.print("onResume intent = "+ intent);
+            //LLog.print("onResume intent = "+ intent);
 
             boolean isReload = intent.getBooleanExtra("reload",false);
             intent.removeExtra("reload");

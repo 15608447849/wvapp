@@ -107,7 +107,7 @@ public abstract class IWebViewInit<V extends View> {
         this.setCurrentBinder(binder);
         this.setDownloadListener(listener);
         this.bindDisplayLayer(viewGroup);
-        LLog.print(this+" 绑定 "+ binder);
+        //LLog.print(this+" 绑定 "+ binder);
     }
 
     public void unbind(){

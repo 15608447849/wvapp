@@ -1,24 +1,30 @@
 package com.bottle.wvapp.jsprovider;
 
+import android.app.Activity;
 import android.app.Application;
+import android.content.Intent;
 
 import com.bottle.wvapp.BuildConfig;
 import com.bottle.wvapp.activitys.BaseActivity;
+import com.bottle.wvapp.app.BaseResult;
+import com.bottle.wvapp.app.MapDataResult;
+import com.bottle.wvapp.services.IMService;
+import com.google.gson.reflect.TypeToken;
 import com.onek.client.IceClient;
 
 import java.lang.ref.SoftReference;
 import java.util.Map;
+import java.util.Objects;
 
 import lee.bottle.lib.toolset.log.LLog;
-import lee.bottle.lib.toolset.threadpool.IOUtils;
+import lee.bottle.lib.toolset.util.AppUtils;
 import lee.bottle.lib.toolset.util.GsonUtils;
-import lee.bottle.lib.toolset.util.StringUtils;
 import lee.bottle.lib.toolset.web.JSUtils;
 
 import static com.bottle.wvapp.app.ApplicationDevInfo.getMemDevToken;
 import static com.bottle.wvapp.app.BusinessData.getOrderServerNo;
-import static com.bottle.wvapp.app.BusinessData.refreshCompanyInfoAndOutput;
-import static com.bottle.wvapp.jsprovider.HttpServerImp.downURLPrev;
+import static com.bottle.wvapp.app.BusinessData.getCurrentDevCompanyID;
+import static com.bottle.wvapp.jsprovider.HttpServerImp.startUploadThread;
 
 
 /**
@@ -41,32 +47,18 @@ public class NativeServerImp {
     /* activity引用 */
     private static SoftReference<BaseActivity> activityRef;
 
-    /* 服务器配置 */
-    static AppUploadConfig config;
-
     /* 判断页面是否加载完毕 */
     private static boolean isPageLoadComplete = false;
+
+    /* 首次进入执行版本更新 */
+    private static boolean executeVersionUpdate = false;
 
     public static void init(Application application){
         //初始化ice连接
         client.startCommunication();
-        // 初始化更新线程
-        UpdateVersionServerImp.init(application);
-        IOUtils.run(new Runnable() {
-            @Override
-            public void run() {
-                //加载文件服务信息
-                if (initFileServerInfo()){
-                    // 加载服务配置
-                    updateServerConfigJson();
-                    // 异步触发更新APP
-                    UpdateVersionServerImp.execute(true);
-                }
-            }
-        });
-
+        // 启动文件上传
+        startUploadThread();
     }
-
 
 
     public static BaseActivity getBaseActivity(){
@@ -79,70 +71,21 @@ public class NativeServerImp {
     }
 
 
-
-
     /* 绑定web展示层 */
     public static void bindActivity(BaseActivity activity){
         isPageLoadComplete = false;
         activityRef = new SoftReference<>(activity);
-
-        LLog.print(NativeServerImp.class.getSimpleName() + " 绑定 activity " + activity);
+        // 触发应用更新
+       if (!executeVersionUpdate) {
+           UpdateVersionServerImp.execute(activity,false);
+           executeVersionUpdate = true;
+       }
     }
 
+    /* 解绑web展示层 */
     public static void unbindActivity(){
         activityRef = null;
         isPageLoadComplete = false;
-//        LLog.print(NativeServerImp.class.getSimpleName() + " 解绑 activity");
-    }
-
-
-    //初始化文件服务地址
-    private static boolean initFileServerInfo(){
-        try {
-            String json = client.setServerAndRequest("userServer","FileInfoModule","fileServerInfo").execute();
-
-            Map map = GsonUtils.jsonToJavaBean(json,Map.class);
-
-            assert map != null;
-
-            HttpServerImp.initFileServerMap((Map)map.get("data"));
-
-//            LLog.print("获取基础文件服务信息:\n" + json);
-            return true;
-        } catch (Exception e) {
-           LLog.print("获取基础文件服务信息失败:\t" + e.getMessage());
-        }
-        return false;
-    }
-
-    //更新服务配置
-    static void updateServerConfigJson(){
-        String json = loadServerConfigJson(0,10);
-        config  =  GsonUtils.jsonToJavaBean(json, AppUploadConfig.class);
-        if (config == null) config = new AppUploadConfig();
-
-        if (!StringUtils.isEmpty(config.apkLink)
-                && (!config.apkLink.startsWith("http")
-                && !config.apkLink.startsWith("https"))){
-            config.apkLink = downURLPrev() + config.apkLink;
-        }
-    }
-
-    //加载服务器配置信息URL
-    private static String loadServerConfigJson(int retry,int max) {
-        try {
-            String url = downURLPrev()+"/config.json";
-            LLog.print("当前次数: "+ retry+" 加载服务器配置信息URL: " + url);
-            String json = HttpServerImp.text(url).trim().replaceAll("\\s*","");
-            //LLog.print("获取服务器配置信息:\n"+json);
-            return json;
-        } catch (Exception e) {
-            LLog.print("加载服务器配置信息失败:\n"+e);
-            if (retry < max){
-                return loadServerConfigJson(++retry,max);
-            }
-        }
-        return null;
     }
 
     //转发ICE
@@ -151,16 +94,17 @@ public class NativeServerImp {
                 NativeServerImp.client
                         .settingProxy(serverName).
                         settingReq(getMemDevToken(),cls,method).
-                        setPageInfo(page,count);
+                        setPageInfo(page,count)
+                        .setExtend(extend);
+
         if (json!=null){
-            String[] arrays = null;
-            if (GsonUtils.checkJsonIsArray(json)) arrays = GsonUtils.jsonToJavaBean(json,String[].class);
-            if (arrays != null) {
-                client.settingParam(arrays);
+            if (GsonUtils.checkJsonIsArray(json)) {
+                String[] arrays = GsonUtils.jsonToJavaBean(json,String[].class);
+                if (arrays != null) client.settingParam(arrays);
             }
             client.settingParam(json);
         }
-        client.setExtend(extend);
+
         long time = System.currentTimeMillis();
         String resultJson = client.execute();
         time = System.currentTimeMillis() - time;
@@ -172,32 +116,24 @@ public class NativeServerImp {
         return resultJson;
     }
 
-    //线程活动
-    public static void threadNotify() {
-       synchronized (caller){
-           caller.notifyAll();
-        }
-    }
-
-    //线程休眠
-    static void threadWait(){
-        synchronized (caller) {
-            try { caller.wait(); } catch (InterruptedException ignored) { }
-        }
-    }
-
     /** web页面加载完成 */
     public static void webPageLoadComplete(String url) {
-        LLog.print("JS页面加载完成通知: "+ url + " , isPageLoadComplete = "+ isPageLoadComplete);
+        //LLog.print("JS页面加载完成通知: "+ url + " , isPageLoadComplete = "+ isPageLoadComplete);
         if (isPageLoadComplete) return;
         // 设置进度完成
         JSUtils.progressHandler(url,100,true);
 
-        //首次进入,判断本地是否存在用户信息, 存在对比服务器是否相同,不相同通知JS用户被强制登出
-        int compidLocl = refreshCompanyInfoAndOutput(true,client);
+        //首次进入页面,判断本地是否存在用户信息, 存在对比服务器是否相同,不相同通知JS用户被强制登出
+        int compidLocl = getCurrentDevCompanyID(true,client);
 
-        if (compidLocl > 0 && compidLocl!= refreshCompanyInfoAndOutput(true,client)){
+        if (compidLocl > 0 && compidLocl!= getCurrentDevCompanyID(true,client)){
             forceLogout();
+        }
+        BaseActivity activity = getBaseActivity();
+        if (activity!=null){
+            // 打开通讯
+            Intent intent = new Intent(activity, IMService.class);
+            activity.startService(intent);
         }
 
         isPageLoadComplete = true;
@@ -205,30 +141,44 @@ public class NativeServerImp {
 
     /**
      * app支付
-     * json = { orderno=订单号,paytype=付款方式,flag客户端类型 0 web,1 app }
+     * json = { orderno=订单号, paytype=付款方式, flag客户端类型 0 web,1 app }
      */
-    static Map payHandle(String json, String payType){
-        LLog.print("预支付参数: " + json);
+    static synchronized Map<String,String> payHandle(String json, String payType){
+        try{
+            int companyID = getCurrentDevCompanyID(false,null);
 
-        Map map  = GsonUtils.jsonToJavaBean(json,Map.class);
-        if (map == null) throw new IllegalArgumentException("支付订单号不正确");
-        map.put("paytype",payType);
-        map.put("flag",1);
+            if ( companyID == 0) throw new IllegalArgumentException("登录信息异常");
+            Map<String,Object> map  = GsonUtils.string2Map(json);
+            if (map == null || map.get("orderno") == null) throw new IllegalArgumentException("支付订单号不正确");
+            map.put("paytype",payType);
+            map.put("flag",1);
+            json = GsonUtils.javaBeanToJson(map);
 
-        int compid = refreshCompanyInfoAndOutput(false,null);
-        json = transfer("order2Server"+getOrderServerNo(compid),
-                "PayModule","prePay",
-                0,0,null,
-                GsonUtils.javaBeanToJson(map));
+            LLog.print(companyID+ " 预支付请求: " + json);
+            json = transfer("order2Server"+getOrderServerNo(companyID),
+                    "PayModule","prePay",
+                    0,0,null,
+                    json);
+            LLog.print(companyID+ " 预支付结果: " + json);
 
-        LLog.print("预支付结果: " + json);
+            MapDataResult<String,String> result =
+                    GsonUtils.jsonToJavaBean(json, new TypeToken<MapDataResult<String,String>>(){}.getType());
 
-        map = GsonUtils.jsonToJavaBean(json,Map.class);
-        if (map == null) throw new IllegalArgumentException("无法获取预支付信息");
-        if (map.get("data") !=null ){
-            map = (Map) map.get("data");
+            if (result == null || result.data == null) throw new IllegalArgumentException("无法获取预支付信息");
+
+            return result.data;
+        }catch (final Exception e){
+            final BaseActivity activity = getBaseActivity();
+            if (activity!=null){
+                activity.runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        AppUtils.toastLong(activity, Objects.requireNonNull(e.getMessage()));
+                    }
+                });
+            }
         }
-        return map;
+        return null;
     }
 
     /** 推送消息 */

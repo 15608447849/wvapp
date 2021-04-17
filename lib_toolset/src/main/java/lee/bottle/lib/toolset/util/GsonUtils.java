@@ -24,7 +24,7 @@ import java.util.List;
  * email: 793065165@qq.com
  */
 public class GsonUtils {
-    public static Gson newGson(){
+    private static Gson newGson(){
         return new GsonBuilder()
                 .setLongSerializationPolicy(LongSerializationPolicy.STRING)
                 .create();

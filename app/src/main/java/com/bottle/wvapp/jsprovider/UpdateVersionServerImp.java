@@ -1,9 +1,14 @@
 package com.bottle.wvapp.jsprovider;
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.app.Application;
 import android.content.DialogInterface;
 import android.os.Build;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.widget.TextView;
 
 import com.bottle.wvapp.R;
 import com.bottle.wvapp.activitys.BaseActivity;
@@ -12,146 +17,207 @@ import com.bottle.wvapp.tool.NotifyUer;
 import java.io.File;
 
 import lee.bottle.lib.toolset.http.HttpUtil;
-import lee.bottle.lib.toolset.log.LLog;
 import lee.bottle.lib.toolset.os.FrontNotification;
 import lee.bottle.lib.toolset.threadpool.IOUtils;
 import lee.bottle.lib.toolset.util.AppUtils;
 import lee.bottle.lib.toolset.util.DialogUtil;
-
-import static com.bottle.wvapp.tool.UploadProgressWindow.progressBarCircleDialogStop;
-import static com.bottle.wvapp.tool.UploadProgressWindow.progressBarCircleDialogUpdate;
 
 /**
  * Created by Leeping on 2019/7/5.
  * email: 793065165@qq.com
  * 更新APP版本
  */
-public class UpdateVersionServerImp extends HttpUtil.CallbackAbs implements Runnable{
+public class UpdateVersionServerImp{
+    /* 通知栏 */
+    private static  FrontNotification notification;
 
-    private static Application app;
+    /* 进度条 */
+    private static AlertDialog mProgress;
+
+    @SuppressLint("StaticFieldLeak")
+    private static TextView mProgress_tv;
+
+    private static boolean isHind = false;
 
     /* 是否正在执行中 */
     private static volatile boolean isExecute = false;
 
-    private static  FrontNotification notification;
-
-    /* 初始化 */
-    static void init(Application application){
-        app = application;
-    }
-
-    static void execute(boolean isAuto){
-
-        if (app == null ) throw new RuntimeException("应用未初始化");
-
-        if (isExecute) {
-            if (!isAuto) tryToast(" 正在检查版本信息,请稍等 ");
-            return;
+    // 尝试提示
+    private static void activityToast(final Activity activity , final boolean showMsg, final String message) {
+        if (showMsg && activity!=null){
+            activity.runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    AppUtils.toastShort(activity,message);
+                }
+            });
         }
-
-        IOUtils.run(new UpdateVersionServerImp(isAuto));
     }
 
-
-    private static void tryToast(final String message) {
-            final Activity activity = NativeServerImp.getBaseActivity();
-            if (activity!=null){
-                activity.runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        AppUtils.toastShort(activity,message);
-                    }
-                });
-            }
-    }
-
-    private final boolean isAuto;
-
-    /* 私有构造*/
-    private UpdateVersionServerImp(boolean isAuto) {
-        this.isAuto = isAuto;
-    }
-
-    @Override
-    public void run() {
-        isExecute = true;
-        openProgress();
-        checkVersionAndDownload();
-        closeProgress();
-       isExecute = false;
-    }
-
-    static boolean checkAppVersionMatch(int remote) {
+    // 检查版本号
+    private static boolean checkAppVersionMatch(Activity activity,int remote) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M || remote==0)  return true;
-        int localVersion = AppUtils.getVersionCode(app);
+        int localVersion = AppUtils.getVersionCode(activity);
 //        LLog.print("当前应用版本号: "+ localVersion+" , 服务器版本号: "+ remote);
         return  localVersion>= remote;
     }
 
-    //打开进度条
-    private void openProgress() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            if (notification == null) {
-                notification = NotifyUer.createDownloadApkNotify(app, "下载apk文件");
-                notification.setProgress(100, 0);
-            }
-        }
-    }
-
-    private void closeProgress() {
-        if(notification != null){
-            notification.cancelNotification();
-            notification = null;
-        }
-    }
-
-    private void checkVersionAndDownload() {
-        if (!isAuto) NativeServerImp.updateServerConfigJson();
-        final AppUploadConfig c = NativeServerImp.config;
-        boolean isMatch = checkAppVersionMatch(c.serverVersion);
-
-        if (isMatch) {
-            if (!isAuto) tryToast("当前应用已经是最新版本("+c.serverVersion+")");
-            return;
-        }
-
-        if (!isAuto) tryToast("正在下载新版本("+c.serverVersion+"),请稍等");
-
-        File apk = new File(app.getCacheDir() + "/temp.apk");
-        if (System.currentTimeMillis() - apk.lastModified() >  60 * 1000){
-            //下载apk
-            apk = HttpServerImp.downloadFile(c.apkLink,apk.getPath(),this);
-        }
-
-        if (apk == null) {
-            if (!isAuto) tryToast("无法下载最新版本应用,请重新尝试");
-            return;
-        }
-
-        //打开安装对话框
-        final BaseActivity activity = NativeServerImp.getBaseActivity();
-        if (activity == null) return;
-        boolean isChange = apk.setLastModified(System.currentTimeMillis());
-        if (!isChange){
-            LLog.print("无法修改APK最近更新时间");
-        }
-        final File _apk = apk;
+    private static void progressBarCircleDialogUpdate(final Activity activity, final String text) {
+        if (activity == null || isHind) return;
         activity.runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                if (NativeServerImp.config.forceUpdate == 0){
-                    normalUpdate(activity,_apk,c.updateMessage);
-                }else{
-                    forceUpdate(activity,_apk,c.updateMessage);
+                if (mProgress == null){
+                    AlertDialog.Builder progressBuild = new AlertDialog.Builder(activity, AlertDialog.THEME_HOLO_LIGHT);
+                    LayoutInflater inflater = LayoutInflater.from(activity);
+                    @SuppressLint("InflateParams")
+                    View view = inflater.inflate(R.layout.up_progress, null);
+                    mProgress_tv = view.findViewById(R.id.progress_tv);
+                    progressBuild.setView(view);
+                    progressBuild.setPositiveButton("隐藏", new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                            isHind = true;
+                            mProgress = null;
+                            mProgress_tv = null;
+                        }
+                    });
+                    mProgress = progressBuild.create();
+                    mProgress.setCanceledOnTouchOutside(false);
+                    mProgress.setCancelable(false);
+                    mProgress.show();
+                }
+
+                if (mProgress_tv!=null){
+                    mProgress_tv.setText(text);
+                }
+            }
+        });
+    }
+
+    private static void progressBarCircleDialogStop(final Activity activity) {
+        if (activity == null) return;
+        activity.runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                isHind = false;
+                if (mProgress_tv!=null) mProgress_tv = null;
+                if (mProgress!=null) {
+                    mProgress.cancel();
+                    mProgress.dismiss();
+                    mProgress = null;
                 }
             }
         });
 
     }
 
-    private void forceUpdate(final BaseActivity activity, final File file, String updateMessage) {
+    private static void updateProgressBar(Activity activity,int current){
+        if (activity!=null && current>0){
+            progressBarCircleDialogUpdate(activity,"程序更新中\n当前进度:"+current+"/"+100);
+            if (current == 100){
+                progressBarCircleDialogStop(activity);
+            }
+        }
+    }
+
+    //打开进度条
+    private static void openNoticeBarProgress(Activity activity,String title) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            if (notification == null && activity!=null) {
+                notification = NotifyUer.createDownloadApkNotify(activity, title);
+                notification.setProgress(100, 0);
+            }
+        }
+    }
+
+    private static void updateNoticeBarProgress(int current){
+        //打开进度指示条的通知栏
+        if (notification!=null) notification.setProgress(100, current);
+    }
+
+    //关闭进度条
+    private static void closeNoticeBarProgress() {
+        if(notification != null){
+            notification.cancelNotification();
+            notification = null;
+        }
+    }
+
+
+    //检查版本进度并下载
+    private static void checkVersionAndDownload(final Activity activity,final boolean showMsg) {
+        try{
+            if ( activity == null) return;
+
+            if (isExecute) {
+                activityToast(activity,showMsg,"正在更新版本");
+                return;
+            }
+
+            isExecute = true;
+
+            final AppUploadConfig config = AppUploadConfig.load();
+
+            boolean isMatch = checkAppVersionMatch(activity, config.serverVersion);
+
+            if (isMatch) {
+                activityToast(activity,showMsg,"当前应用已经是最新版本("+config.serverVersion+")");
+                return;
+            }
+
+            File apk = new File(activity.getCacheDir() + "/temp.apk");
+
+            activityToast(activity,showMsg,"新版本("+config.serverVersion+") 准备下载");
+
+            openNoticeBarProgress(activity,"更新应用");
+
+            //下载apk
+            apk = HttpServerImp.downloadFile(config.apkLink, apk.getPath(), new HttpUtil.CallbackAbs() {
+                @Override
+                public void onProgress(File file, long progress, long total) {
+                    int current = (int)( (progress * 100f) / total );
+                    updateNoticeBarProgress(current);
+                    if (showMsg) updateProgressBar(activity,current);
+                }
+            });
+
+            closeNoticeBarProgress();
+
+            if (apk == null || !apk.exists()) {
+                activityToast(activity,showMsg,"无法下载最新版本应用,请重新尝试");
+                return;
+            }
+
+            openInstallPromptBox(activity,config,apk);
+        }catch (Exception e){
+            e.printStackTrace();
+        }finally {
+            isExecute = false;
+        }
+    }
+
+    private static void openInstallPromptBox(final Activity activity, final AppUploadConfig config, final File _apk) {
+
+        //打开安装对话框
+        if (activity == null) return;
+
+        activity.runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                if (config.forceUpdate == 0){
+                    normalUpdate(activity,_apk,config.updateMessage);
+                }else{
+                    forceUpdate(activity,_apk,config.updateMessage);
+                }
+            }
+        });
+    }
+
+    // 强制更新
+    private static void forceUpdate(final Activity activity, final File file, String updateMessage) {
         DialogUtil.build(activity,
-                "当前版本已过期,请更新",
+                "版本已过期,请更新",
                 updateMessage,
                 R.drawable.ic_update_version,
                 "现在更新",
@@ -164,7 +230,7 @@ public class UpdateVersionServerImp extends HttpUtil.CallbackAbs implements Runn
                         dialog.cancel();
                         if (which == DialogInterface.BUTTON_POSITIVE){
                             //提示安装
-                            AppUtils.installApk(app, file);
+                            AppUtils.installApk(activity, file);
                         }else{
 //                            activity.finish();
                             System.exit(0);
@@ -173,7 +239,8 @@ public class UpdateVersionServerImp extends HttpUtil.CallbackAbs implements Runn
                 });
     }
 
-    private void normalUpdate(BaseActivity activity,final File file,String updateMessage) {
+    // 正常更新
+    private static void normalUpdate(final Activity activity,final File file,String updateMessage) {
         DialogUtil.build(activity,
                 "版本更新",
                 updateMessage,
@@ -188,23 +255,19 @@ public class UpdateVersionServerImp extends HttpUtil.CallbackAbs implements Runn
                         dialog.cancel();
                         if (which == DialogInterface.BUTTON_POSITIVE){
                             //提示安装
-                            AppUtils.installApk(app, file);
+                            AppUtils.installApk(activity, file);
                         }
                     }
                 });
     }
 
-    @Override
-    public void onProgress(File file, long progress, long total) {
-        //打开进度指示条的通知栏
-        int current = (int)( (progress * 100f) / total );
-        if (notification!=null) notification.setProgress(100, current);
-        Activity activity = NativeServerImp.getBaseActivity();
-        if (activity!=null && current>0){
-            progressBarCircleDialogUpdate(activity,"程序更新中\n当前进度:"+current+"/"+100);
-            if (current == 100){
-                progressBarCircleDialogStop(activity);
+    static void execute(final Activity activity,final boolean showMsg){
+        IOUtils.run(new Runnable() {
+            @Override
+            public void run() {
+                checkVersionAndDownload(activity,showMsg);
             }
-        }
+        });
     }
+
 }
