@@ -26,6 +26,8 @@ import Ice.Connection;
 import Ice.ConnectionCallback;
 import lee.bottle.lib.toolset.log.LLog;
 import lee.bottle.lib.toolset.util.AppUtils;
+import lee.bottle.lib.toolset.util.ErrorUtil;
+import lee.bottle.lib.toolset.util.StringUtils;
 
 import static android.content.Intent.FLAG_ACTIVITY_NEW_TASK;
 import static com.bottle.wvapp.app.ApplicationDevInfo.DEVTYPE;
@@ -99,7 +101,7 @@ public class IMService extends Service {
 
             String fn = "order2Service" + getOrderServerNo(compid) + "_1";
 //            String fn = "order2Server" + getOrderServerNo(compid);
-            LLog.print("尝试连接> 服务: "+ fn+" , "+ compid);
+            //LLog.print("尝试连接> 服务: "+ fn+" , "+ compid);
             // 尝试连接服务器
             receive.prx = client.settingProxy(fn).getProxy();
             receive.prx.ice_ping();
@@ -108,26 +110,27 @@ public class IMService extends Service {
             receive.identity = new Ice.Identity(String.valueOf(compid),DEVTYPE);
             client.getLocalAdapter().add(receive, receive.identity);
             receive.prx.ice_getConnection().setAdapter(client.getLocalAdapter());
+
             receive.prx.ice_getConnection().setCallback(new ConnectionCallback() {
                 @Override
                 public void heartbeat(Connection con) {
                     Log.i("ice","heartbeat:"+ con);
-                    receive.lastHeartbeatTime = System.currentTimeMillis();
+                    //receive.lastHeartbeatTime = System.currentTimeMillis();
                 }
 
                 @Override
                 public void closed(Connection con) {
                     Log.i("ice","closed:"+ con);
-                    communicationClose();
+                    //communicationClose();
                 }
             });
 
             // 空闲时间,关闭策略,心跳策略
-//            receive.prx.ice_getConnection().setACM(
-//                    new Ice.IntOptional( 10 ),
-//                    new  Ice.Optional<>(Ice.ACMClose.CloseOff),
-//                    new  Ice.Optional<>(Ice.ACMHeartbeat.HeartbeatAlways)
-//            );
+            receive.prx.ice_getConnection().setACM(
+                    new Ice.IntOptional( 10 ),
+                    new  Ice.Optional<>(Ice.ACMClose.CloseOff),
+                    new  Ice.Optional<>(Ice.ACMHeartbeat.HeartbeatAlways)
+            );
 
             receive.prx.online( receive.identity );
 
@@ -158,8 +161,7 @@ public class IMService extends Service {
                 }
             }
         } catch (Exception e) {
-            e.printStackTrace();
-            LLog.print("长连接检测异常: " + e.getMessage());
+            LLog.print("长连接检测异常\n" + ErrorUtil.printExceptInfo(e));
         }
         return false;
     }
