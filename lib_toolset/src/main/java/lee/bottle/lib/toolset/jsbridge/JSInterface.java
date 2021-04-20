@@ -36,7 +36,6 @@ public class JSInterface extends Thread implements IJsBridge {
     private static final String DATA_STORAGE_FLAG = "web_store";
 
     public static SharedPreferences sharedStorage(Context context){
-//        return context.getSharedPreferences(DATA_STORAGE_FLAG,Context.MODE_PRIVATE);
         return context.getSharedPreferences(DATA_STORAGE_FLAG,Context.MODE_MULTI_PROCESS);
     }
 
@@ -48,6 +47,11 @@ public class JSInterface extends Thread implements IJsBridge {
     private final static String JS_INTERFACE_INVOKE_NAME = JAVA_SCRIPT + "JNB._invoke('%s','%s','%s')";// invoke js function
 
     private final static String JS_INTERFACE_NAME = JAVA_SCRIPT + "JNB._callbackInvoke('%s','%s')";// js callback function
+
+    private final HashMap<String, IJsBridge.JSCallback> jsCallbackMap = new HashMap<>();
+
+    // 错误请求列表
+    private final BlockingQueue<String[]> errorQueue = new LinkedBlockingQueue<>();
 
 
     private final View webView;
@@ -81,11 +85,6 @@ public class JSInterface extends Thread implements IJsBridge {
         }
         return this;
     }
-
-    private final HashMap<String, IJsBridge.JSCallback> jsCallbackMap = new HashMap<>();
-
-    // 错误请求列表
-    private final BlockingQueue<String[]> errorQueue = new LinkedBlockingQueue<>();
 
     @Override
     public void run() {
@@ -150,12 +149,12 @@ public class JSInterface extends Thread implements IJsBridge {
                                 + "\n"+ ErrorUtil.printExceptInfo(targetEx)
                         );
 
-                        webView.post(new Runnable() {
+                        /*webView.post(new Runnable() {
                             @Override
                             public void run() {
                                 AppUtils.toastShort(webView.getContext(),"网络异常或服务器连接失败");
                             }
-                        });
+                        });*/
                     }
                 }
 
@@ -182,13 +181,10 @@ public class JSInterface extends Thread implements IJsBridge {
     public void loadUrl(String content) {
         try {
             if (webView == null) return;
+
             @SuppressLint("PrivateApi") Method m = webView.getClass().getDeclaredMethod("loadUrl",String.class);
             m.setAccessible(true);
-            try {
-                m.invoke(webView,content);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
+            m.invoke(webView,content);
 
         } catch (Exception e) {
             e.printStackTrace();

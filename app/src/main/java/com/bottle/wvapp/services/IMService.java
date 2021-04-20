@@ -115,13 +115,13 @@ public class IMService extends Service {
                 @Override
                 public void heartbeat(Connection con) {
                     Log.i("ice","heartbeat:"+ con);
-                    //receive.lastHeartbeatTime = System.currentTimeMillis();
+                    receive.lastHeartbeatTime = System.currentTimeMillis();
                 }
 
                 @Override
                 public void closed(Connection con) {
                     Log.i("ice","closed:"+ con);
-                    //communicationClose();
+                    communicationClose();
                 }
             });
 
@@ -281,14 +281,14 @@ public class IMService extends Service {
                         + "\n目标设备: " + devID
                         + "\n当前设备: " + curDevID);
                 if (devID.equals(curDevID)){
-                    message = "您已从当前设备退出";
+                    message = "您的账号已从当前移动设备退出";
                 }else{
                     if (prop.equals("logout-force")){
                         // 当前设备被强制登出
                         // 通知activity 强制退出
                         intent.putExtra("forceLogout",true);
                         getApplication().startActivity(intent);
-                        message = "您的账号已在其他设备进行登录";
+                        message = "您的账号已在其他移动设备登录";
                     }
                 }
                 /*if (prop.equals("logout-force") && !devID.equals(curDevID)){
@@ -299,9 +299,12 @@ public class IMService extends Service {
                     message = "您的账号已在其他设备进行登录";
                 }*/
             }else{
-                message = "您的账号已从"+devType+"设备登出";
+                message = "您的账号已从其他设备退出登录";
             }
-            if (message!=null) NotifyUer.createMessageNotifyTips(getApplication(), message);
+            if (message!=null) {
+                LLog.print(message);
+//                NotifyUer.createMessageNotifyTips(getApplication(), message);
+            }
         }
     }
 
