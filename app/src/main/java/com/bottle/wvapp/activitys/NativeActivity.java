@@ -1,11 +1,13 @@
 package com.bottle.wvapp.activitys;
 
 import android.Manifest;
+import android.content.ComponentName;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
@@ -39,8 +41,11 @@ import lee.bottle.lib.toolset.util.DialogUtil;
 import lee.bottle.lib.toolset.util.FileUtils;
 import lee.bottle.lib.toolset.web.JSUtils;
 
+import static android.content.Intent.FLAG_ACTIVITY_NEW_TASK;
 import static com.bottle.wvapp.BuildConfig._WEB_HOME_URL;
 import static com.bottle.wvapp.app.BusinessData.getCurrentDevCompanyID;
+import static lee.bottle.lib.toolset.util.AppUtils.getClipboardContent;
+import static lee.bottle.lib.toolset.util.AppUtils.setClipboardContent;
 
 /**
  * Created by Leeping on 2019/5/17.
@@ -56,8 +61,6 @@ public class NativeActivity extends BaseActivity implements PermissionApply.Call
 //            Manifest.permission.READ_PHONE_STATE, // 获取手机状态
 //            Manifest.permission.CALL_PHONE // 拨号
     };
-
-
 
     //权限申请
     private PermissionApply permissionApply =  new PermissionApply(this, permissionArray,this);
@@ -112,6 +115,8 @@ public class NativeActivity extends BaseActivity implements PermissionApply.Call
 
 
 
+
+
     private void launchInit(){
         JSUtils.loadErrorI = new JSUtils.LoadErrorI() {
             @Override
@@ -163,6 +168,7 @@ public class NativeActivity extends BaseActivity implements PermissionApply.Call
                 if (current>=100 && isForce){
                     stopLaunch();
                     JSUtils.webProgressI = null;
+                    accessSharedContent();
                 }
             }
         };
@@ -170,28 +176,6 @@ public class NativeActivity extends BaseActivity implements PermissionApply.Call
 
 
 
-    /*private TimerTask stopLaunchImageShowWebTimeTask = null;
-
-    private void delayTimeStop(int delay){
-        // 延时指定秒后销毁
-        Timer timer =  ApplicationAbs.getApplicationObject(Timer.class);
-        if (timer == null) {
-            return;
-        }
-
-        if (stopLaunchImageShowWebTimeTask!=null){
-            stopLaunchImageShowWebTimeTask.cancel();
-        }
-
-        stopLaunchImageShowWebTimeTask = new TimerTask() {
-            @Override
-            public void run() {
-                stopLaunch();
-            }
-        };
-
-        timer.schedule(stopLaunchImageShowWebTimeTask,delay);
-    }*/
 
     private void stopLaunch(){
         runOnUiThread(new Runnable() {
@@ -206,7 +190,6 @@ public class NativeActivity extends BaseActivity implements PermissionApply.Call
                 FrameLayout frameLayout = findViewById(R.id.container);
                 ViewGroup.LayoutParams layoutParams = frameLayout.getLayoutParams();
 //                LLog.print("展开 WEB VIEW 容器, 当前大小: "+ layoutParams.width+","+layoutParams.height);
-
                 if (!(layoutParams.width == ViewGroup.LayoutParams.MATCH_PARENT
                         && layoutParams.height == ViewGroup.LayoutParams.MATCH_PARENT)){
                     layoutParams.height = ViewGroup.LayoutParams.MATCH_PARENT;
@@ -214,34 +197,11 @@ public class NativeActivity extends BaseActivity implements PermissionApply.Call
                     frameLayout.setLayoutParams(layoutParams);
                 }
 
-                //loadWebPageProgress();
             }
         });
     }
 
-//    private void loadWebPageProgress() {
-//        //设置页面加载滚动条
-//        JSUtils.webProgressI = new JSUtils.WebProgressI() {
-//            @Override
-//            public void updateProgress(String url,final int current,boolean isForce) {
-//                runOnUiThread(new Runnable() {
-//                    @Override
-//                    public void run() {
-//                        /* 进度条 */
-//                        final ProgressBar progressBar = findViewById(R.id.progress_bar);
-//                        if (progressBar!=null){
-//                            progressBar.setProgress(current);
-//                            if (current==100){
-//                                progressBar.setVisibility(View.GONE);
-//                            }else{
-//                                progressBar.setVisibility(View.VISIBLE);
-//                            }
-//                        }
-//                    }
-//                });
-//            }
-//        };
-//    }
+
 
 
     /* 权限审核回调 */
@@ -312,11 +272,27 @@ public class NativeActivity extends BaseActivity implements PermissionApply.Call
             String pushMessageToJsStr = intent.getStringExtra("pushMessageToJs");
             intent.removeExtra("pushMessageToJs");
             if (pushMessageToJsStr!=null)  NativeServerImp.pushMessageToJs(pushMessageToJsStr);
-
         }
+
+        accessSharedContent();
+
     }
 
+    private void accessSharedContent() {
+        // 获取分享内容
+        mHandler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                String content = getClipboardContent(NativeActivity.this);
 
+                if (content.endsWith("-onekdrug")){
+                    NativeServerImp.enterApp(content);
+                    setClipboardContent(NativeActivity.this,"");
+                }
+
+            }
+        },500);
+    }
 
     @Override
     protected void onDestroy() {

@@ -202,4 +202,12 @@ public class NativeServerImp {
         iBridgeImp.callJsFunction("logoutHandle",null, null);
     }
 
+    /* 进入APP */
+    public static void enterApp(String data) {
+//        LLog.print("enterApp : " +  data);
+        if (isPageLoadComplete) {
+            iBridgeImp.callJsFunction("enterApp",data, null);
+        }
+    }
+
 }

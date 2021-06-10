@@ -127,9 +127,10 @@ public class SysCore extends IWebViewInit<WebView> implements DownloadListener {
     public void clear(boolean includeDiskFiles) {
         getWebView().clearCache(includeDiskFiles);
         getWebView().clearFormData();
-        getWebView().clearHistory();
+//        getWebView().clearHistory();
         getWebView().clearMatches();
         getWebView().clearSslPreferences();
+        LLog.print("**** web clear **** ");
     }
 
     @Override

@@ -3,7 +3,7 @@ apply plugin: 'kotlin-android'
 apply plugin: 'kotlin-android-extensions'
 
 
-def appVersion = 58
+def appVersion = 59
 def iceTag = "DRUG"
 
 //def fileServerUrl = "https://www.onekdrug.com:9999"
@@ -13,7 +13,7 @@ def iceTag = "DRUG"
 
 def fileServerUrl = "http://114.116.155.221:9999"
 def webHomeUrl = "http://wx.onek56.com/" //测试地址
-//def webHomeUrl = "http://www.baidu.com/" //测试地址
+//def webHomeUrl = "http://10.15.0.131:8888/" //测试地址
 def address = "114.115.168.87:4061" //测试
 def appIcon = "@mipmap/ic_launch_test"
 

@@ -410,3 +410,93 @@ public class LaunchPage{
             }
         });
         */
+
+
+
+
+
+
+
+
+    private void weixinOpen_url() {
+        Intent intent= new Intent();
+        intent.setAction("android.intent.action.VIEW");
+        Uri content_url = Uri.parse("weixin://");
+        intent.setData(content_url);
+        startActivity(intent);
+
+
+    }
+
+    private void weixinOpen() {
+        Uri data = Uri.parse("weixin://dl/scan");
+        String scheme = data.getScheme();
+        String host = data.getHost();
+        String query = data.getQuery();
+        LLog.print(String.format("uri is %s,scheme is %s, host is %s, query is %s", data.toString(), scheme, host, query));
+
+        Intent intent = new Intent(Intent.ACTION_MAIN);
+        intent.setData(data);
+
+        intent.addCategory(Intent.CATEGORY_LAUNCHER);
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        intent.setComponent(new ComponentName("com.tencent.mm","com.tencent.mm.ui.LauncherUI"));
+        startActivity(intent);
+    }
+
+
+
+
+
+
+
+
+
+
+    /*private TimerTask stopLaunchImageShowWebTimeTask = null;
+
+    private void delayTimeStop(int delay){
+        // 延时指定秒后销毁
+        Timer timer =  ApplicationAbs.getApplicationObject(Timer.class);
+        if (timer == null) {
+            return;
+        }
+
+        if (stopLaunchImageShowWebTimeTask!=null){
+            stopLaunchImageShowWebTimeTask.cancel();
+        }
+
+        stopLaunchImageShowWebTimeTask = new TimerTask() {
+            @Override
+            public void run() {
+                stopLaunch();
+            }
+        };
+
+        timer.schedule(stopLaunchImageShowWebTimeTask,delay);
+    }*/
+//    private void loadWebPageProgress() {
+//        //设置页面加载滚动条
+//        JSUtils.webProgressI = new JSUtils.WebProgressI() {
+//            @Override
+//            public void updateProgress(String url,final int current,boolean isForce) {
+//                runOnUiThread(new Runnable() {
+//                    @Override
+//                    public void run() {
+//                        /* 进度条 */
+//                        final ProgressBar progressBar = findViewById(R.id.progress_bar);
+//                        if (progressBar!=null){
+//                            progressBar.setProgress(current);
+//                            if (current==100){
+//                                progressBar.setVisibility(View.GONE);
+//                            }else{
+//                                progressBar.setVisibility(View.VISIBLE);
+//                            }
+//                        }
+//                    }
+//                });
+//            }
+//        };
+//    }
+
+//loadWebPageProgress();

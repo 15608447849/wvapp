@@ -1,6 +1,7 @@
 package com.bottle.wvapp.jsprovider;
 
 import android.app.Activity;
+import android.content.ComponentName;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Build;
@@ -191,30 +192,71 @@ public class NativeMethodCallImp{
 
     /** 内置浏览器打开链接 */
     public void localBrowserOpenUrl(final String url) {
+        LLog.print("localBrowserOpenUrl = "+url);
+
         final BaseActivity activity = NativeServerImp.getBaseActivity();
         if (activity==null) return;
 
-        if (url.endsWith("/pages/index/index?.pdf")) return; // 移除BD平台
-
-        LLog.print("JS请求打开链接: "+url);
-        // 外部连接打开
         if (url.endsWith("?openType=outBrowser")){
-            Intent intent=new Intent();
+            String _url = url.replace("?openType=outBrowser","");
+            LLog.print("系统浏览器打开 = "+url);
+            // 系统浏览器打开
+            Intent intent = new Intent();
             intent.setFlags(FLAG_ACTIVITY_NEW_TASK);
             intent.setAction("android.intent.action.VIEW");
-            Uri content_url  = Uri.parse(url);
-            intent.setData(content_url );
+            Uri content_url  = Uri.parse(_url);
+            intent.setData(content_url);
             activity.startActivity(intent);
-            return;
+
+        }else {
+            // webview打开
+            activity.runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    activity.openWebPage(url);
+                }
+            });
         }
 
+    }
+
+    /** 跳转第三方应用 */
+    public void openPartyApplication(final String appName){
+        final BaseActivity activity = NativeServerImp.getBaseActivity();
+        if (activity==null) return;
         activity.runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                activity.openWebPage(url);
+
+                Intent intent = null;
+                if(appName.equals("sms")){
+                    intent = new Intent(Intent.ACTION_VIEW);
+                    intent.setType("vnd.android-dir/mms-sms");
+                }
+
+                if (appName.equals("qq")){
+                    intent = activity.getPackageManager().getLaunchIntentForPackage("com.tencent.mobileqq");
+                }
+
+                if (appName.equals("weixin")){
+                    intent = new Intent(Intent.ACTION_MAIN);
+                    intent.addCategory(Intent.CATEGORY_LAUNCHER);
+                    intent.setComponent(new ComponentName("com.tencent.mm","com.tencent.mm.ui.LauncherUI"));
+                }
+
+                if (intent!=null){
+                    intent.setFlags(FLAG_ACTIVITY_NEW_TASK);
+                    activity.startActivity(intent);
+                }
+
             }
         });
+
+
+
+
     }
+
 
     /** 清理缓存 */
     public void clearCache(){

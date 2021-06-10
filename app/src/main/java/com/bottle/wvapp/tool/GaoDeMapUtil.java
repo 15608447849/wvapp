@@ -8,6 +8,7 @@ import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -44,7 +45,7 @@ public class GaoDeMapUtil {
             if (responseCode == HttpURLConnection.HTTP_OK) {
                 inStream = httpConnection.getInputStream();
                 BufferedReader reader = new BufferedReader(
-                        new InputStreamReader(inStream, "utf-8"));
+                        new InputStreamReader(inStream, StandardCharsets.UTF_8));
                 StringBuilder strber = new StringBuilder();
                 String line = null;
                 while ((line = reader.readLine()) != null){
@@ -57,19 +58,16 @@ public class GaoDeMapUtil {
                     ipLine = matcher.group();
                 }
             }
-        } catch (MalformedURLException e) {
+        } catch (Exception e) {
             e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
-        } finally {
+        }finally {
             try {
-                inStream.close();
-                httpConnection.disconnect();
-            } catch (IOException e) {
-                e.printStackTrace();
-            } catch (Exception ex) {
-                ex.printStackTrace();
-            }
+                if (inStream!=null) inStream.close();
+            } catch (Exception ignored) { }
+            try {
+                if (httpConnection!=null)  httpConnection.disconnect();
+            } catch (Exception ignored) { }
+
         }
         return ipLine;
     }

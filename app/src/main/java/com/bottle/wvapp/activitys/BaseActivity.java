@@ -52,7 +52,7 @@ public class BaseActivity extends AppCompatActivity {
         if (iWebViewInit!=null){
             clearWeb(true);
             iWebViewInit.getProxy().loadUrl(url);
-            LLog.print("打开链接: "+ url);
+            LLog.print("webview - 浏览器 - 打开链接: "+ url);
         }
     }
 

@@ -3,6 +3,8 @@ package lee.bottle.lib.toolset.util;
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.ActivityManager;
+import android.content.ClipData;
+import android.content.ClipboardManager;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
@@ -24,6 +26,7 @@ import android.os.Looper;
 import android.os.Parcelable;
 import android.provider.ContactsContract;
 import android.telephony.TelephonyManager;
+import android.util.Log;
 import android.view.Gravity;
 import android.view.View;
 import android.view.inputmethod.InputMethodManager;
@@ -509,6 +512,45 @@ public class AppUtils {
             if (bitmap != null && !bitmap.isRecycled()) {
                 bitmap.recycle();
             }
+        }
+    }
+
+
+    /**
+     * 获取剪切板内容
+     * @return
+     */
+    public static String getClipboardContent(Context context){
+        String pasteString = "";
+
+        try {
+            ClipboardManager manager = (ClipboardManager) context.getSystemService(Context.CLIPBOARD_SERVICE);
+            if (manager != null) {
+                ClipData clipData = manager.getPrimaryClip();
+                if (clipData!=null && clipData.getItemCount() > 0) {
+                    CharSequence text = clipData.getItemAt(0).getText();
+                    pasteString = text.toString();
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return pasteString;
+    }
+
+    public static void setClipboardContent(Context context,String content){
+        try {
+            // 得到剪贴板管理器
+            ClipboardManager cmb = (ClipboardManager)context.getSystemService(Context.CLIPBOARD_SERVICE);
+
+            // 创建一个剪贴数据集，包含一个普通文本数据条目（需要复制的数据）
+            ClipData clipData = ClipData.newPlainText(null, content);
+            // 把数据集设置（复制）到剪贴板
+            cmb.setPrimaryClip(clipData);
+
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 
