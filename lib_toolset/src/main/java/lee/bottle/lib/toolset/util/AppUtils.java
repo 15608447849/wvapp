@@ -11,6 +11,7 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
+import android.content.pm.ResolveInfo;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.drawable.BitmapDrawable;
@@ -552,6 +553,23 @@ public class AppUtils {
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    /* 判断协议是否有效 */
+    public static boolean schemeValid(Context context,String scheme) {
+        PackageManager manager = context.getPackageManager();
+        Intent action = new Intent(Intent.ACTION_VIEW);
+        action.setData(Uri.parse(scheme));
+        List<ResolveInfo> list = manager.queryIntentActivities(action, PackageManager.GET_RESOLVED_FILTER);
+        return list != null && list.size() > 0;
+    }
+
+    /* 跳转协议指定activity */
+    public static void schemeJump(Context context,String scheme){
+        Intent action = new Intent(Intent.ACTION_VIEW);
+        action.setFlags(FLAG_ACTIVITY_NEW_TASK);
+        action.setData(Uri.parse( scheme ));
+        context.startActivity(action);
     }
 
 }

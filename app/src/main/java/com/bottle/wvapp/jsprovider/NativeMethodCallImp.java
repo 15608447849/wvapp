@@ -8,6 +8,7 @@ import android.os.Build;
 
 import com.alipay.sdk.app.PayTask;
 import com.bottle.wvapp.activitys.BaseActivity;
+import com.bottle.wvapp.activitys.NativeActivity;
 import com.bottle.wvapp.wxapi.WXPayEntryActivity;
 import com.tencent.mm.opensdk.modelpay.PayReq;
 import com.tencent.mm.opensdk.openapi.IWXAPI;
@@ -21,6 +22,7 @@ import lee.bottle.lib.toolset.log.LLog;
 import lee.bottle.lib.toolset.os.ApplicationAbs;
 import lee.bottle.lib.toolset.os.CrashHandler;
 import lee.bottle.lib.toolset.util.AppUtils;
+import lee.bottle.lib.toolset.util.DialogUtil;
 import lee.bottle.lib.toolset.util.GsonUtils;
 
 import static android.Manifest.permission.CALL_PHONE;
@@ -30,6 +32,8 @@ import static android.content.Intent.FLAG_ACTIVITY_NEW_TASK;
 import static com.bottle.wvapp.app.ApplicationDevInfo.getMemDevToken;
 import static lee.bottle.lib.toolset.util.AppUtils.checkPermissionExist;
 import static lee.bottle.lib.toolset.util.AppUtils.getVersionName;
+import static lee.bottle.lib.toolset.util.AppUtils.schemeJump;
+import static lee.bottle.lib.toolset.util.AppUtils.schemeValid;
 
 
 /**
@@ -251,12 +255,7 @@ public class NativeMethodCallImp{
 
             }
         });
-
-
-
-
     }
-
 
     /** 清理缓存 */
     public void clearCache(){
@@ -269,5 +268,79 @@ public class NativeMethodCallImp{
             }
         });
     }
+
+    public void open_yqt_app(final String orderId_payorderUrl) {
+        String[] arr = orderId_payorderUrl.split("&");
+        String orderId  = arr[0];
+        String payorderUrl  = arr[1];
+
+        final BaseActivity activity = NativeServerImp.getBaseActivity();
+        if(activity == null) return;
+
+         /*
+         schema = yqt://eb-link.cn/loading/appcode-*-pbvAiJuSphiYAXWnKaUu?
+         yqtOrderNo=20200402100047&schemaUrl=bbpay%3A%2F%2Fla.baibu.bbbuyer&packageCode=la.baibu.bbbuyer&appName=%E7%99%BE%E5%B8%83
+
+        yqtOrderNo: 三方订单编号
+        schemaUrl:三方app拉起参数（不可带参数）
+        packageCode:三方app包名
+        appName:三方app名称（需要转码）
+
+        银企通包名: com.rthd.yqt
+        */
+
+//        final String apk_url = "https://file.zhanghc188.work/file/20210901/app-debug-yqt-uat-pl2-20210901V1.apk";
+        final String apk_url = "http://upload.eb-link.cn/yqtapp.html";
+
+        final String return_sechem = "onekdrug://wvapp_ccb_yqt:10000/return";
+        final String packageName = "com.bottle.wvapp";
+        final String appName = Uri.encode("一块医药");
+
+        final String schema = String.format("yqt://eb222-link.cn/loading/%s?yqtOrderNo=%s&schemaUrl=%s&packageCode=%s&appName=%s",
+                payorderUrl,orderId,return_sechem,packageName,appName);
+
+        activity.runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                boolean isExistApp = schemeValid( activity,schema);
+
+                LLog.print("跳转银企通:\n" + schema +"\n是否存在应用: "+ isExistApp);
+                if(isExistApp){
+                    schemeJump( activity,schema);
+                }else {
+                    DialogUtil.dialogSimple2(activity, "未安装应用'银企通'", "现在下载", new DialogUtil.Action0() {
+                        @Override
+                        public void onAction0() {
+                            downloadApk(apk_url);
+                        }
+                    }, "我知道了", null).show();
+                }
+            }
+        });
+    }
+
+
+    public void downloadApk(final String url){
+        final BaseActivity activity = NativeServerImp.getBaseActivity();
+        if(activity == null) return;
+
+        final Intent intent = new Intent();
+        intent.setAction(Intent.ACTION_VIEW);
+        intent.setData(Uri.parse(url));
+
+        activity.runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                if (intent.resolveActivity(activity.getPackageManager()) != null) {
+                    final ComponentName componentName = intent.resolveActivity(activity.getPackageManager());
+                    activity.startActivity(Intent.createChooser(intent, "请选择浏览器"));
+                } else {
+                    AppUtils.toastLong(activity,"下载失败");
+                }
+            }
+        });
+
+    }
+
 
 }

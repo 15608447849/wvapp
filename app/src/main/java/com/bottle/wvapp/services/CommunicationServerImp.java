@@ -56,7 +56,7 @@ public class CommunicationServerImp extends _PushMessageClientDisp {
      **/
     @Override
     public void receive(final String message, Current __current) {
-//        LLog.print(Thread.currentThread()+" 接收长连接消息: "+ message);
+        LLog.print(Thread.currentThread()+" 接收长连接消息: "+ message);
         messageQueue.offer(message);
     }
 

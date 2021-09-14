@@ -2,8 +2,11 @@ package com.bottle.wvapp.activitys;
 
 import android.Manifest;
 import android.content.ComponentName;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.content.pm.ResolveInfo;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -31,6 +34,7 @@ import com.google.android.material.snackbar.Snackbar;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.List;
 
 import lee.bottle.lib.toolset.http.HttpUtil;
 import lee.bottle.lib.toolset.log.LLog;
@@ -45,6 +49,8 @@ import static android.content.Intent.FLAG_ACTIVITY_NEW_TASK;
 import static com.bottle.wvapp.BuildConfig._WEB_HOME_URL;
 import static com.bottle.wvapp.app.BusinessData.getCurrentDevCompanyID;
 import static lee.bottle.lib.toolset.util.AppUtils.getClipboardContent;
+import static lee.bottle.lib.toolset.util.AppUtils.schemeJump;
+import static lee.bottle.lib.toolset.util.AppUtils.schemeValid;
 import static lee.bottle.lib.toolset.util.AppUtils.setClipboardContent;
 
 /**
@@ -112,6 +118,8 @@ public class NativeActivity extends BaseActivity implements PermissionApply.Call
         /* 加载页面 */
         loadWebMainPage(layout,this);
     }
+
+
 
 
 
@@ -272,6 +280,15 @@ public class NativeActivity extends BaseActivity implements PermissionApply.Call
             String pushMessageToJsStr = intent.getStringExtra("pushMessageToJs");
             intent.removeExtra("pushMessageToJs");
             if (pushMessageToJsStr!=null)  NativeServerImp.pushMessageToJs(pushMessageToJsStr);
+
+            // 弹窗提醒
+            String alertTipWindowStr = intent.getStringExtra("alertTipWindow");
+            intent.removeExtra("alertTipWindow");
+            if (alertTipWindowStr!=null) {
+                LLog.print("接收alert: "+ alertTipWindowStr);
+                DialogUtil.dialogSimple(this, alertTipWindowStr, "我知道了", null).show();
+            }
+
         }
 
         accessSharedContent();

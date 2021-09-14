@@ -23,25 +23,22 @@
     <uses-permission android:name="android.permission.VIBRATE" /> <!-- 请求安装包 -->
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" /> <!-- 读取短信权限 -->
     <uses-permission android:name="android.permission.RECEIVE_SMS" />
-    <uses-permission android:name="android.permission.READ_SMS" />
-
-    <!-- 在安卓8.0以后添加了前台所需要的权限 -->
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
+    <uses-permission android:name="android.permission.READ_SMS" /> <!-- 在安卓8.0以后添加了前台所需要的权限 -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
 
     <application
         android:name=".app.WebApplication"
         android:allowBackup="true"
-
+        android:hardwareAccelerated="false"
         android:icon="${app_icon}"
         android:label="@string/app_name"
+        android:largeHeap="true"
+        android:requestLegacyExternalStorage="true"
         android:roundIcon="${app_icon}"
         android:supportsRtl="true"
         android:theme="@style/AppTheme"
         android:usesCleartextTraffic="true"
-        tools:targetApi="m"
-        android:requestLegacyExternalStorage="true"
-        android:hardwareAccelerated="false"
-        android:largeHeap="true">
+        tools:targetApi="m">
 
         <uses-library
             android:name="org.apache.http.legacy"
@@ -59,16 +56,38 @@
         </activity>
 
         <!-- 页面错误 -->
-        <activity android:name=".activitys.ErrorActivity" android:launchMode="singleInstance" />
+        <activity
+            android:name=".activitys.ErrorActivity"
+            android:launchMode="singleInstance" />
 
         <!-- IM后台服务 -->
-        <service android:name=".services.IMService" android:process=":im"/>
+        <service
+            android:name=".services.IMService"
+            android:process=":im" />
 
         <!-- 微信支付 -->
         <activity
             android:name=".wxapi.WXPayEntryActivity"
             android:exported="true"
             android:launchMode="singleTop" />
+        <!-- 银企通建行快贷支付 -->
+        <activity android:name=".yqtccb.CCBYQTPayEntryActivity" >
+
+            <intent-filter>
+
+                <!-- URL Scheme <scheme>://<host>:<port>/<path>?<query> -->
+                <data
+                    android:scheme="onekdrug"
+                    android:host="wvapp_ccb_yqt"
+                    android:port="10000"
+                    android:path="/return"/>
+                <category android:name="android.intent.category.DEFAULT" />
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+            </intent-filter>
+
+        </activity>
 
         <!-- 适配android 7.0 -->
         <provider

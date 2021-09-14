@@ -195,6 +195,7 @@ public class SysWebViewClient extends WebViewClient {
     /** HTTP的body标签加载前调用，仅在主frame调用 */
     @Override
     public void onPageCommitVisible(WebView view, String url) {
+//        LLog.print("onPageCommitVisible "+ url);
         super.onPageCommitVisible(view, url);
     }
 

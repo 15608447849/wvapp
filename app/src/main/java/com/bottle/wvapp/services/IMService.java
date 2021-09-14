@@ -26,6 +26,7 @@ import Ice.Connection;
 import Ice.ConnectionCallback;
 import lee.bottle.lib.toolset.log.LLog;
 import lee.bottle.lib.toolset.util.AppUtils;
+import lee.bottle.lib.toolset.util.DialogUtil;
 import lee.bottle.lib.toolset.util.ErrorUtil;
 import lee.bottle.lib.toolset.util.StringUtils;
 
@@ -33,6 +34,8 @@ import static android.content.Intent.FLAG_ACTIVITY_NEW_TASK;
 import static com.bottle.wvapp.app.ApplicationDevInfo.DEVTYPE;
 import static com.bottle.wvapp.app.BusinessData.getOrderServerNo;
 import static com.bottle.wvapp.app.BusinessData.getCurrentDevCompanyID;
+import static lee.bottle.lib.toolset.util.AppUtils.schemeJump;
+import static lee.bottle.lib.toolset.util.AppUtils.schemeValid;
 
 
 /*
@@ -237,6 +240,8 @@ public class IMService extends Service {
             protocol_logout(prop,msg,intent);
             protocol_payResult(prop,msg,intent);
             protocol_pushMessage(prop,msg,intent);
+            protocol_alertMessage(prop,msg,intent);
+
 
         } catch (Exception e) {
             LLog.print("接收长连接消息异常: "+ message+" , " + e.getMessage());
@@ -265,7 +270,7 @@ public class IMService extends Service {
     }
 
     //登录/强制登录
-    private void protocol_pushMessage(String prop, String msg, Intent intent) {
+    private void protocol_logout(String prop, String msg, Intent intent) {
         if (prop.startsWith("logout")){
             LLog.print("登出信息: "+ msg);
             String message = null;
@@ -319,8 +324,9 @@ public class IMService extends Service {
             getApplication().startActivity(intent);
         }
     }
+
     //推送消息
-    private void protocol_logout(String prop, String msg, Intent intent) {
+    private void protocol_pushMessage(String prop, String msg, Intent intent) {
 
         if (prop.equals("push") || prop.equals("custom")){
             LLog.print("推送消息: "+ msg);
@@ -348,4 +354,11 @@ public class IMService extends Service {
         }
     }
 
+    // 强制弹框
+    private void protocol_alertMessage(String prop,String msg,Intent intent){
+        if (prop.equals("alert")){
+            intent.putExtra("alertTipWindow",msg);
+            getApplication().startActivity(intent);
+        }
+    }
 }
