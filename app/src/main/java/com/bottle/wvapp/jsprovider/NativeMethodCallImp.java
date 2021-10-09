@@ -342,5 +342,23 @@ public class NativeMethodCallImp{
 
     }
 
+    /* 设置手机主题颜色 */
+    public void setPhoneTitleColor(String color_code_rgb){
+        // NativeActivity
+        final BaseActivity activity = NativeServerImp.getBaseActivity();
+        if (activity!=null) return;
+
+        // 当前执行在子线程
+        activity.runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                // 研究下怎么动态改变手机状态栏背景颜色
+
+
+
+            }
+        });
+
+    }
 
 }
