@@ -4,27 +4,42 @@
     xmlns:tools="http://schemas.android.com/tools"
     package="com.bottle.wvapp">
 
-    <dist:module dist:instant="true" /> <!-- 网络连接 -->
-    <uses-permission android:name="android.permission.INTERNET" /> <!-- 网络状态查看 -->
-    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" /> <!-- 访问无线状态权限 -->
-    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" /> <!-- 允许程序设置内置sd卡的写权限 -->
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" /> <!-- 挂载SD卡 -->
+    <dist:module dist:instant="true" />
+    <!-- 网络连接 -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <!-- 网络状态查看 -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <!-- 访问无线状态权限 -->
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <!-- 允许程序设置内置sd卡的写权限 -->
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <!-- 挂载SD卡 -->
     <!-- <uses-permission android:name="android.permission.MOUNT_UNMOUNT_FILESYSTEMS" /> -->
     <!-- 读取文件 -->
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" /> <!-- 读取通讯录 -->
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <!-- 读取通讯录 -->
     <!-- <uses-permission android:name="android.permission.READ_CONTACTS"/> -->
     <!-- 获取手机状态 -->
-    <uses-permission android:name="android.permission.READ_PHONE_STATE" /> <!-- 获取手机设置 -->
-    <uses-permission android:name="android.permission.READ_SETTINGS" /> <!-- 写入手机设置 -->
+    <uses-permission android:name="android.permission.READ_PHONE_STATE" />
+    <!-- 获取手机设置 -->
+    <uses-permission android:name="android.permission.READ_SETTINGS" />
+    <!-- 写入手机设置 -->
     <!-- <uses-permission android:name="android.permission.WRITE_SETTINGS" /> -->
     <!-- 拨号 -->
-    <uses-permission android:name="android.permission.CALL_PHONE" /> <!-- 相机 -->
-    <uses-permission android:name="android.permission.CAMERA" /> <!-- 震动 -->
-    <uses-permission android:name="android.permission.VIBRATE" /> <!-- 请求安装包 -->
-    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" /> <!-- 读取短信权限 -->
+    <uses-permission android:name="android.permission.CALL_PHONE" />
+    <!-- 相机 -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <!-- 震动 -->
+    <uses-permission android:name="android.permission.VIBRATE" />
+    <!-- 请求安装包 -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+    <!-- 读取短信权限 -->
     <uses-permission android:name="android.permission.RECEIVE_SMS" />
-    <uses-permission android:name="android.permission.READ_SMS" /> <!-- 在安卓8.0以后添加了前台所需要的权限 -->
+    <uses-permission android:name="android.permission.READ_SMS" />
+    <!-- 在安卓8.0以后添加了前台所需要的权限 -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <!-- 弹窗权限 -->
+<!--    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />-->
 
     <application
         android:name=".app.WebApplication"

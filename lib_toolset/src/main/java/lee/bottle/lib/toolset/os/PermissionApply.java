@@ -4,6 +4,7 @@ import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.app.AppOpsManager;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -15,10 +16,13 @@ import android.os.Build;
 import android.os.PowerManager;
 import android.provider.Settings;
 
+import androidx.annotation.RequiresApi;
+
 import java.lang.ref.SoftReference;
-import java.util.Arrays;
 
 import lee.bottle.lib.toolset.log.LLog;
+
+import static lee.bottle.lib.toolset.util.AppUtils.checkWindowPermission;
 
 
 /**
@@ -70,33 +74,50 @@ public class PermissionApply {
      * 请求用户给予悬浮窗的权限
      */
     @TargetApi(23)
-    public boolean askFloatWindowPermission() {
+    @SuppressLint("WrongConstant")
+    public void askFloatWindowPermission() {
         Activity activity = activityRef.get();
-        if (activity == null) return false;
+        if (activity == null) return;
 
-        if (!Settings.canDrawOverlays(activity)) {
+        if (!checkWindowPermission(activity)) {
+
+            //弹窗请求授权浮窗
             final DialogInterface.OnClickListener listener = new DialogInterface.OnClickListener(){
                 @Override
                 public void onClick(DialogInterface dialog, int which) {
                     dialog.cancel();
                     if (which == DialogInterface.BUTTON_POSITIVE){
                         openFloatWindowPower();
-                    }else if (which == DialogInterface.BUTTON_NEGATIVE){
-                        System.exit(0);
                     }
                 }
             };
-            openAppDetails(listener);
-            return false;
+
+            AlertDialog.Builder builder = new AlertDialog.Builder(activity);
+            builder.setTitle("请求悬浮窗") ;//设置标题
+            builder.setMessage("应用部分功能需要使用悬浮窗,是否授权?") ;//设置内容
+            PackageManager pkm = activity.getPackageManager();
+            try {
+                Drawable mAppicon = pkm.getActivityInfo(activity.getComponentName(), ActivityInfo.FLAG_STATE_NOT_NEEDED).loadIcon(pkm);
+                builder.setIcon(mAppicon);//设置图标，
+            } catch (PackageManager.NameNotFoundException e) {
+                e.printStackTrace();
+            }
+            builder.setPositiveButton("授权",listener);
+            builder.setNegativeButton("取消",listener);
+            builder.setCancelable(false);
+            builder.create().show();
+
         }
-        return true;
+
     }
 
-    private void openFloatWindowPower() {
-        Activity activity =   activityRef==null? null : activityRef.get();
-;
-        if (activity == null) return;
 
+
+    // 打开浮窗授权
+    @RequiresApi(api = Build.VERSION_CODES.M)
+    private void openFloatWindowPower() {
+        Activity activity = activityRef.get();
+        if (activity == null) return;
         Intent intent = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
                 Uri.parse("package:" + activity.getPackageName()));
         activity.startActivityForResult(intent, OVERLAY_PERMISSION_REQ_CODE);
@@ -107,9 +128,10 @@ public class PermissionApply {
      <!--可以直接弹出一个系统对话框让用户直接添加app到白名单-->
      <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
      */
+    @SuppressLint("BatteryLife")
     public boolean isIgnoreBatteryOption() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) return true;
-        Activity activity = activityRef==null? null : activityRef.get();
+        Activity activity = activityRef.get();
         if (activity == null) return false;
 
         try {
@@ -135,7 +157,7 @@ public class PermissionApply {
     //获取权限
     @TargetApi(23)
     private boolean getPermissions() {
-        Activity activity =   activityRef==null? null : activityRef.get();
+        Activity activity = activityRef.get();
         if (activity == null) return false;
 
         isPermissionsDenied = false;
@@ -165,8 +187,9 @@ public class PermissionApply {
             LLog.print(sb.toString());
         }
 
-        if (requestCode == SDK_PERMISSION_REQUEST) {
+        if (requestCode == SDK_PERMISSION_REQUEST && grantResults!=null) {
             isPermissionsDenied = false; //假设授权没有被拒绝
+
             for (int result : grantResults) {
                 if (result == PackageManager.PERMISSION_DENIED) {
                     isPermissionsDenied = true;//发现有一个权限未授予,则无权限访问
@@ -174,50 +197,53 @@ public class PermissionApply {
                 }
             }
             if (isPermissionsDenied) {
-                final DialogInterface.OnClickListener listener = new DialogInterface.OnClickListener(){
-                    @Override
-                    public void onClick(DialogInterface dialog, int which) {
-                        dialog.cancel();
-                        if (which == DialogInterface.BUTTON_POSITIVE){
-                            startSysSettingActivity();
-                        }else if (which == DialogInterface.BUTTON_NEGATIVE){
-                            System.exit(0);
-                        }
-                    }
-                };
-                openAppDetails(listener);
+
+                alertWindowNotifyPermissionsDenied();
             } else {
                 callback.onPermissionsGranted();
             }
         }
     }
 
-    //提示框 >> 打开系统应用
+    //授权失败提示框 >> 打开系统应用
     @SuppressLint("WrongConstant")
-    private void openAppDetails(DialogInterface.OnClickListener listener) {
-        Activity activity = activityRef==null? null : activityRef.get();
+    private void alertWindowNotifyPermissionsDenied() {
+        Activity activity = activityRef.get();
         if (activity == null) return;
 
+
+        final DialogInterface.OnClickListener listener = new DialogInterface.OnClickListener(){
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                dialog.cancel();
+                if (which == DialogInterface.BUTTON_POSITIVE){
+                    startSysSettingActivity();
+                }else if (which == DialogInterface.BUTTON_NEGATIVE){
+                    System.exit(0);
+                }
+            }
+        };
+
         AlertDialog.Builder builder = new AlertDialog.Builder(activity);
-        builder.setTitle("应用授权") ;//设置标题
-        builder.setMessage("您拒绝了相关权限,将无法正常使用,请手动授予") ;//设置内容
+        builder.setTitle("应用授权失败") ;//设置标题
+        builder.setMessage("您已拒绝应用相关权限,可能无法正常使用") ;//设置内容
         PackageManager pkm = activity.getPackageManager();
-        Drawable mAppicon = null;
         try {
-            mAppicon = pkm.getActivityInfo(activity.getComponentName(), ActivityInfo.FLAG_STATE_NOT_NEEDED).loadIcon(pkm);
+            Drawable mAppicon = pkm.getActivityInfo(activity.getComponentName(), ActivityInfo.FLAG_STATE_NOT_NEEDED).loadIcon(pkm);
+            builder.setIcon(mAppicon);//设置图标，
         } catch (PackageManager.NameNotFoundException e) {
             e.printStackTrace();
         }
-        builder.setIcon(mAppicon);//设置图标，
-
         builder.setPositiveButton("手动授权",listener);
         builder.setNegativeButton("退出应用",listener);
+        builder.setNeutralButton("继续使用",listener);
         builder.setCancelable(false);
         builder.create().show();
     }
+
     //打开系统应用
     private void  startSysSettingActivity() {
-        Activity activity = activityRef==null? null : activityRef.get();
+        Activity activity = activityRef.get();
         if (activity == null) return;
 
         Intent intent = new Intent();

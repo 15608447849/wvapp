@@ -49,13 +49,12 @@ public class SysCore extends IWebViewInit<WebView> implements DownloadListener {
         //是否允许运行在一个file schema URL环境下的JavaScript访问来自其他任何来源的内容
         settings.setAllowUniversalAccessFromFileURLs(false);
 
-        settings.setLayoutAlgorithm(WebSettings.LayoutAlgorithm.NARROW_COLUMNS);
-
+        // 设置基础布局算法
+        settings.setLayoutAlgorithm(WebSettings.LayoutAlgorithm.NORMAL);
         //不支持使用屏幕上的缩放控件和手势进行缩放
         settings.setSupportZoom(false);
         //是否使用内置的缩放机制
         settings.setSupportZoom(false);
-
         //是否支持HTML的“viewport”标签或者使用wide viewport
         settings.setUseWideViewPort(true);
         //是否允许WebView度超出以概览的方式载入页面

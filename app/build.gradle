@@ -3,18 +3,18 @@ apply plugin: 'kotlin-android'
 apply plugin: 'kotlin-android-extensions'
 
 
-def appVersion = 60
+def appVersion = 62
 def iceTag = "DRUG"
 
-def fileServerUrl = "https://www.onekdrug.com:9999"
-def webHomeUrl = "https://wx.onekdrug.com/" //生产地址
-def address = "tcp:reg.onekdrug.com:4161;tcp:ice.onekdrug.com:4161" //生产
-def appIcon = "@mipmap/ic_launcher"
+//def fileServerUrl = "https://www.onekdrug.com:9999"
+//def webHomeUrl = "https://wx.onekdrug.com/" //生产地址
+//def address = "tcp:reg.onekdrug.com:4161;tcp:ice.onekdrug.com:4161" //生产
+//def appIcon = "@mipmap/ic_launcher"
 
-//def fileServerUrl = "http://114.116.155.221:9999"
-//def webHomeUrl = "http://wx.onek56.com/" //测试地址
-//def address = "114.115.168.87:4061" //测试
-//def appIcon = "@mipmap/ic_launch_test"
+def fileServerUrl = "http://121.37.6.129:9999"
+def webHomeUrl = "http://wx.onek56.com/" //测试地址
+def address = "116.205.179.210:4061" //测试
+def appIcon = "@mipmap/ic_launch_test"
 
 def yqt_apk_download_url = "https://file.zhanghc188.work/file/20210901/app-debug-yqt-uat-pl2-20210901V1.apk";
 

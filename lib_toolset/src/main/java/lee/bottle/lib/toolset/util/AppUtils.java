@@ -3,6 +3,7 @@ package lee.bottle.lib.toolset.util;
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.ActivityManager;
+import android.app.AppOpsManager;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.ContentResolver;
@@ -26,6 +27,7 @@ import android.os.Build;
 import android.os.Looper;
 import android.os.Parcelable;
 import android.provider.ContactsContract;
+import android.provider.Settings;
 import android.telephony.TelephonyManager;
 import android.util.Log;
 import android.view.Gravity;
@@ -105,9 +107,28 @@ public class AppUtils {
         return true;
     }
 
+    /*
+   检查浮窗是否授权
+   AppOpsManager.MODE_ALLOWED —— 表示授予了权限并且重新打开了应用程序
+   AppOpsManager.MODE_IGNORED —— 表示授予权限并返回应用程序
+   AppOpsManager.MODE_ERRORED —— 表示当前应用没有此权限
+   AppOpsManager.MODE_DEFAULT —— 表示默认值，有些手机在没有开启权限时，mode的值就是这个
+   */
+    @RequiresApi(api = Build.VERSION_CODES.M)
+    public static boolean checkWindowPermission(Context context) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            AppOpsManager appOpsMgr = (AppOpsManager) context.getSystemService(Context.APP_OPS_SERVICE);
+            if (appOpsMgr == null)
+                return false;
+            int mode = appOpsMgr.checkOpNoThrow("android:system_alert_window", android.os.Process.myUid(), context
+                    .getPackageName());
+            return Settings.canDrawOverlays(context) || mode == AppOpsManager.MODE_ALLOWED || mode == AppOpsManager.MODE_IGNORED;
+        }
+        return Settings.canDrawOverlays(context);
+    }
+
     /**
      * 隐藏软键盘
-     * @param activity
      */
     public static void hideSoftInputFromWindow(@NonNull Activity activity){
         try {
@@ -120,10 +141,9 @@ public class AppUtils {
             e.printStackTrace();
         }
     }
+
     /**
      *是否打开无线模块
-     * @param context
-     * @return
      */
     public static boolean isOpenWifi(@NonNull Context context){
         WifiManager mWifiManager = (WifiManager) context.getApplicationContext().getSystemService(Context.WIFI_SERVICE);
@@ -131,8 +151,7 @@ public class AppUtils {
         return mWifiManager.isWifiEnabled();
     }
     /**
-     * @param context 上下文
-     * @return 仅仅是用来判断网络连接
+     * 判断网络连接
      * <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
      */
     @SuppressLint("MissingPermission")
@@ -152,6 +171,7 @@ public class AppUtils {
         return false;
     }
 
+    /* 获取本地文件输出流 */
     public static void getLocalFileToOutputStream(File file, OutputStream out) throws Exception{
         try (FileInputStream fis = new FileInputStream(file)){
             byte[] b = new byte[4096];
@@ -162,7 +182,7 @@ public class AppUtils {
         }
     }
 
-    //将文件转换成Byte数组
+    /* 将文件转换成Byte数组 */
     public static byte[] getBytesByFile(File file) {
         int len = 1024;
         try( FileInputStream fis = new FileInputStream(file)){
@@ -180,7 +200,7 @@ public class AppUtils {
         return null;
     }
 
-
+    /* 解压zip */
     public static boolean unZipToFolder(InputStream zipFileStream, File dir) {
         try (ZipInputStream inZip = new ZipInputStream(zipFileStream)){
 
@@ -218,30 +238,31 @@ public class AppUtils {
         return  false;
     }
 
-
-
-    //检查无线网络有效
+    /* 检查无线网络有效 */
     private boolean isWirelessNetworkValid(Context context) {
         return AppUtils.isOpenWifi(context) && AppUtils.isNetworkAvailable(context);
     }
-   //判断GPS是否开启
+
+   /* 判断GPS是否开启 */
     public static boolean isOenGPS(@NonNull Context context) {
         LocationManager locationManager = (LocationManager) context.getSystemService(Context.LOCATION_SERVICE);
         assert locationManager != null;
         return locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
     }
-    //打开GPS设置界面
+    /* 打开GPS设置界面 */
     public static void openGPS(@NonNull Context context){
         Intent intent = new Intent(android.provider.Settings.ACTION_LOCATION_SOURCE_SETTINGS);
         intent.setFlags(FLAG_ACTIVITY_NEW_TASK);
         // 打开GPS设置界面
         context.startActivity(intent);
     }
-    //检查UI线程
+
+    /* 检查UI线程 */
     public static boolean checkUIThread() {
         return Looper.myLooper() == Looper.getMainLooper();
     }
-    //获取当前进程名
+
+    /* 获取当前进程名 */
     public static String getCurrentProcessName(@NonNull Context context) {
         int pid = android.os.Process.myPid();
         String processName = "";
@@ -255,15 +276,18 @@ public class AppUtils {
         }
         return processName;
     }
-    //判断当前进程是否是主进程
+
+    /* 判断当前进程是否是主进程 */
     public static boolean checkCurrentIsMainProgress(@NonNull Context context){
         return checkCurrentIsMainProgress(context, AppUtils.getCurrentProcessName(context));
     }
-    //判断当前进程是否是主进程
+
+    /* 判断当前进程是否是主进程 */
     public static boolean checkCurrentIsMainProgress(@NonNull Context context, @NonNull String currentProgressName){
         return context.getPackageName().equals(currentProgressName);
     }
-    //获取应用版本号
+
+    /* 获取应用版本号 */
     public static int getVersionCode(@NonNull Context ctx) {
         // 获取packagemanager的实例
         int version = 0;
@@ -276,7 +300,7 @@ public class AppUtils {
         }
         return version;
     }
-    //获取应用版本名
+    /* 获取应用版本名 */
     public static String getVersionName(@NonNull Context ctx) {
         // 获取package manager的实例
         String version = "";
@@ -290,7 +314,7 @@ public class AppUtils {
         return version;
     }
 
-    //简单信息弹窗
+    /* 简单信息弹窗 */
     public static void toastLong(@NonNull Context context, @NonNull String message){
         if (!checkUIThread() ) return;
 
@@ -304,7 +328,7 @@ public class AppUtils {
         }
     }
 
-    //简单信息弹窗
+    /* 简单信息弹窗 */
     public static void toastShort(@NonNull Context context, @NonNull String message){
         if (!checkUIThread() ) return;
 
@@ -318,7 +342,7 @@ public class AppUtils {
         }
     }
 
-    //简单信息弹窗
+    /* 简单信息弹窗 */
     public static void toastCustom(@NonNull Context context, @NonNull String message,int duration,int gravity,View view){
         if (!checkUIThread() ) return;
 
@@ -338,7 +362,7 @@ public class AppUtils {
         }
     }
 
-    //把bitmap 转file
+    /* 把bitmap 转file */
     public static boolean bitmap2File(Bitmap bitmap, File file){
         try {
             if (bitmap==null || file==null) return false;
@@ -352,7 +376,10 @@ public class AppUtils {
         }
         return false;
     }
-    //创建快捷方式 ; 权限:  <uses-permission android:name="com.android.launcher.permission.INSTALL_SHORTCUT"/>
+
+    /*
+    * 创建快捷方式 ; 权限:  <uses-permission android:name="com.android.launcher.permission.INSTALL_SHORTCUT"/>
+    * */
     public static void addShortcut(Context context, int appIcon, boolean isCheck) {
 
         try {
@@ -378,6 +405,7 @@ public class AppUtils {
             e.printStackTrace();
         }
     }
+
     //读取assets目录指定文件内容
     public static String assetFileContentToText(Context c, String filePath) {
         InputStream in = null;
@@ -391,10 +419,7 @@ public class AppUtils {
                 if (line != null) {
                     line = line.replaceAll("\\t", "");
                     line = line.replaceAll("\\s", "");
-
-//                    if (!line.matches("^\\s*\\/\\/.*")) {
-                        sb.append(line);
-//                    }
+                    sb.append(line);
                 }
             } while (line != null);
 
@@ -413,6 +438,7 @@ public class AppUtils {
         }
         return null;
     }
+
     // 安装apk
     public static void installApk(Context context, File apkFile) {
         try {
@@ -446,6 +472,7 @@ public class AppUtils {
     }
 
     /**
+     * 获取设备mac
      * <uses-permission android:name="android.permission.ACCESS_WIFI_STATE"/>
      */
     @SuppressLint("HardwareIds")
@@ -462,7 +489,6 @@ public class AppUtils {
     }
     /**
      * 通过网络接口取
-     * @return
      */
     private static String getNewMac() {
         try {
@@ -519,7 +545,6 @@ public class AppUtils {
 
     /**
      * 获取剪切板内容
-     * @return
      */
     public static String getClipboardContent(Context context){
         String pasteString = "";
@@ -540,6 +565,7 @@ public class AppUtils {
         return pasteString;
     }
 
+    /* 设置剪切板内容 */
     public static void setClipboardContent(Context context,String content){
         try {
             // 得到剪贴板管理器
@@ -570,6 +596,31 @@ public class AppUtils {
         action.setFlags(FLAG_ACTIVITY_NEW_TASK);
         action.setData(Uri.parse( scheme ));
         context.startActivity(action);
+    }
+
+    /* 获取状态栏高度 */
+    public static int statusBarHeight(Activity activity){
+        int statusBarHeight = -1;
+        //获取status_bar_height资源的ID
+        int resourceId = activity.getResources().getIdentifier("status_bar_height", "dimen", "android");
+        if (resourceId > 0) {
+            //根据资源ID获取响应的尺寸值
+            statusBarHeight = activity.getResources().getDimensionPixelSize(resourceId);
+        }
+        if (statusBarHeight == -1){
+            try {
+                Class<?> clazz = Class.forName("com.android.internal.R$dimen");
+                Object object = clazz.newInstance();
+                int height = Integer.parseInt(clazz.getField("status_bar_height")
+                        .get(object).toString());
+                statusBarHeight = activity.getResources().getDimensionPixelSize(height);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+
+        LLog.print("状态栏高度: "+ statusBarHeight);
+        return statusBarHeight;
     }
 
 }

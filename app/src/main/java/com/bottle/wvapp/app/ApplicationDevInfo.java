@@ -18,6 +18,7 @@ import lee.bottle.lib.toolset.util.StringUtils;
 public class ApplicationDevInfo {
 
     private ApplicationDevInfo(){ }
+
     /* 设备类型 */
     public static final String DEVTYPE = "PHONE";
 

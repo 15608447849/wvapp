@@ -430,8 +430,8 @@ public class HttpUtil {
         String result = null;
         BufferedReader reader = null;
         try {
-            reader =  new BufferedReader(new InputStreamReader(inputStream,"utf-8"));
-            StringBuffer resultBuffer = new StringBuffer();
+            reader =  new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8));
+            StringBuilder resultBuffer = new StringBuilder();
             String tempLine;
             while ((tempLine = reader.readLine()) != null) {
                 resultBuffer.append(tempLine);
@@ -554,7 +554,7 @@ public class HttpUtil {
         try {
             URL url = new URL(request.url);
             con = request.url.startsWith("https") ?
-                    (HttpsURLConnection) url.openConnection() : (HttpURLConnection) url.openConnection();;
+                    (HttpsURLConnection) url.openConnection() : (HttpURLConnection) url.openConnection();
             connectionSetting(con,request);
             connectionAddHeadParams(con,request);
             con.connect();//连接
@@ -641,7 +641,6 @@ public class HttpUtil {
 
         con.setRequestProperty("Charset", "UTF-8");
         con.setRequestProperty("Connection", "keep-alive");  //设置连接的状态
-        con.setRequestProperty("Connection", "keep-alive");  //设置连接的状态
 
         if (request.isUpdate){
             con.setDoOutput(true);
@@ -649,8 +648,8 @@ public class HttpUtil {
         }
         if (request.isDownload){
             con.setDoInput(true);
-            con.setRequestProperty("Accept-Encoding", "identity");
-            con.setRequestProperty("Range", "bytes=" + 0 + "-");
+//            con.setRequestProperty("Accept-Encoding", "identity");// 压缩相关不设置
+            con.setRequestProperty("Range", "bytes=" + 0 + "-"); // 设置下载大小
         }
 
         if (request.isForm){

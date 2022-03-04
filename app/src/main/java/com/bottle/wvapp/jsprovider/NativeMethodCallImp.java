@@ -1,10 +1,17 @@
 package com.bottle.wvapp.jsprovider;
 
+import android.app.ActionBar;
 import android.app.Activity;
 import android.content.ComponentName;
 import android.content.Intent;
+import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
 import android.net.Uri;
 import android.os.Build;
+import android.view.View;
+import android.view.ViewGroup;
+import android.view.Window;
+import android.view.WindowManager;
 
 import com.alipay.sdk.app.PayTask;
 import com.bottle.wvapp.activitys.BaseActivity;
@@ -29,11 +36,14 @@ import static android.Manifest.permission.CALL_PHONE;
 import static android.content.Intent.FLAG_ACTIVITY_NEW_TASK;
 
 
+import static android.content.Intent.parseUri;
+import static android.view.View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN;
 import static com.bottle.wvapp.app.ApplicationDevInfo.getMemDevToken;
 import static lee.bottle.lib.toolset.util.AppUtils.checkPermissionExist;
 import static lee.bottle.lib.toolset.util.AppUtils.getVersionName;
 import static lee.bottle.lib.toolset.util.AppUtils.schemeJump;
 import static lee.bottle.lib.toolset.util.AppUtils.schemeValid;
+import static lee.bottle.lib.toolset.util.AppUtils.statusBarHeight;
 
 
 /**
@@ -54,6 +64,7 @@ public class NativeMethodCallImp{
         map.put("devOS","android-"+devInfoMap.get("安卓系统版本号"));
         map.put("devModel",devInfoMap.get("型号"));
         map.put("devToken", getMemDevToken());// token
+        map.put("statusBarHeight",String.valueOf(statusBarHeight(NativeServerImp.getBaseActivity())));
         LLog.print("JS获取本机设备信息: "+ map);
         return GsonUtils.javaBeanToJson(map);
     }
@@ -342,23 +353,79 @@ public class NativeMethodCallImp{
 
     }
 
-    /* 设置手机主题颜色 */
-    public void setPhoneTitleColor(String color_code_rgb){
-        // NativeActivity
+    /*
+    * 配置状态栏背景颜色和字体颜色及状态栏
+    * 'bgcolor': 背景颜色 RPG
+    * 'isLightColor': true 字体白色 false：字体黑色
+    * noStatusBarPage 布局延伸至状态栏底部
+    * */
+    public void setStatusBar(String json){
         final BaseActivity activity = NativeServerImp.getBaseActivity();
-        if (activity!=null) return;
+        if (activity == null ) return;
 
-        // 当前执行在子线程
+        HashMap<String,Object> map = GsonUtils.string2Map(json);
+        final String isLightColor = String.valueOf(map.get("isLightColor"));
+        final String bgColor = String.valueOf(map.get("bgcolor")) ;
+        final String  noStatusBarPage = String.valueOf(map.get("noStatusBarPage"));
+
+//        LLog.print("状态栏 背景颜色: " + bgColor +" 文本颜色: "+ isLightColor + " 是否延伸: "+ noStatusBarPage);
+
+
+
         activity.runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                // 研究下怎么动态改变手机状态栏背景颜色
+                Window window = activity.getWindow();
+                View decorView = window.getDecorView();
+                int curSystemUiVisibility = decorView.getSystemUiVisibility();
+                WindowManager.LayoutParams layoutParams = window.getAttributes();
+                View contentViewGroup = ((ViewGroup) activity.findViewById(android.R.id.content)).getChildAt(0);
+                //                        contentViewGroup.setFitsSystemWindows(true);
 
+                if (noStatusBarPage!=null){
+                    if (noStatusBarPage.equals("true")){
+                        curSystemUiVisibility = View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN;
+                        window.setStatusBarColor(Color.TRANSPARENT);
+//                        LLog.print("延伸至状态栏 状态栏背景色透明 ");
+                    }else{
+                        curSystemUiVisibility = 0;
+//                        LLog.print("不延伸至状态栏");
+                        if (bgColor!=null){
+                            // 设置状态栏背景颜色
+                            window.setStatusBarColor(Color.parseColor(bgColor));
+//                            LLog.print("状态栏背景色: "+ bgColor);
+                        }
+                    }
+                }
 
-
+                if (isLightColor!=null){
+                    if (isLightColor.equals("true")){
+                        curSystemUiVisibility |= View.SYSTEM_UI_FLAG_LAYOUT_STABLE;
+//                        LLog.print("文本白色");
+                    }else {
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                            curSystemUiVisibility |= View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR;
+//                            LLog.print("文本黑色 ");
+                        }
+                    }
+                }
+                decorView.setSystemUiVisibility( curSystemUiVisibility);
             }
         });
 
     }
+
+    public void exitApplication(){
+        System.exit(0);
+    }
+    public void permissionQuery(){
+        final BaseActivity activity = NativeServerImp.getBaseActivity();
+        if (activity == null ) return;
+        if (activity instanceof NativeActivity){
+            ((NativeActivity)activity).permissionQuery();
+        }
+    }
+
+
 
 }

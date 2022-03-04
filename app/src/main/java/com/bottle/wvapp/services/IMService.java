@@ -1,17 +1,24 @@
 package com.bottle.wvapp.services;
 
+import android.annotation.SuppressLint;
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.Service;
 import android.content.Intent;
+import android.graphics.PixelFormat;
 import android.os.Build;
 import android.os.IBinder;
 import android.util.Log;
+import android.view.Gravity;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.WindowManager;
 
 import androidx.annotation.Nullable;
 
 import com.bottle.wvapp.BuildConfig;
+import com.bottle.wvapp.R;
 import com.bottle.wvapp.activitys.NativeActivity;
 import com.bottle.wvapp.app.ApplicationDevInfo;
 import com.bottle.wvapp.tool.NotifyUer;
@@ -66,9 +73,28 @@ public class IMService extends Service {
         openIceCommunication();
         openLongConnectionWatch();
         setFrontService();
+//        createFloatView();
         super.onCreate();
 
     }
+
+    private FloatWindowView floatWindowView;
+
+    @SuppressLint("RtlHardcoded")
+    private void createFloatView() {
+        floatWindowView = new FloatWindowView(this);
+        WindowManager windowManager = (WindowManager) this.getSystemService(WINDOW_SERVICE);
+        WindowManager.LayoutParams layoutParams = new WindowManager.LayoutParams(
+                WindowManager.LayoutParams.WRAP_CONTENT,
+                WindowManager.LayoutParams.WRAP_CONTENT,
+                WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
+                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE|WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,
+                PixelFormat.RGBA_8888);
+        layoutParams.gravity = Gravity.TOP | Gravity.LEFT ;
+        windowManager.addView(floatWindowView,layoutParams);
+
+    }
+
 
     private void openIceCommunication() {
         client.startCommunication();
@@ -119,6 +145,9 @@ public class IMService extends Service {
                 public void heartbeat(Connection con) {
                     Log.i("ice","heartbeat:"+ con);
                     receive.lastHeartbeatTime = System.currentTimeMillis();
+                    if (floatWindowView!=null){
+                        floatWindowView.setConnect(true);
+                    }
                 }
 
                 @Override
@@ -160,6 +189,7 @@ public class IMService extends Service {
                 if (receive.prx!=null){
                     receive.prx.ice_ping();
                     Log.i("ice","ping ok");
+
                     return true;
                 }
             }
@@ -177,6 +207,7 @@ public class IMService extends Service {
                 connection.close(true);
                 LLog.print("IM 服务器 断开连接: " + connection);
                 receive.lastHeartbeatTime = 0;
+
             }catch (Exception ignored){ }
             receive.prx = null;
         }
@@ -184,10 +215,14 @@ public class IMService extends Service {
             try { client.getLocalAdapter().remove(receive.identity); } catch (Exception ignored) { }
             receive.identity = null;
         }
+        if (floatWindowView!=null){
+            floatWindowView.setConnect(false);
+        }
     }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
+
         if (isDebugger) LLog.print("IMService onStartCommand");
         return START_REDELIVER_INTENT;
     }

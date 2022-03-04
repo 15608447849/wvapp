@@ -3,6 +3,7 @@ package com.bottle.wvapp.jsprovider;
 import android.app.Activity;
 import android.app.Application;
 import android.content.Intent;
+import android.os.Build;
 
 import com.bottle.wvapp.BuildConfig;
 import com.bottle.wvapp.activitys.BaseActivity;
@@ -118,7 +119,7 @@ public class NativeServerImp {
 
     /** web页面加载完成 */
     public static void webPageLoadComplete(String url) {
-        //LLog.print("JS页面加载完成通知: "+ url + " , isPageLoadComplete = "+ isPageLoadComplete);
+        LLog.print("JS页面加载完成通知: "+ url + " , isPageLoadComplete = "+ isPageLoadComplete);
         if (isPageLoadComplete) return;
         // 设置进度完成
         JSUtils.progressHandler(url,100,true);
@@ -133,7 +134,12 @@ public class NativeServerImp {
         if (activity!=null){
             // 打开通讯
             Intent intent = new Intent(activity, IMService.class);
-            activity.startService(intent);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                // Android 8.0 不再允许后台进程直接通过startService方式去启动服务
+                activity.startForegroundService(intent);
+            }else {
+                activity.startService(intent);
+            }
         }
 
         isPageLoadComplete = true;

@@ -5,6 +5,7 @@
     xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:fitsSystemWindows="false"
     >
     <!--webView展示层-->
     <FrameLayout
@@ -12,7 +13,7 @@
         android:layout_width="1dp"
         android:layout_height="1dp"
         />
-    <!--进度条-->
+    <!--进度条 -->
     <ProgressBar
             android:id="@+id/progress_bar"
             android:layout_width="match_parent"
@@ -20,6 +21,9 @@
             style="?android:attr/progressBarStyleHorizontal"
             android:max="50"
             android:visibility="gone" />
+
+
+
 </FrameLayout>
 
 

@@ -1,17 +1,11 @@
 package com.bottle.wvapp.activitys;
 
 import android.Manifest;
-import android.content.ComponentName;
-import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
-import android.content.pm.PackageManager;
-import android.content.pm.ResolveInfo;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
-import android.util.Log;
-import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.webkit.DownloadListener;
@@ -29,12 +23,12 @@ import com.bottle.wvapp.R;
 import com.bottle.wvapp.app.ApplicationDevInfo;
 import com.bottle.wvapp.jsprovider.HttpServerImp;
 import com.bottle.wvapp.jsprovider.NativeServerImp;
+import com.bottle.wvapp.services.FloatWindowView;
 import com.bottle.wvapp.tool.WebResourceCache;
 import com.google.android.material.snackbar.Snackbar;
 
 import java.io.File;
 import java.util.ArrayList;
-import java.util.List;
 
 import lee.bottle.lib.toolset.http.HttpUtil;
 import lee.bottle.lib.toolset.log.LLog;
@@ -45,12 +39,9 @@ import lee.bottle.lib.toolset.util.DialogUtil;
 import lee.bottle.lib.toolset.util.FileUtils;
 import lee.bottle.lib.toolset.web.JSUtils;
 
-import static android.content.Intent.FLAG_ACTIVITY_NEW_TASK;
 import static com.bottle.wvapp.BuildConfig._WEB_HOME_URL;
 import static com.bottle.wvapp.app.BusinessData.getCurrentDevCompanyID;
 import static lee.bottle.lib.toolset.util.AppUtils.getClipboardContent;
-import static lee.bottle.lib.toolset.util.AppUtils.schemeJump;
-import static lee.bottle.lib.toolset.util.AppUtils.schemeValid;
 import static lee.bottle.lib.toolset.util.AppUtils.setClipboardContent;
 
 /**
@@ -71,6 +62,16 @@ public class NativeActivity extends BaseActivity implements PermissionApply.Call
     //权限申请
     private PermissionApply permissionApply =  new PermissionApply(this, permissionArray,this);
 
+    public void permissionQuery(){
+        this.runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                permissionApply.permissionCheck(); //权限检测
+//                permissionApply.askFloatWindowPermission();// 请求弹窗权限
+            }
+        });
+    }
+
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
 
@@ -80,18 +81,19 @@ public class NativeActivity extends BaseActivity implements PermissionApply.Call
         // 绑定activity
         NativeServerImp.bindActivity(this);
 
-        permissionApply.permissionCheck(); //权限检测
-//        LLog.print(this+" 创建 Application: " + getApplication());
-        int uiOptions = View.SYSTEM_UI_FLAG_HIDE_NAVIGATION | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY | View.SYSTEM_UI_FLAG_FULLSCREEN;
+//        permissionQuery();
 
-        getWindow().getDecorView().setSystemUiVisibility(uiOptions);
+//        LLog.print(this+" 创建 Application: " + getApplication());
 
         super.onCreate(savedInstanceState);
 
         setContentView(R.layout.activity_native);
 
-        /* 初始化 */
-        launchInit();
+        /* web页面错误监听 */
+        webPageErrorMonitor();
+
+        /* 页面首次加载处理 */
+        launchCompleteShowWebView();
 
         /* web资源缓存处理 */
         JSUtils.webResourceRequestI = new WebResourceCache();
@@ -103,29 +105,62 @@ public class NativeActivity extends BaseActivity implements PermissionApply.Call
                 result.confirm();
                 LLog.print("[onJsAlert] " + message);
                 AppUtils.toastLong(view.getContext(), message);
-//                DialogUtil.dialogSimple(view.getContext(), message, "确认", new DialogUtil.Action0() {
-//                    @Override
-//                    public void onAction0() {
-//                        result.confirm();
-//                    }
-//                });
             }
         };
 
         /* web页面容器层 */
         final FrameLayout layout = findViewById(R.id.container);
-
         /* 加载页面 */
-        loadWebMainPage(layout,this);
+        loadWebMainPage(layout,NativeActivity.this);
+
     }
 
 
 
 
+    /* web页面加载完成 */
+    private void launchCompleteShowWebView(){
+        //设置首次加载处理
+        JSUtils.webProgressI = new JSUtils.WebProgressI() {
+            @Override
+            public void updateProgress(String url,int current,boolean isForce) {
+                //LLog.print("链接加载进度: "+ url+" , "+ current+" , " + isForce);
+                if (current>=100 && isForce){
+                    JSUtils.webProgressI = null;
+
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+
+                            getWindow().getDecorView().setBackgroundResource(0);// 移除背景资源
+                            getWindow().getDecorView().setSystemUiVisibility(0);// 清空UI选项
+                            getWindow().clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);// 清除全屏
+
+                            // 展开 webView 容器层
+                            FrameLayout frameLayout = findViewById(R.id.container);
+                            ViewGroup.LayoutParams layoutParams = frameLayout.getLayoutParams();
+                            if (!(layoutParams.width == ViewGroup.LayoutParams.MATCH_PARENT
+                                    && layoutParams.height == ViewGroup.LayoutParams.MATCH_PARENT)){
+                                layoutParams.height = ViewGroup.LayoutParams.MATCH_PARENT;
+                                layoutParams.width = ViewGroup.LayoutParams.MATCH_PARENT;
+                                frameLayout.setLayoutParams(layoutParams);
+                            }
+
+                            accessSharedContent();
+
+                        }
+                    });
 
 
+                }
+            }
+        };
 
-    private void launchInit(){
+
+    }
+
+    /*webview 页面错误监听*/
+    private void webPageErrorMonitor(){
         JSUtils.loadErrorI = new JSUtils.LoadErrorI() {
             @Override
             public void onReceivedError(WebView webView, WebResourceRequest webResourceRequest, WebResourceError webResourceError,int errorCount) {
@@ -151,9 +186,9 @@ public class NativeActivity extends BaseActivity implements PermissionApply.Call
                 }
 
                 if (JSUtils.webProgressI==null && extension!=null && (extension.equals("js") || extension.equals("css"))) {
-                   if (errorText.length() > 0){
-                       Snackbar.make(webView,errorText,Snackbar.LENGTH_SHORT).show();
-                   }
+                    if (errorText.length() > 0){
+                        Snackbar.make(webView,errorText,Snackbar.LENGTH_SHORT).show();
+                    }
                     return;
                 }
 
@@ -168,47 +203,8 @@ public class NativeActivity extends BaseActivity implements PermissionApply.Call
 
             }
         };
-        //设置首次加载处理
-        JSUtils.webProgressI = new JSUtils.WebProgressI() {
-            @Override
-            public void updateProgress(String url,int current,boolean isForce) {
-                //LLog.print("链接加载进度: "+ url+" , "+ current+" , " + isForce);
-                if (current>=100 && isForce){
-                    stopLaunch();
-                    JSUtils.webProgressI = null;
-                    accessSharedContent();
-                }
-            }
-        };
+
     }
-
-
-
-
-    private void stopLaunch(){
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                // 设置activity不是全屏
-                getWindow().getDecorView().setBackgroundResource(0);
-                getWindow().getDecorView().setSystemUiVisibility(0);
-                getWindow().clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
-
-                // 展开 webView 容器层
-                FrameLayout frameLayout = findViewById(R.id.container);
-                ViewGroup.LayoutParams layoutParams = frameLayout.getLayoutParams();
-//                LLog.print("展开 WEB VIEW 容器, 当前大小: "+ layoutParams.width+","+layoutParams.height);
-                if (!(layoutParams.width == ViewGroup.LayoutParams.MATCH_PARENT
-                        && layoutParams.height == ViewGroup.LayoutParams.MATCH_PARENT)){
-                    layoutParams.height = ViewGroup.LayoutParams.MATCH_PARENT;
-                    layoutParams.width = ViewGroup.LayoutParams.MATCH_PARENT;
-                    frameLayout.setLayoutParams(layoutParams);
-                }
-
-            }
-        });
-    }
-
 
 
 
@@ -232,7 +228,7 @@ public class NativeActivity extends BaseActivity implements PermissionApply.Call
         ApplicationDevInfo.load(getApplication());
         // 刷新本地企业信息
         int compId = getCurrentDevCompanyID(true,NativeServerImp.client);
-        //重新加载页面
+        // 重新加载页面
         if (compId > 0) reloadWebMainPage();
     }
 
@@ -295,8 +291,9 @@ public class NativeActivity extends BaseActivity implements PermissionApply.Call
 
     }
 
+    /* 获取分享内容 */
     private void accessSharedContent() {
-        // 获取分享内容
+
         mHandler.postDelayed(new Runnable() {
             @Override
             public void run() {
