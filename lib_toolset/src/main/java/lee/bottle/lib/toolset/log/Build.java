@@ -56,7 +56,9 @@ public class Build {
         return this;
     }
     public Build setLogFolderPath(String logFolderPath) {
-        this.logFolderPath = logFolderPath;
+        if(logFolderPath!=null) {
+            this.logFolderPath = logFolderPath + File.separatorChar + "AppLogger";
+        }
         return this;
     }
     public Build setLogFileName(String logFileName) {

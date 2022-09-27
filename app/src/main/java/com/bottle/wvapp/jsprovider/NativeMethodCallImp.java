@@ -8,6 +8,7 @@ import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
 import android.net.Uri;
 import android.os.Build;
+import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
@@ -17,13 +18,16 @@ import com.alipay.sdk.app.PayTask;
 import com.bottle.wvapp.activitys.BaseActivity;
 import com.bottle.wvapp.activitys.NativeActivity;
 import com.bottle.wvapp.wxapi.WXPayEntryActivity;
+import com.tencent.mm.opensdk.modelbiz.WXLaunchMiniProgram;
 import com.tencent.mm.opensdk.modelpay.PayReq;
 import com.tencent.mm.opensdk.openapi.IWXAPI;
 import com.tencent.mm.opensdk.openapi.WXAPIFactory;
 
+import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 import lee.bottle.lib.toolset.log.LLog;
 import lee.bottle.lib.toolset.os.ApplicationAbs;
@@ -116,6 +120,12 @@ public class NativeMethodCallImp{
         NativeServerImp.webPageLoadComplete(url);
     }
 
+    /* web页面 展示首页 */
+    public void onShowIndexBefore(){
+        NativeServerImp.webPageIndexShowBefore();
+    }
+
+
     /** 版本更新*/
     private void versionUpdate(){
         Activity activity = NativeServerImp.getBaseActivity();
@@ -124,36 +134,8 @@ public class NativeMethodCallImp{
         }
     }
 
-    /** 支付宝支付 */
-    public int alipay(String json){
-        currentPayResultCode = -1;
-        Activity activity = NativeServerImp.getBaseActivity();
-        if (activity != null){
-            //获取支付信息
-            Map<String,String> map = NativeServerImp.payHandle(json,"alipay");
-            if (map != null) {
-                //把数组所有元素排序，并按照“参数=参数值”的模式用“&”字符拼接成字符串
-                try{
-                    StringBuilder sb = new StringBuilder();
-                    for (Map.Entry<String, String> e : map.entrySet()) {
-                        sb.append(e.getKey()).append("=").append(URLEncoder.encode(e.getValue() + "", "UTF-8")).append("&");
-                    }
-                    sb.deleteCharAt(sb.length() - 1);
 
-                    //执行
-                    PayTask alipay = new PayTask(activity);
-                    map = alipay.payV2(sb.toString(),true);
-                    if (map != null && map.get("resultStatus")!=null && map.get("resultStatus").equals("9000")) {
-                        currentPayResultCode = 0;
-                    }
-
-                }catch (Exception ignored){ }
-            }
-        }
-        return currentPayResultCode;
-    }
-
-    //线程休眠
+    // 微信支付 线程休眠 等待结果
     public void wxpayWait(){
         synchronized (WXPayEntryActivity.class) {
             try {
@@ -162,13 +144,14 @@ public class NativeMethodCallImp{
         }
     }
 
-    //线程活动
+    // 微信支付 线程执行 通知结果
     public void wxpayNotify(int resCode) {
         currentPayResultCode = resCode;
         synchronized (WXPayEntryActivity.class){
             WXPayEntryActivity.class.notifyAll();
         }
     }
+
 
     /** 微信支付 */
     public int wxpay(String json){
@@ -204,6 +187,94 @@ public class NativeMethodCallImp{
         }
         return currentPayResultCode;
     }
+
+    /** 支付宝支付 */
+    public int alipay(String json){
+        currentPayResultCode = -1;
+        Activity activity = NativeServerImp.getBaseActivity();
+        if (activity != null){
+            //获取支付信息
+            Map<String,String> map = NativeServerImp.payHandle(json,"alipay");
+            if (map != null) {
+                //把数组所有元素排序，并按照“参数=参数值”的模式用“&”字符拼接成字符串
+                try{
+                    StringBuilder sb = new StringBuilder();
+                    for (Map.Entry<String, String> e : map.entrySet()) {
+                        sb.append(e.getKey()).append("=").append(URLEncoder.encode(e.getValue() + "", "UTF-8")).append("&");
+                    }
+                    sb.deleteCharAt(sb.length() - 1);
+
+                    //执行
+                    PayTask alipay = new PayTask(activity);
+                    map = alipay.payV2(sb.toString(),true);
+                    if (map != null && map.get("resultStatus")!=null && Objects.equals(map.get("resultStatus"), "9000")) {
+                        currentPayResultCode = 0;
+                    }
+
+                }catch (Exception ignored){ }
+            }
+        }
+        return currentPayResultCode;
+    }
+
+    /** 易宝平台 */
+    public int yeepay(String json){
+        currentPayResultCode = -1;
+        Activity activity = NativeServerImp.getBaseActivity();
+        if (activity != null){
+            //获取支付信息
+            Map<String,String> map = NativeServerImp.payHandle(json,"yeepay");
+            if (map != null) {
+
+                String channel = map.get("channel");
+                assert channel != null;
+
+                if (channel.equals("ALIPAY")){
+                    String qrcode = map.get("alipay_qr_url");
+                    String jumpUrl = "alipays://platformapi/startapp?saId=10000007&qrcode="+qrcode;
+                    LLog.print("易宝支付 支付宝方案 jumpUrl = "+ jumpUrl );
+
+                    Intent intent = new Intent();
+                    intent.setFlags(FLAG_ACTIVITY_NEW_TASK);
+                    intent.setAction("android.intent.action.VIEW");
+                    Uri contentUrl = Uri.parse(jumpUrl);
+                    intent.setData(contentUrl);
+                    activity.startActivity(intent);
+                }
+
+                if (channel.equals("WECHAT")){
+                    // {"code":1,"data":{"wx_appid":"wx8d45b8ae300bb465","wx_orgid":"gh_89d0b4f95a06","orderNo":"2209150013770034009","attr":"1663225395693@DRUG@order2Server0@PayModule@payCallBack@536894204","price":"118.0","subject":"一块医药"}}
+
+                    String wx_appid = map.get("wx_appid");
+                    String wx_orgid = map.get("wx_orgid");
+//                    StringBuilder sb = new StringBuilder("pages/index/index?");
+                    StringBuilder sb = new StringBuilder("pages/pay/pay?");
+                    for (String k : map.keySet()){
+                        String v = map.get(k);
+                        sb.append(k).append("=").append(v).append("&");
+                    }
+                    String path = sb.deleteCharAt(sb.length()-1).toString();
+                    LLog.print("易宝支付 微信小程序方案 path = "+path );
+
+                    IWXAPI api = WXAPIFactory.createWXAPI(activity, wx_appid);
+                    WXLaunchMiniProgram.Req req = new WXLaunchMiniProgram.Req();
+                    req.miniprogramType = WXLaunchMiniProgram.Req.MINIPTOGRAM_TYPE_RELEASE;
+                    req.userName = wx_orgid;
+                    req.path =  path;
+                    boolean isSuccess = api.sendReq(req);
+                    if (isSuccess) {
+                        wxpayWait();
+                    }
+                }
+            }
+        }
+        LLog.print("易宝支付 当前支付结果返回值 currentPayResultCode = " + currentPayResultCode);
+        return currentPayResultCode;
+    }
+
+
+
+
 
     /** 内置浏览器打开链接 */
     public void localBrowserOpenUrl(final String url) {
@@ -418,6 +489,7 @@ public class NativeMethodCallImp{
     public void exitApplication(){
         System.exit(0);
     }
+
     public void permissionQuery(){
         final BaseActivity activity = NativeServerImp.getBaseActivity();
         if (activity == null ) return;

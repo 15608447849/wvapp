@@ -3,7 +3,7 @@ apply plugin: 'kotlin-android'
 apply plugin: 'kotlin-android-extensions'
 
 
-def appVersion = 62
+def appVersion = 66
 def iceTag = "DRUG"
 
 //def fileServerUrl = "https://www.onekdrug.com:9999"
@@ -11,26 +11,34 @@ def iceTag = "DRUG"
 //def address = "tcp:reg.onekdrug.com:4161;tcp:ice.onekdrug.com:4161" //生产
 //def appIcon = "@mipmap/ic_launcher"
 
+// 测试地址
 def fileServerUrl = "http://121.37.6.129:9999"
 def webHomeUrl = "http://wx.onek56.com/" //测试地址
 def address = "116.205.179.210:4061" //测试
 def appIcon = "@mipmap/ic_launch_test"
 
+// 测试地址2
+//def fileServerUrl = "http://121.37.223.130:9999"
+//def webHomeUrl = "http://121.37.223.130:80/" //测试地址
+//def address = "121.37.223.130:4061" //测试
+//def appIcon = "@mipmap/ic_launch_test2"
+
 def yqt_apk_download_url = "https://file.zhanghc188.work/file/20210901/app-debug-yqt-uat-pl2-20210901V1.apk";
 
 def args = "idleTimeOutSeconds=300,--Ice.MessageSizeMax=8192"
-def env = "[${iceTag}#${address.replace(':', '@')}]"
+//def env = "${iceTag}_${address.replace(':', '：')}"
+
 
 static def releaseTime() {
-     return new Date().format("yyyyMMdd", TimeZone.getTimeZone("UTC"))
+     return new Date().format("yyyyMMddHHmmss", TimeZone.getTimeZone("UTC"))
 }
 
 android {
-    compileSdkVersion 29
+    compileSdkVersion 32
     defaultConfig {
         applicationId "com.bottle.wvapp"
         minSdkVersion 21
-        targetSdkVersion 29
+        targetSdkVersion 32
         versionCode appVersion
         versionName "${appVersion}-${releaseTime()}"
         buildConfigField("String", "_ICE_TAG", "\"${iceTag}\"")
@@ -73,7 +81,7 @@ android {
         variant ->
             variant.outputs.all {
                 //环境 + 时间  + app版本
-                outputFileName ="${env}_${releaseTime()}_${appVersion}.apk"
+                outputFileName ="${address.replace(':', ' ')} ${releaseTime()} ${appVersion}.apk"
             }
     }
 }
@@ -85,17 +93,14 @@ dependencies {
     implementation 'androidx.constraintlayout:constraintlayout:2.0.4'
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
     implementation 'com.zeroc:ice:3.6.3'
-//    implementation project(':lib_singlepageframwork')
     implementation project(':lib_toolset')
-
     //alipay 支付宝支付
     implementation (name: 'alipaySdk-15.6.4-20190611174359-noUtdid', ext: 'aar')
     //wxpay 微信
-    implementation 'com.tencent.mm.opensdk:wechat-sdk-android-without-mta:5.3.1'
-
+//    implementation 'com.tencent.mm.opensdk:wechat-sdk-android-without-mta:5.3.1'
+    implementation 'com.tencent.mm.opensdk:wechat-sdk-android:6.8.0'
     //扫码
 //    implementation 'cn.bingoogolapple:bga-qrcode-zbar:1.3.6'
-
     //图片选择器
     implementation project(':lib_imagepick')
     implementation 'com.github.bumptech.glide:glide:4.9.0'
@@ -113,7 +118,10 @@ dependencies {
 //    implementation 'androidx.recyclerview:recyclerview:1.1.0'
     implementation 'androidx.cardview:cardview:1.0.0'
 //    implementation 'androidx.cardview:cardview:1.1.0'
-    implementation 'com.android.support:design:29.0.0'
+//    implementation 'com.android.support:design:29.0.0'
+    implementation 'com.android.support:design:32.0.0'
+//    implementation 'com.google.android.material:material:1.0.0'
+
 
 }
 

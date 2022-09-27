@@ -7,6 +7,7 @@ import android.os.Build;
 
 import com.bottle.wvapp.BuildConfig;
 import com.bottle.wvapp.activitys.BaseActivity;
+import com.bottle.wvapp.activitys.NativeActivity;
 import com.bottle.wvapp.app.BaseResult;
 import com.bottle.wvapp.app.MapDataResult;
 import com.bottle.wvapp.services.IMService;
@@ -119,6 +120,7 @@ public class NativeServerImp {
 
     /** web页面加载完成 */
     public static void webPageLoadComplete(String url) {
+
         LLog.print("JS页面加载完成通知: "+ url + " , isPageLoadComplete = "+ isPageLoadComplete);
         if (isPageLoadComplete) return;
         // 设置进度完成
@@ -145,6 +147,14 @@ public class NativeServerImp {
         isPageLoadComplete = true;
     }
 
+    public static void webPageIndexShowBefore() {
+        LLog.print("JS显示首页之前, isPageLoadComplete = "+ isPageLoadComplete);
+        BaseActivity activity = getBaseActivity();
+        if (activity instanceof NativeActivity){
+            ((NativeActivity)activity).webPageIndexShowBefore();
+        }
+    }
+
     /**
      * app支付
      * json = { orderno=订单号, paytype=付款方式, flag客户端类型 0 web,1 app }
@@ -157,7 +167,9 @@ public class NativeServerImp {
             Map<String,Object> map  = GsonUtils.string2Map(json);
             if (map == null || map.get("orderno") == null) throw new IllegalArgumentException("支付订单号不正确");
             map.put("paytype",payType);
-            map.put("flag",1);
+//            map.put("flag",1);
+            if(map.get("flag") == null) map.put("flag",1);
+
             json = GsonUtils.javaBeanToJson(map);
 
             LLog.print(companyID+ " 预支付请求: " + json);

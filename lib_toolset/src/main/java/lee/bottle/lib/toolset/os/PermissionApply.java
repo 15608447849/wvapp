@@ -1,5 +1,6 @@
 package lee.bottle.lib.toolset.os;
 
+import android.Manifest;
 import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
 import android.app.Activity;
@@ -13,6 +14,7 @@ import android.content.pm.PackageManager;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Build;
+import android.os.Environment;
 import android.os.PowerManager;
 import android.provider.Settings;
 
@@ -35,17 +37,24 @@ public class PermissionApply {
      public interface Callback{
          void onPermissionsGranted();
          void onPowerIgnoreGranted();
+         void onSDK30FileStorageRequestResult(boolean isGrant);
      }
 
     private final SoftReference<Activity> activityRef;
 
     private volatile boolean isPermissionsDenied = true ;//假设权限被拒绝
 
+    // 申请权限
     private final int SDK_PERMISSION_REQUEST = 127;
 
+    // 系统设置权限申请
     private final int SDK_POWER_REQUEST = 128;
 
+    // 浮窗
     private final int OVERLAY_PERMISSION_REQ_CODE = 129;
+
+    // android11 外部文件
+    private final int ANDROID11_EXTERNALSTORAGEMANAGER_REQ_CODE = 130;
 
     private final String[] permissions ;
 
@@ -66,6 +75,7 @@ public class PermissionApply {
 
     //应用权限检测
     public void permissionCheck() {
+        LLog.print("检查权限 ...");
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M){
             getPermissions();
         }
@@ -153,12 +163,27 @@ public class PermissionApply {
         return true;
     }
 
+    @TargetApi(30)
+    public void sdk30_isExternalStorageManager(){
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            LLog.print("ANDROID 11 申请外部文件权限");
+            Activity activity = activityRef.get();
+            if (activity == null) return ;
+            if (!Environment.isExternalStorageManager()) {
+                Intent intent = new Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION);
+                intent.setData(Uri.parse("package:" + activity.getPackageName()));
+                intent.addCategory(Intent.CATEGORY_DEFAULT);
+                activity.startActivityForResult(intent, ANDROID11_EXTERNALSTORAGEMANAGER_REQ_CODE);
+            }
+        }
+
+    }
 
     //获取权限
     @TargetApi(23)
-    private boolean getPermissions() {
+    private void getPermissions() {
         Activity activity = activityRef.get();
-        if (activity == null) return false;
+        if (activity == null) return;
 
         isPermissionsDenied = false;
         for (String permission : permissions) {
@@ -170,9 +195,7 @@ public class PermissionApply {
 
         if(isPermissionsDenied){
             activity.requestPermissions(permissions, SDK_PERMISSION_REQUEST);
-            return false;
         }
-        return true;
     }
 
     /** activity 权限申请回调 */
@@ -197,12 +220,14 @@ public class PermissionApply {
                 }
             }
             if (isPermissionsDenied) {
-
                 alertWindowNotifyPermissionsDenied();
             } else {
                 callback.onPermissionsGranted();
             }
         }
+
+
+
     }
 
     //授权失败提示框 >> 打开系统应用
@@ -261,12 +286,22 @@ public class PermissionApply {
      * activity 回调
      */
     public void onActivityResult(int requestCode, int resultCode, Intent data){
+        LLog.print("权限处理结果回调 onActivityResult " +  requestCode +" "+ resultCode);
+
         if (requestCode == OVERLAY_PERMISSION_REQ_CODE){
             permissionCheck();
         }
+
         if (requestCode == SDK_POWER_REQUEST){
             if (isIgnoreBatteryOption()){
                 callback.onPowerIgnoreGranted();
+            }
+        }
+
+        if (requestCode == ANDROID11_EXTERNALSTORAGEMANAGER_REQ_CODE){
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                LLog.print("ANDROID 11 申请外部文件权限 结果: " + Environment.isExternalStorageManager());
+                callback.onSDK30FileStorageRequestResult(Environment.isExternalStorageManager());
             }
         }
     }

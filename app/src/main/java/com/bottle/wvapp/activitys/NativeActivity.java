@@ -3,9 +3,11 @@ package com.bottle.wvapp.activitys;
 import android.Manifest;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.webkit.DownloadListener;
@@ -18,17 +20,30 @@ import android.widget.FrameLayout;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.annotation.RequiresApi;
 
 import com.bottle.wvapp.R;
 import com.bottle.wvapp.app.ApplicationDevInfo;
+import com.bottle.wvapp.app.MapDataResult;
 import com.bottle.wvapp.jsprovider.HttpServerImp;
 import com.bottle.wvapp.jsprovider.NativeServerImp;
 import com.bottle.wvapp.services.FloatWindowView;
 import com.bottle.wvapp.tool.WebResourceCache;
 import com.google.android.material.snackbar.Snackbar;
+import com.google.gson.reflect.TypeToken;
+import com.tencent.mm.opensdk.modelbiz.WXLaunchMiniProgram;
+import com.tencent.mm.opensdk.openapi.IWXAPI;
+import com.tencent.mm.opensdk.openapi.WXAPIFactory;
 
 import java.io.File;
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
+import java.sql.Time;
 import java.util.ArrayList;
+import java.util.IllegalFormatCodePointException;
+import java.util.Map;
+import java.util.Timer;
+import java.util.TimerTask;
 
 import lee.bottle.lib.toolset.http.HttpUtil;
 import lee.bottle.lib.toolset.log.LLog;
@@ -37,6 +52,8 @@ import lee.bottle.lib.toolset.os.PermissionApply;
 import lee.bottle.lib.toolset.util.AppUtils;
 import lee.bottle.lib.toolset.util.DialogUtil;
 import lee.bottle.lib.toolset.util.FileUtils;
+import lee.bottle.lib.toolset.util.GsonUtils;
+import lee.bottle.lib.toolset.util.TimeUtils;
 import lee.bottle.lib.toolset.web.JSUtils;
 
 import static com.bottle.wvapp.BuildConfig._WEB_HOME_URL;
@@ -49,15 +66,20 @@ import static lee.bottle.lib.toolset.util.AppUtils.setClipboardContent;
  * email: 793065165@qq.com
  * 主入口
  */
+
+
 public class NativeActivity extends BaseActivity implements PermissionApply.Callback, DownloadListener {
     //权限数组
     private String[] permissionArray = new String[]{
             Manifest.permission.WRITE_EXTERNAL_STORAGE, // 写sd卡
+//            Manifest.permission.MANAGE_EXTERNAL_STORAGE, // 写sd卡-android11
 //            Manifest.permission.CAMERA, // 相机和闪光灯
 //            Manifest.permission.READ_CONTACTS,//读取联系人
 //            Manifest.permission.READ_PHONE_STATE, // 获取手机状态
 //            Manifest.permission.CALL_PHONE // 拨号
     };
+
+
 
     //权限申请
     private PermissionApply permissionApply =  new PermissionApply(this, permissionArray,this);
@@ -81,6 +103,7 @@ public class NativeActivity extends BaseActivity implements PermissionApply.Call
         // 绑定activity
         NativeServerImp.bindActivity(this);
 
+//        permissionApply.sdk30_isExternalStorageManager();
 //        permissionQuery();
 
 //        LLog.print(this+" 创建 Application: " + getApplication());
@@ -113,6 +136,21 @@ public class NativeActivity extends BaseActivity implements PermissionApply.Call
         /* 加载页面 */
         loadWebMainPage(layout,NativeActivity.this);
 
+        if (!isFirstOpenApp()){
+            LLog.print("非首次打开");
+            permissionApply.permissionCheck();
+            permissionApply.sdk30_isExternalStorageManager();
+        }
+
+
+    }
+
+
+    private boolean isFirstOpenApp() {
+        SharedPreferences s = getSharedPreferences("ONEK_APP",MODE_PRIVATE);
+        boolean first_open = s.getBoolean("first_open",true);
+        s.edit().putBoolean("first_open",false).apply();
+        return first_open;
     }
 
 
@@ -124,17 +162,17 @@ public class NativeActivity extends BaseActivity implements PermissionApply.Call
         JSUtils.webProgressI = new JSUtils.WebProgressI() {
             @Override
             public void updateProgress(String url,int current,boolean isForce) {
-                //LLog.print("链接加载进度: "+ url+" , "+ current+" , " + isForce);
+                LLog.print("链接加载进度: "+ url+" , "+ current+" , " + isForce);
                 if (current>=100 && isForce){
                     JSUtils.webProgressI = null;
 
+                    LLog.print("页面已加载完成 展开web view");
                     runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
 
                             getWindow().getDecorView().setBackgroundResource(0);// 移除背景资源
-                            getWindow().getDecorView().setSystemUiVisibility(0);// 清空UI选项
-                            getWindow().clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);// 清除全屏
+//                            getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_HIDE_NAVIGATION | View.SYSTEM_UI_FLAG_FULLSCREEN); // 隐藏底部导航栏
 
                             // 展开 webView 容器层
                             FrameLayout frameLayout = findViewById(R.id.container);
@@ -146,17 +184,27 @@ public class NativeActivity extends BaseActivity implements PermissionApply.Call
                                 frameLayout.setLayoutParams(layoutParams);
                             }
 
-                            accessSharedContent();
-
                         }
                     });
-
 
                 }
             }
         };
 
+    }
 
+    public void webPageIndexShowBefore() {
+        LLog.print("进入首页 移除全屏");
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                getWindow().getDecorView().setSystemUiVisibility(0);// 清空UI选项
+                getWindow().clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);// 清除全屏
+            }
+        });
+
+        // 获取一次剪切板分享内容
+        accessSharedContent();
     }
 
     /*webview 页面错误监听*/
@@ -216,6 +264,7 @@ public class NativeActivity extends BaseActivity implements PermissionApply.Call
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        LLog.print("onActivityResult " +  requestCode +" "+ resultCode);
         if (permissionApply != null) permissionApply.onActivityResult(requestCode, resultCode, data);
         NativeServerImp.iBridgeImp.onActivityResult(requestCode,resultCode,data);
         super.onActivityResult(requestCode,resultCode,data);
@@ -224,18 +273,36 @@ public class NativeActivity extends BaseActivity implements PermissionApply.Call
     //授权成功回调
     @Override
     public void onPermissionsGranted() {
-        // 刷新设备标识
-        ApplicationDevInfo.load(getApplication());
-        // 刷新本地企业信息
-        int compId = getCurrentDevCompanyID(true,NativeServerImp.client);
-        // 重新加载页面
-        if (compId > 0) reloadWebMainPage();
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
+            // 刷新设备标识
+            ApplicationDevInfo.load(getApplication());
+            // 刷新本地企业信息
+            int compId = getCurrentDevCompanyID(true,NativeServerImp.client);
+            // 重新加载页面
+            if (compId > 0) reloadWebMainPage();
+        }else {
+            permissionApply.sdk30_isExternalStorageManager();
+        }
+
     }
 
     //忽略电源回调
     @Override
     public void onPowerIgnoreGranted() {
 
+    }
+
+    // android11文件存储授权
+    @Override
+    public void onSDK30FileStorageRequestResult(boolean isGrant) {
+        if (isGrant){
+            // 刷新设备标识
+            ApplicationDevInfo.load(getApplication());
+            // 刷新本地企业信息
+            int compId = getCurrentDevCompanyID(true,NativeServerImp.client);
+            // 重新加载页面
+            if (compId > 0) reloadWebMainPage();
+        }
     }
 
     @Override
@@ -287,6 +354,7 @@ public class NativeActivity extends BaseActivity implements PermissionApply.Call
 
         }
 
+        // 获取一次剪切板分享内容
         accessSharedContent();
 
     }
@@ -376,5 +444,6 @@ public class NativeActivity extends BaseActivity implements PermissionApply.Call
                 });
 
     }
+
 
 }

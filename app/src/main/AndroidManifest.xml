@@ -13,6 +13,8 @@
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
     <!-- 允许程序设置内置sd卡的写权限 -->
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <!--    sdk30 android11 -->
+    <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" />
     <!-- 挂载SD卡 -->
     <!-- <uses-permission android:name="android.permission.MOUNT_UNMOUNT_FILESYSTEMS" /> -->
     <!-- 读取文件 -->
@@ -63,7 +65,8 @@
         <activity
             android:name=".activitys.NativeActivity"
             android:configChanges="orientation|keyboardHidden"
-            android:launchMode="singleTop">
+            android:launchMode="singleTop"
+            android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -73,23 +76,30 @@
         <!-- 页面错误 -->
         <activity
             android:name=".activitys.ErrorActivity"
-            android:launchMode="singleInstance" />
+            android:launchMode="singleInstance"
+            android:exported="true"
+            />
 
         <!-- IM后台服务 -->
         <service
             android:name=".services.IMService"
-            android:process=":im" />
+            android:process=":im"
+            android:exported="true"/>
+
+
+<!--        <service android:name=".services.IMService"/>-->
 
         <!-- 微信支付 -->
         <activity
             android:name=".wxapi.WXPayEntryActivity"
             android:exported="true"
+            android:taskAffinity="com.bottle.wvapp"
             android:launchMode="singleTop" />
+
         <!-- 银企通建行快贷支付 -->
-        <activity android:name=".yqtccb.CCBYQTPayEntryActivity" >
+        <activity android:name=".yqtccb.CCBYQTPayEntryActivity" android:exported="true">
 
             <intent-filter>
-
                 <!-- URL Scheme <scheme>://<host>:<port>/<path>?<query> -->
                 <data
                     android:scheme="onekdrug"
@@ -99,21 +109,25 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.BROWSABLE" />
-
             </intent-filter>
-
         </activity>
 
-        <!-- 适配android 7.0 -->
+        <!-- 适配android 7.0  -->
         <provider
             android:name="androidx.core.content.FileProvider"
-            android:authorities="${applicationId}.fileprovider"
+            android:authorities="${applicationId}.fileProvider"
             android:exported="false"
             android:grantUriPermissions="true">
             <meta-data
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths" />
         </provider>
+
     </application>
+
+    <!-- 微信支付 ANDROID 11 兼容微信 -->
+    <queries>
+        <package android:name="com.tencent.mm" />
+    </queries>
 
 </manifest>

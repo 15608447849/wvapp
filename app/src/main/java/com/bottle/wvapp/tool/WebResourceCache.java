@@ -87,6 +87,9 @@ public class WebResourceCache implements JSUtils.WebResourceRequestI {
 
     @Override
     public WebResourceResponse resourceIntercept(String url) {
+//        if(url.startsWith("http://121.37.6.129:9999/media/drug/1649399503000001159/0.jpg")){
+//            LLog.print("请求加载资源URL: "+ url);
+//        }
 //        LLog.print("请求加载资源URL: "+ url);
         Uri uri = Uri.parse(url);
 
@@ -94,10 +97,13 @@ public class WebResourceCache implements JSUtils.WebResourceRequestI {
         if (scheme == null) return null;
         int endingA = url.lastIndexOf(".");
         int endingB = url.lastIndexOf("?");
+
+        if (endingA == -1 || endingB == -1) return null;
 //        LLog.print(endingA+" "+ endingB+" >> " + uri);
 
         //后缀
         final String endingStr = url.substring(endingA+1 ,  endingB>0 && endingB>endingA?  endingB : url.length());
+//        LLog.print("请求加载资源URL: "+ url + " 后缀: "+ endingStr);
 
         File resourceFile = null;
         String mimeType = null;
@@ -119,9 +125,7 @@ public class WebResourceCache implements JSUtils.WebResourceRequestI {
                     || endingStr.equals("gif")
                     || endingStr.equals("ico")){
                 mimeType = "image/*";
-                if (endingB>0) {
-                    url = url.substring(0,endingB);
-                }
+
             }
             if (endingStr.equals("mp3")){
                 mimeType = "audio/mpeg";
@@ -140,7 +144,13 @@ public class WebResourceCache implements JSUtils.WebResourceRequestI {
             }
 //                LLog.print("[缓存] 允许缓存URL: "+ url);
 
+//            if(url.startsWith("http://121.37.6.129:9999/media/drug/1649399503000001159/0.jpg")){
+//                LLog.print("请求加载资源URL 后缀 url: "+ url);
+//            }
+
+
             md5 = StringUtils.strMD5(url);
+//            LLog.print("请求加载资源URL: "+ url +" MD5: "+ md5);
 
             final File dir = ApplicationAbs.getApplicationDIR("资源缓存");
             if(dir == null) return null; //无法创建缓存目录
@@ -155,24 +165,25 @@ public class WebResourceCache implements JSUtils.WebResourceRequestI {
         }
 
         try {
-            final File readFile = resourceFile;
+//            LLog.print("请求加载资源URL: "+ url +" LOCAL: "+ resourceFile);
             //异步执行,读取文件
             final PipedOutputStream out = new PipedOutputStream();
             PipedInputStream inputStream = new PipedInputStream(out);
+            final File _resourceFile = resourceFile;
             final String _url = url;
             final String _downloadLocalStorePath = downloadLocalStorePath;
             final String _md5 = md5;
-            final boolean isDownload = endingB>0 && (System.currentTimeMillis() - readFile.lastModified() > CLEAR_TIME);
+            final boolean isDownload = endingB>0 && (System.currentTimeMillis() - _resourceFile.lastModified() > CLEAR_TIME);
             IOUtils.run(new Runnable() {
                 @Override
                 public void run() {
                     try {
                         if (_md5!=null){
                             byte[] cacheBytes = resourceMemCache.get(_md5);
-                            //LLog.print("内存获取> "+ _md5+" 大小: "+ FileUtils.byteLength2StringShow(cacheBytes.length));
+//                            LLog.print("内存获取> "+ _resourceFile +" 文件大小:"+FileUtils.byteLength2StringShow(_resourceFile.length()) + " 缓存大小: "+ FileUtils.byteLength2StringShow(cacheBytes.length));
                             if (cacheBytes==null) {
                                 //通过本地文件获取,同时存入内存缓存
-                                cacheBytes = getBytesByFile(readFile);
+                                cacheBytes = getBytesByFile(_resourceFile);
                                 if (cacheBytes!=null){
                                     resourceMemCache .put(_md5,cacheBytes);
                                 }
@@ -187,7 +198,7 @@ public class WebResourceCache implements JSUtils.WebResourceRequestI {
 //                        LLog.print(_url +" 本地文件获取资源");
 //                        AppUtils.getLocalFileToOutputStream(readFile,out);
                     } catch (Exception e) {
-                        LLog.print("无法读取资源文件("+readFile+") 错误: " + e);
+                        LLog.print("无法读取资源文件("+_resourceFile+") 错误: " + e);
                     }finally {
                         try {
                             out.close();

@@ -60,13 +60,23 @@ public class StringUtils {
         char c;
         for (int i = 0; i < s.length(); i++) {
             c = s.charAt(i);
-            switch (c) {
-                case '\\':
-                    sb.append("\\\\");
-                    break;
-                default:
-                    sb.append(c);
+            if (c == '\\') {
+                sb.append("\\\\");
+            }else  if (c == '\'') {
+                sb.append("\\\'");
+            } else {
+                sb.append(c);
             }
+
+//            switch (c) {
+//                case '\\':
+//                    sb.append("\\\\");
+//                    break;
+//                case '\'':
+//                    sb.append("\\\'");
+//                default:
+//                    sb.append(c);
+//            }
         }
         return sb.toString()
                 .replaceAll("%","%25")
@@ -76,8 +86,7 @@ public class StringUtils {
                 .replaceAll("=","%3D")
                 .replaceAll("\\+","%2B")
                 .replaceAll("\\s+","%20")
-                .replaceAll("\\?","%3F")
-                ;
+                .replaceAll("\\?","%3F");
     }
 
     /**

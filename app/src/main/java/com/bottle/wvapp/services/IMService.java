@@ -1,9 +1,6 @@
 package com.bottle.wvapp.services;
 
 import android.annotation.SuppressLint;
-import android.app.Notification;
-import android.app.NotificationChannel;
-import android.app.NotificationManager;
 import android.app.Service;
 import android.content.Intent;
 import android.graphics.PixelFormat;
@@ -11,38 +8,28 @@ import android.os.Build;
 import android.os.IBinder;
 import android.util.Log;
 import android.view.Gravity;
-import android.view.LayoutInflater;
-import android.view.View;
 import android.view.WindowManager;
 
 import androidx.annotation.Nullable;
 
 import com.bottle.wvapp.BuildConfig;
-import com.bottle.wvapp.R;
 import com.bottle.wvapp.activitys.NativeActivity;
 import com.bottle.wvapp.app.ApplicationDevInfo;
 import com.bottle.wvapp.tool.NotifyUer;
 import com.onek.client.IceClient;
-import com.onek.server.inf.InterfacesPrx;
 
 import java.util.Timer;
 import java.util.TimerTask;
-import java.util.UUID;
 
 import Ice.Connection;
 import Ice.ConnectionCallback;
 import lee.bottle.lib.toolset.log.LLog;
-import lee.bottle.lib.toolset.util.AppUtils;
-import lee.bottle.lib.toolset.util.DialogUtil;
 import lee.bottle.lib.toolset.util.ErrorUtil;
-import lee.bottle.lib.toolset.util.StringUtils;
 
 import static android.content.Intent.FLAG_ACTIVITY_NEW_TASK;
 import static com.bottle.wvapp.app.ApplicationDevInfo.DEVTYPE;
 import static com.bottle.wvapp.app.BusinessData.getOrderServerNo;
 import static com.bottle.wvapp.app.BusinessData.getCurrentDevCompanyID;
-import static lee.bottle.lib.toolset.util.AppUtils.schemeJump;
-import static lee.bottle.lib.toolset.util.AppUtils.schemeValid;
 
 
 /*
@@ -50,7 +37,7 @@ import static lee.bottle.lib.toolset.util.AppUtils.schemeValid;
 * */
 public class IMService extends Service {
 
-    private final boolean isDebugger = false;
+    private final boolean isDebugger = true;
 
     /* 间隔保活定时器 */
     private final Timer timer = new Timer(true);
@@ -72,11 +59,12 @@ public class IMService extends Service {
        if (isDebugger) LLog.print("IMService onCreate");
         openIceCommunication();
         openLongConnectionWatch();
-        setFrontService();
+        startFrontServiceSDK26();
 //        createFloatView();
         super.onCreate();
-
     }
+
+
 
     private FloatWindowView floatWindowView;
 
@@ -183,12 +171,12 @@ public class IMService extends Service {
 
                 if(receive.lastHeartbeatTime > 0){
                     long diff = System.currentTimeMillis() - receive.lastHeartbeatTime;
-                    Log.i("ice","heartbeat time diff: "+ diff);
+                    LLog.print("ice","heartbeat time diff: "+ diff);
                     return diff <= 10 * 1000L;
                 }
                 if (receive.prx!=null){
                     receive.prx.ice_ping();
-                    Log.i("ice","ping ok");
+                    LLog.print("ice","ping ok");
 
                     return true;
                 }
@@ -220,21 +208,22 @@ public class IMService extends Service {
         }
     }
 
+
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-
+        startFrontServiceSDK26();
         if (isDebugger) LLog.print("IMService onStartCommand");
         return START_REDELIVER_INTENT;
     }
 
-    private void setFrontService() {
+    private void startFrontServiceSDK26() {
         if(Build.VERSION.SDK_INT>= Build.VERSION_CODES.O){
-            NotificationManager manager = (NotificationManager)getSystemService (NOTIFICATION_SERVICE);
-            NotificationChannel channel = new NotificationChannel ("im_server_channel_id_im","im_service",NotificationManager.IMPORTANCE_HIGH);
-            manager.createNotificationChannel (channel);
-            Notification notification = new Notification.Builder (this,"im_server_channel_id_im").build();
-            startForeground (9999,notification);
-            if (isDebugger) LLog.print("IMService setFrontService");
+            IMServiceSDK26FontServerUtil.openFontServer(this);
+        }
+    }
+    private void stopFrontServiceSDK26() {
+        if(Build.VERSION.SDK_INT>= Build.VERSION_CODES.O){
+            IMServiceSDK26FontServerUtil.removeFontServer(this);
         }
     }
 
@@ -258,6 +247,7 @@ public class IMService extends Service {
         communicationClose();
         receive.isRunning = false;
         client.stopCommunication();
+        stopFrontServiceSDK26();
         super.onDestroy();
     }
 

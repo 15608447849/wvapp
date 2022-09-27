@@ -112,7 +112,7 @@ public abstract class ApplicationAbs extends Application implements Application.
         }
 
         ApplicationAbs.applicationDir = dir;
-//        LLog.print("成功设置应用目录: "+  ApplicationAbs.applicationDir );
+        LLog.print("成功设置应用目录: "+  ApplicationAbs.applicationDir );
     }
 
     /* 获取应用文件存储目录 */
@@ -179,9 +179,10 @@ public abstract class ApplicationAbs extends Application implements Application.
             dict = new File(dict, dictName);
         }
 
-        ApplicationAbs.applicationDir = null;
 
+        ApplicationAbs.applicationDir = null;
         ApplicationAbs.setApplicationDir(dict);
+        if (ApplicationAbs.applicationDir == null) setApplicationDir(context.getCacheDir());
     }
 
 
@@ -222,9 +223,16 @@ public abstract class ApplicationAbs extends Application implements Application.
                 .setLevel(Log.ASSERT)
                 .setDateFormat(TimeUtils.getSimpleDateFormat("[MM/dd HH:mm]"))
                 .setLogFileName(processName+"_"+ TimeUtils.formatUTCByCurrent("MMdd"))
+                .setLogFolderPath(getLogFolderDir())
                 .setWriteFile(true);
+
                 // 存储应用进程号
                 storeProcessPidToFile(this,processName,android.os.Process.myPid());
+    }
+
+    protected String getLogFolderDir(){
+        Log.d("设置日志文件目录", "getLogFolderDir: "+ this.getFilesDir().getAbsolutePath());
+        return this.getFilesDir().getAbsolutePath();
     }
 
     /* 记录所有进程的PID */
