@@ -31,7 +31,7 @@ import lee.bottle.lib.imagepick.view.HackyViewPager;
  * Time: 下午11:32
  * Email: lichenwei.me@foxmail.com
  */
-public class ImagePreActivity extends BaseActivity {
+public class ImagePreActivity extends ImageBaseActivity {
 
     public static final String IMAGE_POSITION = "imagePosition";
     private List<MediaFile> mMediaFileList;

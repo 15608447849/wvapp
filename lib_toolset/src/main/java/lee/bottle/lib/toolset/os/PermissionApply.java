@@ -1,11 +1,9 @@
 package lee.bottle.lib.toolset.os;
 
-import android.Manifest;
 import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
 import android.app.Activity;
 import android.app.AlertDialog;
-import android.app.AppOpsManager;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -42,7 +40,8 @@ public class PermissionApply {
 
     private final SoftReference<Activity> activityRef;
 
-    private volatile boolean isPermissionsDenied = true ;//假设权限被拒绝
+    //假设权限被拒绝
+    private volatile boolean isPermissionsDenied = true ;
 
     // 申请权限
     private final int SDK_PERMISSION_REQUEST = 127;
@@ -53,8 +52,11 @@ public class PermissionApply {
     // 浮窗
     private final int OVERLAY_PERMISSION_REQ_CODE = 129;
 
-    // android11 外部文件
-    private final int ANDROID11_EXTERNALSTORAGEMANAGER_REQ_CODE = 130;
+    // android11 使用外部文件权限申请
+    private final int ANDROID11_EXTERNAL_STORAGE_MANAGER_REQ_CODE = 130;
+
+    // android 允许未知来源权限界面申请
+    private final int INSTALL_PERMISSION_CODE = 131;
 
     private final String[] permissions ;
 
@@ -75,8 +77,8 @@ public class PermissionApply {
 
     //应用权限检测
     public void permissionCheck() {
-        LLog.print("检查权限 ...");
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M){
+
             getPermissions();
         }
     }
@@ -110,7 +112,7 @@ public class PermissionApply {
                 Drawable mAppicon = pkm.getActivityInfo(activity.getComponentName(), ActivityInfo.FLAG_STATE_NOT_NEEDED).loadIcon(pkm);
                 builder.setIcon(mAppicon);//设置图标，
             } catch (PackageManager.NameNotFoundException e) {
-                e.printStackTrace();
+                LLog.error(e);
             }
             builder.setPositiveButton("授权",listener);
             builder.setNegativeButton("取消",listener);
@@ -158,7 +160,7 @@ public class PermissionApply {
                 }
 
         } catch (Exception e) {
-            e.printStackTrace();
+            LLog.error(e);
         }
         return true;
     }
@@ -173,7 +175,7 @@ public class PermissionApply {
                 Intent intent = new Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION);
                 intent.setData(Uri.parse("package:" + activity.getPackageName()));
                 intent.addCategory(Intent.CATEGORY_DEFAULT);
-                activity.startActivityForResult(intent, ANDROID11_EXTERNALSTORAGEMANAGER_REQ_CODE);
+                activity.startActivityForResult(intent, ANDROID11_EXTERNAL_STORAGE_MANAGER_REQ_CODE);
             }
         }
 
@@ -187,7 +189,9 @@ public class PermissionApply {
 
         isPermissionsDenied = false;
         for (String permission : permissions) {
-            if (activity.checkSelfPermission(permission) == PackageManager.PERMISSION_DENIED) {
+            boolean isDenied = activity.checkSelfPermission(permission) == PackageManager.PERMISSION_DENIED;
+            LLog.print( "检查设备权限>> "+ permission+" 权限拒绝: "+  isDenied);
+            if (isDenied) {
                 isPermissionsDenied = true;
                 break;
             }
@@ -205,7 +209,7 @@ public class PermissionApply {
             StringBuilder sb = new StringBuilder();
             sb.append("应用权限申请结果:\n");
             for (int i = 0; i<permissions.length;i++){
-                sb.append(permissions[i]).append(" > ").append(grantResults[i]==-1?" 拒绝 ":" 允许 ").append("\n");
+                sb.append(permissions[i]).append(" > ").append(grantResults[i]==-1?" 拒绝":" 允许").append("\n");
             }
             LLog.print(sb.toString());
         }
@@ -225,26 +229,30 @@ public class PermissionApply {
                 callback.onPermissionsGranted();
             }
         }
-
-
-
     }
 
+
+    private boolean isAlertWindowNotifyPermissionsDeniedIng = false;
     //授权失败提示框 >> 打开系统应用
     @SuppressLint("WrongConstant")
     private void alertWindowNotifyPermissionsDenied() {
-        Activity activity = activityRef.get();
-        if (activity == null) return;
+        LLog.print("打开授权请求提示框 isAlertWindowNotifyPermissionsDeniedIng = "+ isAlertWindowNotifyPermissionsDeniedIng );
 
+        Activity activity = activityRef.get();
+        if (activity == null || isAlertWindowNotifyPermissionsDeniedIng) return;
 
         final DialogInterface.OnClickListener listener = new DialogInterface.OnClickListener(){
             @Override
             public void onClick(DialogInterface dialog, int which) {
                 dialog.cancel();
+                isAlertWindowNotifyPermissionsDeniedIng = false;
+
                 if (which == DialogInterface.BUTTON_POSITIVE){
                     startSysSettingActivity();
                 }else if (which == DialogInterface.BUTTON_NEGATIVE){
                     System.exit(0);
+                }else if (which == DialogInterface.BUTTON_NEUTRAL){
+                    isAlertWindowNotifyPermissionsDeniedIng = true;
                 }
             }
         };
@@ -257,13 +265,14 @@ public class PermissionApply {
             Drawable mAppicon = pkm.getActivityInfo(activity.getComponentName(), ActivityInfo.FLAG_STATE_NOT_NEEDED).loadIcon(pkm);
             builder.setIcon(mAppicon);//设置图标，
         } catch (PackageManager.NameNotFoundException e) {
-            e.printStackTrace();
+            LLog.error(e);
         }
         builder.setPositiveButton("手动授权",listener);
         builder.setNegativeButton("退出应用",listener);
         builder.setNeutralButton("继续使用",listener);
         builder.setCancelable(false);
         builder.create().show();
+        isAlertWindowNotifyPermissionsDeniedIng = true;
     }
 
     //打开系统应用
@@ -282,11 +291,27 @@ public class PermissionApply {
         activity.startActivityForResult(intent,SDK_POWER_REQUEST);
     }
 
+
+    // 打开 允许安装未知来源 界面
+    public void openInstallPermission() {
+        Activity activity = activityRef.get();
+        if (activity == null) return;
+
+        Intent intent;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            intent = new Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES ,Uri.parse("package:" + activity.getPackageName()));
+        }else {
+            intent = new Intent(Settings.ACTION_SECURITY_SETTINGS ,Uri.parse("package:" + activity.getPackageName()));
+        }
+        activity.startActivityForResult(intent, INSTALL_PERMISSION_CODE);
+    }
+
+
     /**
      * activity 回调
      */
     public void onActivityResult(int requestCode, int resultCode, Intent data){
-        LLog.print("权限处理结果回调 onActivityResult " +  requestCode +" "+ resultCode);
+        LLog.print("权限处理结果>> 回调 onActivityResult " +  requestCode +" "+ resultCode);
 
         if (requestCode == OVERLAY_PERMISSION_REQ_CODE){
             permissionCheck();
@@ -298,11 +323,16 @@ public class PermissionApply {
             }
         }
 
-        if (requestCode == ANDROID11_EXTERNALSTORAGEMANAGER_REQ_CODE){
+        if (requestCode == ANDROID11_EXTERNAL_STORAGE_MANAGER_REQ_CODE){
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                 LLog.print("ANDROID 11 申请外部文件权限 结果: " + Environment.isExternalStorageManager());
                 callback.onSDK30FileStorageRequestResult(Environment.isExternalStorageManager());
             }
+        }
+
+
+        if (requestCode == INSTALL_PERMISSION_CODE){
+            LLog.print("ANDROID 未知来源权限申请结果: " +  ( resultCode == Activity.RESULT_OK));
         }
     }
 }

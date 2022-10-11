@@ -2,6 +2,8 @@ package lee.bottle.lib.toolset.threadpool;
 
 import java.util.concurrent.LinkedBlockingQueue;
 
+import lee.bottle.lib.toolset.log.LLog;
+
 public class MThread extends Thread {
     private final LinkedBlockingQueue<Runnable> runQueue;
     private final int storeLimit;
@@ -43,7 +45,7 @@ public class MThread extends Thread {
         try {
             return runQueue.take();
         } catch (InterruptedException e) {
-//            e.printStackTrace();
+            LLog.error(e);
         }
         return null;
     }
@@ -90,12 +92,12 @@ public class MThread extends Thread {
                 try {
                     r.run();
                 } catch (Exception e) {
-                    e.printStackTrace();
+                    LLog.error(e);
                 }
                 isWorking = false;
                 dleTime = System.currentTimeMillis();
             } catch (Exception e) {
-                e.printStackTrace();
+                LLog.error(e);
             }
         }
     }

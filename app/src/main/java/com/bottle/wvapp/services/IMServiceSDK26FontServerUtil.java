@@ -20,10 +20,15 @@ import static android.content.Context.NOTIFICATION_SERVICE;
 * */
 public class IMServiceSDK26FontServerUtil {
 
+    private static boolean isAccept = false;
+
     private static final String channel_name = "im_server_channel_id_im";
     private static final int channel_id = 999;
+
     @RequiresApi(api = Build.VERSION_CODES.O)
     static void openFontServer(Service service){
+        if (!isAccept) return;
+
         // Android 8.0 不再允许后台进程直接通过startService方式去启动服务
         NotificationManager manager = (NotificationManager)service.getSystemService (NOTIFICATION_SERVICE);
         NotificationChannel channel = new NotificationChannel (channel_name,service.getString(R.string.app_name),NotificationManager.IMPORTANCE_LOW);
@@ -36,16 +41,19 @@ public class IMServiceSDK26FontServerUtil {
 
     @RequiresApi(api = Build.VERSION_CODES.O)
     static void removeFontServer(Service service){
+        if (!isAccept) return;
+
         NotificationManager manager = (NotificationManager)service.getSystemService (NOTIFICATION_SERVICE);
         if (manager == null) return;
         try {
             manager.cancel(channel_id);
             manager.deleteNotificationChannel(channel_name);
         }catch (Exception e){
-            e.printStackTrace();
+            LLog.error(e);
         } finally {
             service.stopForeground(true);
         }
+        LLog.print("android 8.+ Service ("+ service +") stop FrontService");
     }
 
 

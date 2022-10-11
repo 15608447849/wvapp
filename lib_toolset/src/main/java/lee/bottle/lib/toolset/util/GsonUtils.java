@@ -19,6 +19,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
+import lee.bottle.lib.toolset.log.LLog;
+
 /**
  * Created by Leeping on 2018/6/27.
  * email: 793065165@qq.com
@@ -39,7 +41,7 @@ public class GsonUtils {
             if (json==null || json.length()==0) return null;
             return newGson().fromJson(json, type);//对于javabean直接给出class实例
         } catch (JsonSyntaxException e) {
-            e.printStackTrace();
+            LLog.error(e);
         }
         return null;
     }
@@ -62,7 +64,7 @@ public class GsonUtils {
             if (json==null || json.length()==0) return null;
             return newGson().fromJson(json, cls);//对于javabean直接给出class实例
         } catch (JsonSyntaxException e) {
-//            e.printStackTrace();
+//            LLog.error(e);
         }
         return null;
     }
@@ -72,7 +74,7 @@ public class GsonUtils {
             if (StringUtils.isEmpty(json)) return null;
             return jsonToJavaBean(json, new TypeToken<HashMap<T,D>>() {}.getType());
         } catch (Exception e) {
-            e.printStackTrace();
+            LLog.error(e);
         }
         return null;
     }
@@ -86,7 +88,7 @@ public class GsonUtils {
                 list.add(gson.fromJson(element, clazz));
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            LLog.error(e);
         }
         return list;
     }

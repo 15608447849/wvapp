@@ -1,13 +1,17 @@
 <resources>
     <!-- Base application theme. -->
-    <style name="AppTheme" parent="Theme.AppCompat.Light.NoActionBar">
+    <style name="BaseTheme" parent="Theme.AppCompat.NoActionBar">
         <!-- Customize your theme here. -->
         <item name="colorPrimary">@color/colorPrimary</item>
         <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
         <item name="colorAccent">@color/colorAccent</item>
-<!--        <item name="android:windowBackground">@mipmap/launch</item>-->
+    </style>
+
+    <style name="LaunchTheme" parent="BaseTheme">
         <item name="android:windowBackground">@drawable/bgimg</item>
         <item name="android:windowFullscreen">true</item>
     </style>
-
+        <style name="WebTheme" parent="BaseTheme">
+        <item name="android:windowIsTranslucent">true</item>
+    </style>
 </resources>

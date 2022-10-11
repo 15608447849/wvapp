@@ -55,7 +55,7 @@ import lee.bottle.lib.imagepick.view.ImageFolderPopupWindow;
  * Time: 上午1:10
  * Email: lichenwei.me@foxmail.com
  */
-public class ImagePickerActivity extends BaseActivity implements ImagePickerAdapter.OnItemClickListener, ImageFoldersAdapter.OnImageFolderChangeListener {
+public class ImagePickerActivity extends ImageBaseActivity implements ImagePickerAdapter.OnItemClickListener, ImageFoldersAdapter.OnImageFolderChangeListener {
 
     /**
      * 启动参数

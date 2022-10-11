@@ -9,9 +9,11 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
+import lee.bottle.lib.toolset.log.LLog;
+
 
 public class IOThreadPool extends Thread  implements IThreadPool,RejectedExecutionHandler {
-    private ConcurrentLinkedQueue<Runnable> queue = new ConcurrentLinkedQueue<>();
+    private final ConcurrentLinkedQueue<Runnable> queue = new ConcurrentLinkedQueue<>();
     private boolean isLoop = true;
 
     private static ThreadFactory factoryFactory = new ThreadFactory() {
@@ -23,7 +25,7 @@ public class IOThreadPool extends Thread  implements IThreadPool,RejectedExecuti
         }
     };
 
-    private ThreadPoolExecutor executor;
+    private final ThreadPoolExecutor executor;
 
     public IOThreadPool() {
         executor = createIoExecutor(1000);
@@ -62,14 +64,14 @@ public class IOThreadPool extends Thread  implements IThreadPool,RejectedExecuti
                         try {
                             queue.wait();
                         } catch (InterruptedException e) {
-                            e.printStackTrace();
+                            LLog.error(e);
                         }
                     }
                     continue;
                 }
                 runnable.run();
             }catch (Exception e){
-                e.printStackTrace();
+                LLog.error(e);
             }
         }
     }

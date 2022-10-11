@@ -2,7 +2,6 @@ apply plugin: 'com.android.application'
 apply plugin: 'kotlin-android'
 apply plugin: 'kotlin-android-extensions'
 
-
 def appVersion = 66
 def iceTag = "DRUG"
 
@@ -13,7 +12,9 @@ def iceTag = "DRUG"
 
 // 测试地址
 def fileServerUrl = "http://121.37.6.129:9999"
-def webHomeUrl = "http://wx.onek56.com/" //测试地址
+def webHomeUrl = "http://wx.onek56.com/" //测试地址 测试商城
+//def webHomeUrl = "https://www.baidu.com/" //测试地址 百度
+//def webHomeUrl = "https://m.jd.com/" //测试地址 京东
 def address = "116.205.179.210:4061" //测试
 def appIcon = "@mipmap/ic_launch_test"
 
@@ -37,7 +38,7 @@ android {
     compileSdkVersion 32
     defaultConfig {
         applicationId "com.bottle.wvapp"
-        minSdkVersion 21
+        minSdkVersion 23
         targetSdkVersion 32
         versionCode appVersion
         versionName "${appVersion}-${releaseTime()}"
@@ -93,9 +94,13 @@ dependencies {
     implementation 'androidx.constraintlayout:constraintlayout:2.0.4'
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
     implementation 'com.zeroc:ice:3.6.3'
-    implementation project(':lib_toolset')
+    implementation project(':lib_cusweb')
+//    implementation project(':lib_toolset')
+
     //alipay 支付宝支付
-    implementation (name: 'alipaySdk-15.6.4-20190611174359-noUtdid', ext: 'aar')
+//    implementation (name: 'alipaySdk-15.6.4-20190611174359-noUtdid', ext: 'aar')
+    implementation 'com.alipay.sdk:alipaysdk-android:+@aar'
+
     //wxpay 微信
 //    implementation 'com.tencent.mm.opensdk:wechat-sdk-android-without-mta:5.3.1'
     implementation 'com.tencent.mm.opensdk:wechat-sdk-android:6.8.0'

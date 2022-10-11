@@ -13,6 +13,7 @@ import Ice.Communicator;
 import Ice.ObjectAdapter;
 import Ice.ObjectPrx;
 import Ice.Util;
+import lee.bottle.lib.toolset.log.LLog;
 
 /**
  * @Author: leeping
@@ -98,7 +99,7 @@ public class IceClient {
             try {
                 ic.destroy();
             } catch (Exception e) {
-                e.printStackTrace();
+                LLog.error(e);
             }
         }
         return this;

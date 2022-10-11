@@ -10,6 +10,8 @@ import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 
+import lee.bottle.lib.toolset.log.LLog;
+
 /**
  * Created by Leeping on 2018/6/27.
  * email: 793065165@qq.com
@@ -29,7 +31,7 @@ public class TimeUtils {
             arr[1] = month;
             arr[2] = day;
         } catch (ParseException e) {
-            e.printStackTrace();
+            LLog.error(e);
         }
     }
     public  static String formatUTCByCurrent() {
@@ -113,7 +115,7 @@ public class TimeUtils {
                 return true;
             }
         } catch (ParseException e) {
-            e.printStackTrace();
+            LLog.error(e);
         }
         return false;
     }

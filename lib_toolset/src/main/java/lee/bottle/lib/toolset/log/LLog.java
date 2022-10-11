@@ -9,6 +9,8 @@ import java.util.ArrayList;
 import java.util.Locale;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
+import lee.bottle.lib.toolset.util.ErrorUtils;
+
 /**
  * Created by Leeping on 2018/8/20.
  * email: 793065165@qq.com
@@ -93,8 +95,17 @@ public class LLog{
 
     //打印
     public static void print(Object... objects){
-        printTag("<<LEE LOG "+android.os.Process.myPid()+">>",objects);
+        printTag("<<LEE LOG "+android.os.Process.myPid()+" "+Thread.currentThread().getName()+">>",objects);
     }
+
+    public static void error(String tag,Throwable throwable){
+        LLog.print(tag+"\n" + ErrorUtils.printExceptInfo(throwable));
+    }
+
+    public static void error(Throwable throwable){
+        LLog.print(ErrorUtils.printExceptInfo(throwable));
+    }
+
     //打印
     public static void printTag(String tag, Object... objects){
         if (tag == null) tag = build.tag;

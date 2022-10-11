@@ -27,6 +27,8 @@ import android.widget.MediaController;
 import java.io.IOException;
 import java.util.Map;
 
+import lee.bottle.lib.toolset.log.LLog;
+
 /**
  * lzp
  */
@@ -498,12 +500,12 @@ public class VideoView extends SurfaceView implements MediaController.MediaPlaye
                         this.getHeight(), true);
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            LLog.error(e);
         } finally {
             try {
                 if(mmr!=null) mmr.release();
             } catch (Exception e) {
-                e.printStackTrace();
+                LLog.error(e);
             }
         }
         return bitmap;

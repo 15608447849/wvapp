@@ -12,17 +12,18 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import lee.bottle.lib.toolset.log.LLog;
 import lee.bottle.lib.toolset.util.GsonUtils;
 
 /**
  * 配合ftc文件服务器使用
  * lzp
  */
-public class HttpRequest extends HttpUtil.CallbackAbs  {
+public class HttpRequest extends HttpUtils.CallbackAbs  {
 
     private String text;
     private Exception exception;
-    private HttpUtil.Callback callback;
+    private HttpUtils.Callback callback;
 
     public HttpRequest bindParam(StringBuffer sb,Map<String,String > map){
         Iterator<Map.Entry<String,String>> it = map.entrySet().iterator();
@@ -38,7 +39,7 @@ public class HttpRequest extends HttpUtil.CallbackAbs  {
 
 
     public static String mapToHttpBody(String url,String type,Map map){
-        return HttpUtil.contentToHttpBody(url,type, GsonUtils.javaBeanToJson(map));
+        return HttpUtils.contentToHttpBody(url,type, GsonUtils.javaBeanToJson(map));
     }
 
 //    public static String getMapToHttpBody(String url,Map map){
@@ -46,7 +47,7 @@ public class HttpRequest extends HttpUtil.CallbackAbs  {
 //    }
 
     public HttpRequest accessUrl(String url){
-        new HttpUtil.Request(url,this)
+        new HttpUtils.Request(url,this)
                 .setReadTimeout(30*1000)
                 .setConnectTimeout(30*1000)
                 .text()
@@ -57,7 +58,7 @@ public class HttpRequest extends HttpUtil.CallbackAbs  {
     private List<String> pathList = new ArrayList<>();
     private List<String> nameList = new ArrayList<>();
     private List<String> imageSizeList = new ArrayList<>();
-    private List<HttpUtil.FormItem> formItems = new ArrayList<>();
+    private List<HttpUtils.FormItem> formItems = new ArrayList<>();
 
     /**
      * 上传文件
@@ -68,9 +69,9 @@ public class HttpRequest extends HttpUtil.CallbackAbs  {
             if (remoteFileName==null) remoteFileName = file.getName();
             pathList.add(URLEncoder.encode(remotePath,"UTF-8"));
             nameList.add(URLEncoder.encode(remoteFileName,"UTF-8"));
-            formItems.add(new HttpUtil.FormItem("file", file.getName(), file));
+            formItems.add(new HttpUtils.FormItem("file", file.getName(), file));
         } catch (UnsupportedEncodingException e) {
-            e.printStackTrace();
+            LLog.error(e);
         }
         return this;
     }
@@ -110,7 +111,7 @@ public class HttpRequest extends HttpUtil.CallbackAbs  {
         if (remoteFileName==null) throw new NullPointerException("需要上传的远程文件名不可以为空");
         pathList.add(remotePath);
         nameList.add(remoteFileName);
-        formItems.add(new HttpUtil.FormItem("file", remoteFileName, stream));
+        formItems.add(new HttpUtils.FormItem("file", remoteFileName, stream));
         return this;
     }
 
@@ -146,7 +147,7 @@ public class HttpRequest extends HttpUtil.CallbackAbs  {
             if (isCompress) headParams.put("image-compress","0");//图片压缩
             if (compressLimitSize>0) headParams.put("image-compress-size",compressLimitSize+"");//图片压缩至少到多少阔值
 
-            new HttpUtil.Request(url, HttpUtil.Request.POST, this)
+            new HttpUtils.Request(url, HttpUtils.Request.POST, this)
                     .setFileFormSubmit()
                     .setParams(headParams)
                     .addFormItemList(formItems)
@@ -163,7 +164,7 @@ public class HttpRequest extends HttpUtil.CallbackAbs  {
         HashMap<String,String> headParams = new HashMap<>();
         headParams.put("specify-path",dirPath);
         headParams.put("ergodic-sub",isSub+"");
-        new HttpUtil.Request(url, HttpUtil.Request.POST, this)
+        new HttpUtils.Request(url, HttpUtils.Request.POST, this)
                 .setParams(headParams)
                 .setReadTimeout(1000).
                 setConnectTimeout(1000)
@@ -188,7 +189,7 @@ public class HttpRequest extends HttpUtil.CallbackAbs  {
             if (fileItem != null && fileItem.size() > 0) {
                 HashMap<String,String> headParams = new HashMap<>();
                 headParams.put("delete-list", URLEncoder.encode(GsonUtils.javaBeanToJson(fileItem),"UTF-8"));
-                new HttpUtil.Request(url, HttpUtil.Request.POST, this)
+                new HttpUtils.Request(url, HttpUtils.Request.POST, this)
                         .setParams(headParams)
                         .setReadTimeout(1000).
                         setConnectTimeout(1000)
@@ -196,13 +197,13 @@ public class HttpRequest extends HttpUtil.CallbackAbs  {
                         .execute();
             }
         } catch (UnsupportedEncodingException e) {
-            e.printStackTrace();
+            LLog.error(e);
         }
         return this;
     }
 
 
-    public HttpRequest setCallback(HttpUtil.Callback callback) {
+    public HttpRequest setCallback(HttpUtils.Callback callback) {
         this.callback = callback;
         return this;
     }
@@ -213,7 +214,7 @@ public class HttpRequest extends HttpUtil.CallbackAbs  {
     }
 
     @Override
-    public void onResult(HttpUtil.Response response) {
+    public void onResult(HttpUtils.Response response) {
         this.text = response.getMessage();
         if (callback!=null) callback.onResult(response);
     }
@@ -232,7 +233,7 @@ public class HttpRequest extends HttpUtil.CallbackAbs  {
             if (!file.delete()) return false;
         }
 
-        HttpUtil.Request r = new HttpUtil.Request(url,this);
+        HttpUtils.Request r = new HttpUtils.Request(url,this);
         r.setDownloadFileLoc(file);
         r.download();
         r.execute();

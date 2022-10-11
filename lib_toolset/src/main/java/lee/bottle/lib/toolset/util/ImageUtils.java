@@ -4,6 +4,7 @@ import android.content.Context;
 
 import java.io.File;
 
+import lee.bottle.lib.toolset.log.LLog;
 import top.zibin.luban.Luban;
 
 /**
@@ -21,7 +22,7 @@ public class ImageUtils {
                     .ignoreBy(threshold)
                     .get(image.getCanonicalPath());
         }catch (Exception e){
-            e.printStackTrace();
+            LLog.error(e);
         }
         return image;
     }

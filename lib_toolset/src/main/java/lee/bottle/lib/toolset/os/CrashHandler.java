@@ -17,9 +17,8 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
-import lee.bottle.lib.toolset.log.LLog;
 import lee.bottle.lib.toolset.util.AppUtils;
-import lee.bottle.lib.toolset.util.ErrorUtil;
+import lee.bottle.lib.toolset.util.ErrorUtils;
 import lee.bottle.lib.toolset.util.TimeUtils;
 
 import static android.Manifest.permission.READ_PHONE_STATE;
@@ -154,7 +153,7 @@ public class CrashHandler implements Thread.UncaughtExceptionHandler {
 
         sb.append(timeStamp).append("\n");// 错误时间
         sb.append(printDevInfo()).append("\n\n"); // 设备信息
-        sb.append(ErrorUtil.printExceptInfo(ex)).append("\n");// 错误信息
+        sb.append(ErrorUtils.printExceptInfo(ex)).append("\n");// 错误信息
 
         try {
             //保存文件

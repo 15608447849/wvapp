@@ -19,7 +19,7 @@ public class PathUtils {
         Uri fileUri;
         File file = new File(path);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            fileUri = FileProvider.getUriForFile(context,  context.getApplicationContext().getPackageName() + ".fileprovider", file);
+            fileUri = FileProvider.getUriForFile(context,  context.getApplicationContext().getPackageName() + ".fileProvider", file);
         } else {
             fileUri = Uri.fromFile(file);
         }

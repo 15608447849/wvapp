@@ -1,48 +1,51 @@
 package com.bottle.wvapp.jsprovider;
 
-import android.app.ActionBar;
 import android.app.Activity;
 import android.content.ComponentName;
 import android.content.Intent;
 import android.graphics.Color;
-import android.graphics.drawable.ColorDrawable;
 import android.net.Uri;
 import android.os.Build;
-import android.util.Log;
+import android.os.Message;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
 import android.view.WindowManager;
 
 import com.alipay.sdk.app.PayTask;
-import com.bottle.wvapp.activitys.BaseActivity;
-import com.bottle.wvapp.activitys.NativeActivity;
+
+import com.bottle.wvapp.activitys.WebActivity;
+import com.bottle.wvapp.app.WebApplication;
+import com.bottle.wvapp.beans.MapDataResult;
+import com.bottle.wvapp.uptver.UpdateVersionServerImp;
 import com.bottle.wvapp.wxapi.WXPayEntryActivity;
+import com.google.gson.reflect.TypeToken;
 import com.tencent.mm.opensdk.modelbiz.WXLaunchMiniProgram;
 import com.tencent.mm.opensdk.modelpay.PayReq;
 import com.tencent.mm.opensdk.openapi.IWXAPI;
 import com.tencent.mm.opensdk.openapi.WXAPIFactory;
 
-import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 
+import lee.bottle.lib.toolset.http.FileServerClient;
 import lee.bottle.lib.toolset.log.LLog;
 import lee.bottle.lib.toolset.os.ApplicationAbs;
 import lee.bottle.lib.toolset.os.CrashHandler;
 import lee.bottle.lib.toolset.util.AppUtils;
-import lee.bottle.lib.toolset.util.DialogUtil;
+import lee.bottle.lib.toolset.util.DialogUtils;
 import lee.bottle.lib.toolset.util.GsonUtils;
 
 import static android.Manifest.permission.CALL_PHONE;
 import static android.content.Intent.FLAG_ACTIVITY_NEW_TASK;
 
 
-import static android.content.Intent.parseUri;
-import static android.view.View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN;
-import static com.bottle.wvapp.app.ApplicationDevInfo.getMemDevToken;
+import static com.bottle.wvapp.BuildConfig._WEB_HOME_URL;
+import static com.bottle.wvapp.beans.BusinessData.getCurrentDevCompanyID;
+import static com.bottle.wvapp.beans.BusinessData.getOrderServerNo;
+import static lee.bottle.lib.toolset.os.ApplicationDevInfo.getMemoryDEVID;
 import static lee.bottle.lib.toolset.util.AppUtils.checkPermissionExist;
 import static lee.bottle.lib.toolset.util.AppUtils.getVersionName;
 import static lee.bottle.lib.toolset.util.AppUtils.schemeJump;
@@ -53,10 +56,16 @@ import static lee.bottle.lib.toolset.util.AppUtils.statusBarHeight;
 /**
  * 提供给前端调用的本地方法
  */
-public class NativeMethodCallImp{
+public class NativeMethodCallImp {
+
+    private final NativeServerImp nativeServerImp;
+
+    protected NativeMethodCallImp(NativeServerImp nativeServerImp) {
+        this.nativeServerImp = nativeServerImp;
+    }
 
     /* 支付结果 0 成功, -1 失败 */
-    private volatile int currentPayResultCode = -1;
+    private static volatile int currentPayResultCode = -1;
 
     /** 获取设备信息 */
     private String getDeviceInfoMap(){
@@ -67,22 +76,22 @@ public class NativeMethodCallImp{
         map.put("devHardwareManufacturer",devInfoMap.get("硬件制造商"));
         map.put("devOS","android-"+devInfoMap.get("安卓系统版本号"));
         map.put("devModel",devInfoMap.get("型号"));
-        map.put("devToken", getMemDevToken());// token
-        map.put("statusBarHeight",String.valueOf(statusBarHeight(NativeServerImp.getBaseActivity())));
-        LLog.print("JS获取本机设备信息: "+ map);
+        map.put("devToken", getMemoryDEVID() + "@" + WebApplication.DEVTYPE);// token
+        map.put("statusBarHeight",String.valueOf(statusBarHeight(Objects.requireNonNull(nativeServerImp.getNativeActivity()))));
+        //LLog.print("JS获取本机设备信息: "+ map);
         return GsonUtils.javaBeanToJson(map);
     }
 
     /** 文件上传 */
     private String fileUpload(String json){
-        HttpServerImp.UploadTask bean = GsonUtils.jsonToJavaBean(json, HttpServerImp.UploadTask.class);
+        FileServerClient.UploadTask bean = GsonUtils.jsonToJavaBean(json, FileServerClient.UploadTask.class);
         if (bean == null) return null;
-        return HttpServerImp.updateFile(bean);
+        return FileServerClient.updateFile(bean);
     }
 
     /** 拨号 */
     private void callPhone(String phone){
-        Activity activity = NativeServerImp.getBaseActivity();
+        Activity activity = nativeServerImp.getNativeActivity();
         if (activity == null) return;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             if (!checkPermissionExist(activity,CALL_PHONE)){
@@ -95,7 +104,7 @@ public class NativeMethodCallImp{
 
     /** 打开qq */
     private void openTel(String qq){
-        Activity activity = NativeServerImp.getBaseActivity();
+        Activity activity = nativeServerImp.getNativeActivity();
         if (activity==null) return;
         String url="mqqwpa://im/chat?chat_type=wpa&uin="+qq;
         Intent i = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
@@ -110,33 +119,80 @@ public class NativeMethodCallImp{
 
     /** 版本信息 */
     public String versionInfo(){
-        Activity activity = NativeServerImp.getBaseActivity();
+        Activity activity = nativeServerImp.getNativeActivity();
         if (activity==null) return "-x";
         return "-"+getVersionName(activity);
     }
 
-    /** web页面加载完成 */
+    private void phoneToast(final String msg) {
+        final Activity activity = nativeServerImp.getNativeActivity();
+        if (activity==null) return;
+        activity.runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                AppUtils.toastLong(activity, msg);
+            }
+        });
+    }
+
+    /** web页面初始化完成 */
     public void pageLoadComplete(String url){
-        NativeServerImp.webPageLoadComplete(url);
+        nativeServerImp.onJSPageInitialization();
     }
 
     /* web页面 展示首页 */
     public void onShowIndexBefore(){
-        NativeServerImp.webPageIndexShowBefore();
+        nativeServerImp.onIndexPageShowBefore();
     }
 
 
     /** 版本更新*/
     private void versionUpdate(){
-        Activity activity = NativeServerImp.getBaseActivity();
+        Activity activity = nativeServerImp.getNativeActivity();
         if (activity!=null){
-            UpdateVersionServerImp.execute(activity,true);
+            UpdateVersionServerImp.checkVersion(activity,true);
         }
     }
 
 
+    /**
+     * app支付
+     * json = { orderno=订单号, paytype=付款方式, flag客户端类型 0 web,1 app }
+     */
+    public synchronized Map<String,String> payHandle(String json, String payType){
+        try{
+            int companyID = getCurrentDevCompanyID(false,null);
+
+            if ( companyID == 0) throw new IllegalArgumentException("登录信息异常");
+            Map<String,Object> map  = GsonUtils.string2Map(json);
+            if (map == null || map.get("orderno") == null) throw new IllegalArgumentException("支付订单号不正确");
+            map.put("paytype",payType);
+//            map.put("flag",1);
+            if(map.get("flag") == null) map.put("flag",1);
+
+            json = GsonUtils.javaBeanToJson(map);
+
+            LLog.print(companyID+ " 预支付请求: " + json);
+            json = nativeServerImp.queryICE("order2Server"+getOrderServerNo(companyID), "PayModule","prePay", 0,0,null, json);
+            LLog.print(companyID+ " 预支付结果: " + json);
+
+            MapDataResult<String,String> result =
+                    GsonUtils.jsonToJavaBean(json, new TypeToken<MapDataResult<String,String>>(){}.getType());
+
+            if (result == null || result.data == null) throw new IllegalArgumentException("无法获取预支付信息");
+
+            return result.data;
+        }catch (final Exception e){
+            phoneToast(Objects.requireNonNull(e.getMessage()));
+        }finally {
+            nativeServerImp.connectIceIM();
+        }
+        return null;
+    }
+
+
     // 微信支付 线程休眠 等待结果
-    public void wxpayWait(){
+    public static void wxpayWait(){
         synchronized (WXPayEntryActivity.class) {
             try {
                 WXPayEntryActivity.class.wait(3 * 60 * 1000L);
@@ -145,7 +201,7 @@ public class NativeMethodCallImp{
     }
 
     // 微信支付 线程执行 通知结果
-    public void wxpayNotify(int resCode) {
+    public static void wxpayNotify(int resCode) {
         currentPayResultCode = resCode;
         synchronized (WXPayEntryActivity.class){
             WXPayEntryActivity.class.notifyAll();
@@ -156,10 +212,10 @@ public class NativeMethodCallImp{
     /** 微信支付 */
     public int wxpay(String json){
         currentPayResultCode = -1;
-        Activity activity = NativeServerImp.getBaseActivity();
+        Activity activity = nativeServerImp.getNativeActivity();
         if (activity != null) {
             //获取支付信息 https://www.jianshu.com/p/84eac713f007
-            Map<String,String> map = NativeServerImp.payHandle(json,"wxpay");
+            Map<String,String> map = payHandle(json,"wxpay");
             if (map != null) {
 
                 IWXAPI wxapi = ApplicationAbs.getApplicationObject(IWXAPI.class);
@@ -191,10 +247,10 @@ public class NativeMethodCallImp{
     /** 支付宝支付 */
     public int alipay(String json){
         currentPayResultCode = -1;
-        Activity activity = NativeServerImp.getBaseActivity();
+        final Activity activity = nativeServerImp.getNativeActivity();
         if (activity != null){
             //获取支付信息
-            Map<String,String> map = NativeServerImp.payHandle(json,"alipay");
+            Map<String,String> map = payHandle(json,"alipay");
             if (map != null) {
                 //把数组所有元素排序，并按照“参数=参数值”的模式用“&”字符拼接成字符串
                 try{
@@ -211,6 +267,8 @@ public class NativeMethodCallImp{
                         currentPayResultCode = 0;
                     }
 
+
+
                 }catch (Exception ignored){ }
             }
         }
@@ -220,10 +278,10 @@ public class NativeMethodCallImp{
     /** 易宝平台 */
     public int yeepay(String json){
         currentPayResultCode = -1;
-        Activity activity = NativeServerImp.getBaseActivity();
+        Activity activity = nativeServerImp.getNativeActivity();
         if (activity != null){
             //获取支付信息
-            Map<String,String> map = NativeServerImp.payHandle(json,"yeepay");
+            Map<String,String> map = payHandle(json,"yeepay");
             if (map != null) {
 
                 String channel = map.get("channel");
@@ -235,10 +293,10 @@ public class NativeMethodCallImp{
                     LLog.print("易宝支付 支付宝方案 jumpUrl = "+ jumpUrl );
 
                     Intent intent = new Intent();
-                    intent.setFlags(FLAG_ACTIVITY_NEW_TASK);
-                    intent.setAction("android.intent.action.VIEW");
+                    intent.setAction(Intent.ACTION_VIEW);
                     Uri contentUrl = Uri.parse(jumpUrl);
                     intent.setData(contentUrl);
+                    intent.setFlags(FLAG_ACTIVITY_NEW_TASK);
                     activity.startActivity(intent);
                 }
 
@@ -273,42 +331,46 @@ public class NativeMethodCallImp{
     }
 
 
-
-
-
     /** 内置浏览器打开链接 */
     public void localBrowserOpenUrl(final String url) {
-        LLog.print("localBrowserOpenUrl = "+url);
+        LLog.print("请求打开链接 = "+url);
 
-        final BaseActivity activity = NativeServerImp.getBaseActivity();
+        final Activity activity = nativeServerImp.getNativeActivity();
         if (activity==null) return;
 
-        if (url.endsWith("?openType=outBrowser")){
-            String _url = url.replace("?openType=outBrowser","");
-            LLog.print("系统浏览器打开 = "+url);
-            // 系统浏览器打开
-            Intent intent = new Intent();
-            intent.setFlags(FLAG_ACTIVITY_NEW_TASK);
-            intent.setAction("android.intent.action.VIEW");
-            Uri content_url  = Uri.parse(_url);
-            intent.setData(content_url);
-            activity.startActivity(intent);
+        activity.runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
 
-        }else {
-            // webview打开
-            activity.runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    activity.openWebPage(url);
+                if (url.endsWith("?openType=outBrowser")){
+                    // 系统浏览器打开
+                    String _url = url.replace("?openType=outBrowser","");
+                    Intent intent = new Intent();
+                    intent.setFlags(FLAG_ACTIVITY_NEW_TASK);
+                    intent.setAction(Intent.ACTION_VIEW);
+                    Uri content_url  = Uri.parse(_url);
+                    intent.setData(content_url);
+                    activity.startActivity(intent);
+                }else {
+                    // 二级 webview 打开
+                    Intent intent = new Intent(activity, WebActivity.class);
+                    intent.putExtra("url",url);
+                    if (url.contains("isRollback=false")){
+                        intent.putExtra("isRollback",false);
+                    }
+                    activity.startActivity(intent);
+
                 }
-            });
-        }
+
+            }
+        });
+
 
     }
 
     /** 跳转第三方应用 */
     public void openPartyApplication(final String appName){
-        final BaseActivity activity = NativeServerImp.getBaseActivity();
+        final Activity activity = nativeServerImp.getNativeActivity();
         if (activity==null) return;
         activity.runOnUiThread(new Runnable() {
             @Override
@@ -339,24 +401,14 @@ public class NativeMethodCallImp{
         });
     }
 
-    /** 清理缓存 */
-    public void clearCache(){
-        final BaseActivity activity = NativeServerImp.getBaseActivity();
-        if (activity==null) return;
-        activity.runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                activity.clearWeb(true);
-            }
-        });
-    }
+
 
     public void open_yqt_app(final String orderId_payorderUrl) {
         String[] arr = orderId_payorderUrl.split("&");
         String orderId  = arr[0];
         String payorderUrl  = arr[1];
 
-        final BaseActivity activity = NativeServerImp.getBaseActivity();
+        final Activity activity = nativeServerImp.getNativeActivity();
         if(activity == null) return;
 
          /*
@@ -390,7 +442,7 @@ public class NativeMethodCallImp{
                 if(isExistApp){
                     schemeJump( activity,schema);
                 }else {
-                    DialogUtil.dialogSimple2(activity, "未安装应用'银企通'", "现在下载", new DialogUtil.Action0() {
+                    DialogUtils.dialogSimple2(activity, "未安装应用'银企通'", "现在下载", new DialogUtils.Action0() {
                         @Override
                         public void onAction0() {
                             downloadApk(apk_url);
@@ -402,22 +454,21 @@ public class NativeMethodCallImp{
     }
 
 
+    // 下载apk
     public void downloadApk(final String url){
-        final BaseActivity activity = NativeServerImp.getBaseActivity();
+        final Activity activity = nativeServerImp.getNativeActivity();
         if(activity == null) return;
-
-        final Intent intent = new Intent();
-        intent.setAction(Intent.ACTION_VIEW);
-        intent.setData(Uri.parse(url));
 
         activity.runOnUiThread(new Runnable() {
             @Override
             public void run() {
+                final Intent intent = new Intent();
+                intent.setAction(Intent.ACTION_VIEW);
+                intent.setData(Uri.parse(url));
                 if (intent.resolveActivity(activity.getPackageManager()) != null) {
-                    final ComponentName componentName = intent.resolveActivity(activity.getPackageManager());
                     activity.startActivity(Intent.createChooser(intent, "请选择浏览器"));
                 } else {
-                    AppUtils.toastLong(activity,"下载失败");
+                    AppUtils.toastLong(activity,"下载失败 "+url);
                 }
             }
         });
@@ -431,17 +482,17 @@ public class NativeMethodCallImp{
     * noStatusBarPage 布局延伸至状态栏底部
     * */
     public void setStatusBar(String json){
-        final BaseActivity activity = NativeServerImp.getBaseActivity();
+        final Activity activity = nativeServerImp.getNativeActivity();
         if (activity == null ) return;
 
         HashMap<String,Object> map = GsonUtils.string2Map(json);
+        if (map==null) return;
+
         final String isLightColor = String.valueOf(map.get("isLightColor"));
         final String bgColor = String.valueOf(map.get("bgcolor")) ;
-        final String  noStatusBarPage = String.valueOf(map.get("noStatusBarPage"));
+        final String noStatusBarPage = String.valueOf(map.get("noStatusBarPage"));
 
 //        LLog.print("状态栏 背景颜色: " + bgColor +" 文本颜色: "+ isLightColor + " 是否延伸: "+ noStatusBarPage);
-
-
 
         activity.runOnUiThread(new Runnable() {
             @Override
@@ -453,31 +504,25 @@ public class NativeMethodCallImp{
                 View contentViewGroup = ((ViewGroup) activity.findViewById(android.R.id.content)).getChildAt(0);
                 //                        contentViewGroup.setFitsSystemWindows(true);
 
-                if (noStatusBarPage!=null){
-                    if (noStatusBarPage.equals("true")){
-                        curSystemUiVisibility = View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN;
-                        window.setStatusBarColor(Color.TRANSPARENT);
+                if (noStatusBarPage.equals("true")){
+                    curSystemUiVisibility = View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN;
+                    window.setStatusBarColor(Color.TRANSPARENT);
 //                        LLog.print("延伸至状态栏 状态栏背景色透明 ");
-                    }else{
-                        curSystemUiVisibility = 0;
+                }else{
+                    curSystemUiVisibility = 0;
 //                        LLog.print("不延伸至状态栏");
-                        if (bgColor!=null){
-                            // 设置状态栏背景颜色
-                            window.setStatusBarColor(Color.parseColor(bgColor));
+                    // 设置状态栏背景颜色
+                    window.setStatusBarColor(Color.parseColor(bgColor));
 //                            LLog.print("状态栏背景色: "+ bgColor);
-                        }
-                    }
                 }
 
-                if (isLightColor!=null){
-                    if (isLightColor.equals("true")){
-                        curSystemUiVisibility |= View.SYSTEM_UI_FLAG_LAYOUT_STABLE;
+                if (isLightColor.equals("true")){
+                    curSystemUiVisibility |= View.SYSTEM_UI_FLAG_LAYOUT_STABLE;
 //                        LLog.print("文本白色");
-                    }else {
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                            curSystemUiVisibility |= View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR;
+                }else {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                        curSystemUiVisibility |= View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR;
 //                            LLog.print("文本黑色 ");
-                        }
                     }
                 }
                 decorView.setSystemUiVisibility( curSystemUiVisibility);
@@ -490,14 +535,9 @@ public class NativeMethodCallImp{
         System.exit(0);
     }
 
-    public void permissionQuery(){
-        final BaseActivity activity = NativeServerImp.getBaseActivity();
-        if (activity == null ) return;
-        if (activity instanceof NativeActivity){
-            ((NativeActivity)activity).permissionQuery();
-        }
+    /** 清理缓存 */
+    public void clearCache(){
+       nativeServerImp.clearCache();
     }
-
-
 
 }

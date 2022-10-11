@@ -14,13 +14,13 @@
         android:layout_height="1dp"
         />
     <!--进度条 -->
-    <ProgressBar
-            android:id="@+id/progress_bar"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            style="?android:attr/progressBarStyleHorizontal"
-            android:max="50"
-            android:visibility="gone" />
+<!--    <ProgressBar-->
+<!--            android:id="@+id/progress_bar"-->
+<!--            android:layout_width="match_parent"-->
+<!--            android:layout_height="wrap_content"-->
+<!--            style="?android:attr/progressBarStyleHorizontal"-->
+<!--            android:max="50"-->
+<!--            android:visibility="gone" />-->
 
 
 

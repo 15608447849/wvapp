@@ -11,25 +11,27 @@ import android.view.Gravity;
 import android.view.WindowManager;
 
 import androidx.annotation.Nullable;
+import androidx.annotation.RequiresApi;
 
-import com.bottle.wvapp.BuildConfig;
 import com.bottle.wvapp.activitys.NativeActivity;
-import com.bottle.wvapp.app.ApplicationDevInfo;
+import com.bottle.wvapp.app.WebApplication;
 import com.bottle.wvapp.tool.NotifyUer;
-import com.onek.client.IceClient;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
 
 import Ice.Connection;
 import Ice.ConnectionCallback;
 import lee.bottle.lib.toolset.log.LLog;
-import lee.bottle.lib.toolset.util.ErrorUtil;
+import lee.bottle.lib.toolset.util.ErrorUtils;
+import lee.bottle.lib.toolset.util.GsonUtils;
 
 import static android.content.Intent.FLAG_ACTIVITY_NEW_TASK;
-import static com.bottle.wvapp.app.ApplicationDevInfo.DEVTYPE;
-import static com.bottle.wvapp.app.BusinessData.getOrderServerNo;
-import static com.bottle.wvapp.app.BusinessData.getCurrentDevCompanyID;
+
+import static com.bottle.wvapp.beans.BusinessData.getOrderServerNo;
+import static com.bottle.wvapp.beans.BusinessData.getCurrentDevCompanyID;
 
 
 /*
@@ -39,14 +41,12 @@ public class IMService extends Service {
 
     private final boolean isDebugger = true;
 
-    /* 间隔保活定时器 */
+    /* 定时器 */
     private final Timer timer = new Timer(true);
 
-    /* ICE连接客户端 */
-    final IceClient client = new IceClient(BuildConfig._ICE_TAG,BuildConfig._ADDRESS,BuildConfig._ARGS);
-
     /* 长连接接收消息 */
-    private final CommunicationServerImp receive = new CommunicationServerImp(this);
+    private final CommunicationServer receive = new CommunicationServer(this);
+
 
     @Nullable
     @Override
@@ -56,37 +56,20 @@ public class IMService extends Service {
 
     @Override
     public void onCreate() {
-       if (isDebugger) LLog.print("IMService onCreate");
-        openIceCommunication();
+       if (isDebugger) LLog.print(this+ " IMService onCreate");
+
         openLongConnectionWatch();
         startFrontServiceSDK26();
-//        createFloatView();
+
         super.onCreate();
     }
 
 
 
-    private FloatWindowView floatWindowView;
-
-    @SuppressLint("RtlHardcoded")
-    private void createFloatView() {
-        floatWindowView = new FloatWindowView(this);
-        WindowManager windowManager = (WindowManager) this.getSystemService(WINDOW_SERVICE);
-        WindowManager.LayoutParams layoutParams = new WindowManager.LayoutParams(
-                WindowManager.LayoutParams.WRAP_CONTENT,
-                WindowManager.LayoutParams.WRAP_CONTENT,
-                WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
-                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE|WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,
-                PixelFormat.RGBA_8888);
-        layoutParams.gravity = Gravity.TOP | Gravity.LEFT ;
-        windowManager.addView(floatWindowView,layoutParams);
-
-    }
 
 
-    private void openIceCommunication() {
-        client.startCommunication();
-    }
+
+
 
     private void openLongConnectionWatch() {
         // 打开长连接监听
@@ -101,14 +84,18 @@ public class IMService extends Service {
 
     /** 打开/关闭连接 */
     private synchronized void communication(){
-        // 获取公司码
-        int compid = getCurrentDevCompanyID(false,null);
-        // 检查连接
-        if(checkCommunication(String.valueOf(compid))) return;
-        // 关闭连接
-        communicationClose();
-        // 尝试连接
-        communicationOpen(compid);
+        try {
+            // 获取公司码
+            int compid = getCurrentDevCompanyID(false,null);
+            // 检查连接
+            if(checkCommunication(String.valueOf(compid))) return;
+            // 关闭连接
+            communicationClose();
+            // 尝试连接
+            communicationOpen(compid);
+        } catch (Exception e) {
+            LLog.error(e);
+        }
     }
 
     private void communicationOpen(int compid) {
@@ -117,30 +104,26 @@ public class IMService extends Service {
             if (compid <= 0) return;
 
             String fn = "order2Service" + getOrderServerNo(compid) + "_1";
-//            String fn = "order2Server" + getOrderServerNo(compid);
-            //LLog.print("尝试连接> 服务: "+ fn+" , "+ compid);
+            Log.i("ice","连接服务: "+ fn+" 公司编码: "+ compid);
             // 尝试连接服务器
-            receive.prx = client.settingProxy(fn).getProxy();
+            receive.prx = WebApplication.iceClient.settingProxy(fn).getProxy();
             receive.prx.ice_ping();
 
-//            receive.identity = new Ice.Identity(String.valueOf(compid),DEVTYPE+"-ice_heartbeat:true");
-            receive.identity = new Ice.Identity(String.valueOf(compid),DEVTYPE);
-            client.getLocalAdapter().add(receive, receive.identity);
-            receive.prx.ice_getConnection().setAdapter(client.getLocalAdapter());
+            receive.identity = new Ice.Identity(String.valueOf(compid), WebApplication.DEVTYPE);
+            WebApplication.iceClient.getLocalAdapter().add(receive, receive.identity);
+            receive.prx.ice_getConnection().setAdapter(WebApplication.iceClient.getLocalAdapter());
 
             receive.prx.ice_getConnection().setCallback(new ConnectionCallback() {
                 @Override
                 public void heartbeat(Connection con) {
-                    Log.i("ice","heartbeat:"+ con);
+                    Log.w("ice","heartbeat:"+ con._toString().replace("\n"," "));
                     receive.lastHeartbeatTime = System.currentTimeMillis();
-                    if (floatWindowView!=null){
-                        floatWindowView.setConnect(true);
-                    }
+
                 }
 
                 @Override
                 public void closed(Connection con) {
-                    Log.i("ice","closed:"+ con);
+                    Log.w("ice","closed:"+ con._toString().replace("\n"," "));
                     communicationClose();
                 }
             });
@@ -154,11 +137,11 @@ public class IMService extends Service {
 
             receive.prx.online( receive.identity );
 
-            LLog.print("IM 服务器 连接成功: " + compid +" , "+ receive.prx.ice_getConnection());
+            LLog.print(this+ " IM 服务器 连接成功: " + compid +" , "+ receive.prx.ice_getConnection()._toString().replace("\n"," "));
 
             receive.lastHeartbeatTime = 0;
         } catch (Exception e) {
-            e.printStackTrace();
+            LLog.error(e);
             communicationClose();
         }
 
@@ -171,48 +154,44 @@ public class IMService extends Service {
 
                 if(receive.lastHeartbeatTime > 0){
                     long diff = System.currentTimeMillis() - receive.lastHeartbeatTime;
-                    LLog.print("ice","heartbeat time diff: "+ diff);
+                    Log.w("ice","heartbeat time diff: "+ diff);
                     return diff <= 10 * 1000L;
                 }
                 if (receive.prx!=null){
                     receive.prx.ice_ping();
-                    LLog.print("ice","ping ok");
+                    Log.w("ice","ping .... success");
 
                     return true;
                 }
             }
         } catch (Exception e) {
-            LLog.print("长连接检测异常\n" + ErrorUtil.printExceptInfo(e));
+            LLog.print("长连接检测异常\n" + ErrorUtils.printExceptInfo(e));
         }
         return false;
     }
 
     // 关闭连接
-    private void communicationClose() {
+    protected void communicationClose() {
         if (receive.prx!=null){
             try{
                 Connection connection = receive.prx.ice_getConnection();
                 connection.close(true);
-                LLog.print("IM 服务器 断开连接: " + connection);
+                LLog.print(this+ " IM 服务器 断开连接: " + connection._toString().replace("\n"," "));
                 receive.lastHeartbeatTime = 0;
 
             }catch (Exception ignored){ }
             receive.prx = null;
         }
         if (receive.identity !=null){
-            try { client.getLocalAdapter().remove(receive.identity); } catch (Exception ignored) { }
+            try { WebApplication.iceClient.getLocalAdapter().remove(receive.identity); } catch (Exception ignored) { }
             receive.identity = null;
         }
-        if (floatWindowView!=null){
-            floatWindowView.setConnect(false);
-        }
     }
-
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         startFrontServiceSDK26();
-        if (isDebugger) LLog.print("IMService onStartCommand");
+        if (isDebugger) LLog.print(this+ " IMService onStartCommand , start count: "+ startId);
         return START_REDELIVER_INTENT;
     }
 
@@ -221,6 +200,7 @@ public class IMService extends Service {
             IMServiceSDK26FontServerUtil.openFontServer(this);
         }
     }
+
     private void stopFrontServiceSDK26() {
         if(Build.VERSION.SDK_INT>= Build.VERSION_CODES.O){
             IMServiceSDK26FontServerUtil.removeFontServer(this);
@@ -229,161 +209,38 @@ public class IMService extends Service {
 
     @Override
     public void onLowMemory() {
-        if (isDebugger) LLog.print("IMService onLowMemory");
+        if (isDebugger) LLog.print(this+ " IMService onLowMemory");
         super.onLowMemory();
     }
 
     @Override
     public void onTrimMemory(int level) {
-        if (isDebugger) LLog.print("IMService onTrimMemory - "+ level);
+        if (isDebugger) LLog.print(this+ " IMService onTrimMemory - "+ level);
         super.onTrimMemory(level);
     }
 
 
     @Override
     public void onDestroy() {
-        if (isDebugger) LLog.print("IMService onDestroy");
+        if (isDebugger) LLog.print(this+ " IMService onDestroy");
         timer.cancel();
         communicationClose();
-        receive.isRunning = false;
-        client.stopCommunication();
         stopFrontServiceSDK26();
         super.onDestroy();
     }
 
-
-    void handlerMessage(String message) {
-        try {
-            if (isDebugger) LLog.print("处理长连接消息: "+ message);
-            String prop = message.substring(0,message.indexOf(":"));
-            String msg = message.substring(message.indexOf(":")+1);
-
-            Intent intent = new Intent(this, NativeActivity.class);
-            intent.setFlags(FLAG_ACTIVITY_NEW_TASK);
-
-            protocol_ref(prop,msg,intent);
-            protocol_logout(prop,msg,intent);
-            protocol_payResult(prop,msg,intent);
-            protocol_pushMessage(prop,msg,intent);
-            protocol_alertMessage(prop,msg,intent);
-
-
-        } catch (Exception e) {
-            LLog.print("接收长连接消息异常: "+ message+" , " + e.getMessage());
+    void sendDataToNativeActivity(Map<String,String> map){
+        if (map == null) return;
+        Intent intent = new Intent(this, NativeActivity.class);
+        intent.setFlags(FLAG_ACTIVITY_NEW_TASK);
+        for (String k:map.keySet()){
+            String v = map.get(k);
+            intent.putExtra(k,v);
         }
+        getApplication().startActivity(intent);
+        if (isDebugger) LLog.print(this+ " send data to native Activity : "+ GsonUtils.javaBeanToJson(map));
     }
 
-    private int updateLocalCacheReturnCompanyID(){
-//        LLog.print("更新本地用户信息");
-        int compid = getCurrentDevCompanyID(true, client);
-        if (compid == 0){
-            // 断开连接
-            communicationClose();
-            // 取消通知
-            NotifyUer.cacheAllMessageByExistNotify(getApplication());
-            // 通知activity刷新
-        }
-        return compid;
-    }
 
-    //更新本地企业信息
-    private void protocol_ref(String prop, String msg, Intent intent) {
-        if (prop.equals("ref")){
-            LLog.print("服务器用户信息存在更新");
-            updateLocalCacheReturnCompanyID();
-        }
-    }
 
-    //登录/强制登录
-    private void protocol_logout(String prop, String msg, Intent intent) {
-        if (prop.startsWith("logout")){
-            LLog.print("登出信息: "+ msg);
-            String message = null;
-            //刷新用户/ 企业信息
-            int compid = updateLocalCacheReturnCompanyID();
-            String devID = msg.substring(0,msg.lastIndexOf("@"));
-            String devType = msg.substring(msg.lastIndexOf("@")+1);
-            String curDevID =  ApplicationDevInfo.getShareDevID(getApplication());
-
-            if (devType.equals(ApplicationDevInfo.DEVTYPE)){
-
-                LLog.print("公司标识: " + compid
-                        + "\n目标设备: " + devID
-                        + "\n当前设备: " + curDevID);
-                if (devID.equals(curDevID)){
-                    message = "您的账号已从当前移动设备退出";
-                }else{
-                    if (prop.equals("logout-force")){
-                        // 当前设备被强制登出
-                        // 通知activity 强制退出
-                        intent.putExtra("forceLogout",true);
-                        getApplication().startActivity(intent);
-                        message = "您的账号已在其他移动设备登录";
-                    }
-                }
-                /*if (prop.equals("logout-force") && !devID.equals(curDevID)){
-                    // 当前设备被强制登出
-                    // 通知activity 强制退出
-                    intent.putExtra("forceLogout",true);
-                    getApplication().startActivity(intent);
-                    message = "您的账号已在其他设备进行登录";
-                }*/
-            }else{
-                message = "您的账号已从其他设备退出登录";
-            }
-            if (message!=null) {
-                LLog.print(message);
-//                NotifyUer.createMessageNotifyTips(getApplication(), message);
-            }
-        }
-    }
-
-    //支付结果
-    private void protocol_payResult(String prop, String msg, Intent intent) {
-//    String msg = "pay:" + jsonObject.toJSONString();
-//            IceRemoteUtil.sendMessageToClient(compid, msg);
-        if (prop.equals("pay")){
-            LLog.print("支付结果: "+ msg);
-            // 通知actyivity 支付结果
-            intent.putExtra("pushPaySuccessMessageToJs",msg);
-            getApplication().startActivity(intent);
-        }
-    }
-
-    //推送消息
-    private void protocol_pushMessage(String prop, String msg, Intent intent) {
-
-        if (prop.equals("push") || prop.equals("custom")){
-            LLog.print("推送消息: "+ msg);
-
-            String content = msg;
-            String likePath = null;
-
-            if (prop.startsWith("custom")){
-                // 自定义推送消息: 内容;链接
-                String[] arr = content.split(";");
-                if (arr.length >= 1){
-                    content = arr[0];
-                }
-                if (arr.length >= 2){
-                    likePath = arr[1];
-                }
-            }
-
-            // 发送推送消息
-            intent.putExtra("pushMessageToJs",content);
-            startActivity(intent);
-
-            //打开广播-跳转个人中心
-            NotifyUer.createMessageNotify(getApplication(), content, likePath);
-        }
-    }
-
-    // 强制弹框
-    private void protocol_alertMessage(String prop,String msg,Intent intent){
-        if (prop.equals("alert")){
-            intent.putExtra("alertTipWindow",msg);
-            getApplication().startActivity(intent);
-        }
-    }
 }

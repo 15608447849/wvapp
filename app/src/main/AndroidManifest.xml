@@ -13,8 +13,9 @@
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
     <!-- 允许程序设置内置sd卡的写权限 -->
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
-    <!--    sdk30 android11 -->
-    <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" />
+    <!-- sdk30 android11 -->
+    <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE"
+        tools:ignore="ScopedStorage" />
     <!-- 挂载SD卡 -->
     <!-- <uses-permission android:name="android.permission.MOUNT_UNMOUNT_FILESYSTEMS" /> -->
     <!-- 读取文件 -->
@@ -45,49 +46,48 @@
 
     <application
         android:name=".app.WebApplication"
-        android:allowBackup="true"
-        android:hardwareAccelerated="false"
+        android:allowBackup="false"
+        android:hardwareAccelerated="true"
         android:icon="${app_icon}"
         android:label="@string/app_name"
         android:largeHeap="true"
         android:requestLegacyExternalStorage="true"
         android:roundIcon="${app_icon}"
         android:supportsRtl="true"
-        android:theme="@style/AppTheme"
+        android:theme="@style/BaseTheme"
         android:usesCleartextTraffic="true"
-        tools:targetApi="m">
+        tools:targetApi="m"
+        tools:replace="android:allowBackup"
+        >
 
-        <uses-library
-            android:name="org.apache.http.legacy"
-            android:required="false" />
+        <uses-library android:name="org.apache.http.legacy" android:required="false" />
 
-        <!-- 启动 -->
+
+        <!--   启动     -->
         <activity
             android:name=".activitys.NativeActivity"
             android:configChanges="orientation|keyboardHidden"
-            android:launchMode="singleTop"
-            android:exported="true">
+            android:exported="true"
+            android:theme="@style/LaunchTheme"
+            android:launchMode="singleTop">
+
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
 
-        <!-- 页面错误 -->
-        <activity
-            android:name=".activitys.ErrorActivity"
-            android:launchMode="singleInstance"
-            android:exported="true"
-            />
+        <!-- 子页面 -->
+        <activity android:name=".activitys.WebActivity" android:exported="true"
+            android:theme="@style/WebTheme"
+            android:process=":sub" />
 
         <!-- IM后台服务 -->
         <service
             android:name=".services.IMService"
+            android:enabled="true"
             android:process=":im"
-            android:exported="true"/>
-
-
-<!--        <service android:name=".services.IMService"/>-->
+            android:exported="false"/>
 
         <!-- 微信支付 -->
         <activity
@@ -111,17 +111,6 @@
                 <category android:name="android.intent.category.BROWSABLE" />
             </intent-filter>
         </activity>
-
-        <!-- 适配android 7.0  -->
-        <provider
-            android:name="androidx.core.content.FileProvider"
-            android:authorities="${applicationId}.fileProvider"
-            android:exported="false"
-            android:grantUriPermissions="true">
-            <meta-data
-                android:name="android.support.FILE_PROVIDER_PATHS"
-                android:resource="@xml/file_paths" />
-        </provider>
 
     </application>
 

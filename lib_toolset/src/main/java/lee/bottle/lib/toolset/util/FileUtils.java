@@ -24,6 +24,8 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
+import lee.bottle.lib.toolset.log.LLog;
+
 /**
  * Created by lzp on 2017/5/9.
  *
@@ -83,13 +85,13 @@ public class FileUtils {
             if (in != null) in.close();
 
         } catch (IOException e) {
-            e.printStackTrace();
+            LLog.error(e);
         }
         try {
             if (in != null) in.close();
             if (out != null) out.close();
         } catch (IOException e) {
-            e.printStackTrace();
+            LLog.error(e);
         }
 
     }
@@ -98,24 +100,24 @@ public class FileUtils {
             if (in != null) in.close();
 
         } catch (IOException e) {
-            e.printStackTrace();
+            LLog.error(e);
         }
         try {
             if (httpConnection != null) httpConnection.disconnect();
 
         } catch (Exception e) {
-            e.printStackTrace();
+            LLog.error(e);
         }
         try {
             if (out != null) out.close();
 
         } catch (IOException e) {
-            e.printStackTrace();
+            LLog.error(e);
         }
         try {
             if (raf != null) raf.close();
         } catch (IOException e) {
-            e.printStackTrace();
+            LLog.error(e);
         }
 
     }
@@ -130,7 +132,7 @@ public class FileUtils {
                 }
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            LLog.error(e);
         }
         return false;
     }
@@ -149,7 +151,7 @@ public class FileUtils {
 
             return true;
         }  catch (IOException e) {
-            e.printStackTrace();
+            LLog.error(e);
             return false;
         } finally {
             closeStream(in,out);
@@ -173,7 +175,7 @@ public class FileUtils {
             objOut.close();
 //            ("序列化","成功");
         } catch (Exception e) {
-            e.printStackTrace();
+            LLog.error(e);
         }
     }
 
@@ -190,7 +192,7 @@ public class FileUtils {
             temp=objIn.readObject();
             objIn.close();
         } catch (Exception e) {
-            e.printStackTrace();
+            LLog.error(e);
         }
         return temp;
     }
@@ -214,7 +216,7 @@ public class FileUtils {
             fw.close();
             return true;
         } catch (IOException e) {
-            e.printStackTrace();
+            LLog.error(e);
         }
         return false;
     }
@@ -237,7 +239,7 @@ public class FileUtils {
             reader.close();
             return map.size()>0?map:null;
         } catch (IOException e) {
-            e.printStackTrace();
+            LLog.error(e);
         }
         return null;
     }
@@ -254,12 +256,12 @@ public class FileUtils {
             raf.write(bytes,0,bytes.length); // 写进去的长度
             raf.close();
         } catch (Exception e) {
-            e.printStackTrace();
+            LLog.error(e);
         }finally {
             try {
                 if (raf!=null) raf.close();
             } catch (IOException e) {
-                e.printStackTrace();
+                LLog.error(e);
             }
         }
     }
@@ -291,7 +293,7 @@ public class FileUtils {
             try {
                 if (raf!=null) raf.close();
             } catch (IOException e) {
-                e.printStackTrace();
+                LLog.error(e);
             }
         }
         return null;
@@ -310,13 +312,13 @@ public class FileUtils {
             buffer.flip();
            return new String(buffer.array(),"UTF-8");
         } catch (Exception e) {
-            e.printStackTrace();
+            LLog.error(e);
         }finally {
             if (inChannel!=null){
                 try {
                     inChannel.close();
                 } catch (IOException e) {
-                    e.printStackTrace();
+                    LLog.error(e);
                 }
             }
             if (isDelete) deleteFile(tmpFile);
@@ -330,7 +332,7 @@ public class FileUtils {
         try {
             return file.createNewFile();
         } catch (IOException e) {
-            e.printStackTrace();
+            LLog.error(e);
         }
         return false;
     }
@@ -349,7 +351,7 @@ public class FileUtils {
             try {
                 file.createNewFile();
             } catch (IOException e) {
-                e.printStackTrace();
+                LLog.error(e);
                 return false;
             }
         }
@@ -397,7 +399,7 @@ public class FileUtils {
             }
             return sb.toString();
         } catch (Exception e) {
-            e.printStackTrace();
+            LLog.error(e);
         }
         return null;
     }
@@ -408,7 +410,7 @@ public class FileUtils {
             try {
                 return new Gson().fromJson(json,classType);
             } catch (JsonSyntaxException e) {
-                e.printStackTrace();
+                LLog.error(e);
             }
         }
         return null;
@@ -457,6 +459,83 @@ public class FileUtils {
                         file.delete();
                     }
                 }
+            }
+        }
+    }
+
+    public static boolean checkDictPermission(File dict) {
+
+
+        try {
+            // 目录不存在尝试创建
+            if (!dict.exists() && !dict.mkdir())  throw new IllegalArgumentException("没有目录创建权限");
+
+            // 存在检测删除 , 不存在检测创建
+            File checkFile = new File(dict,"check");
+            if (checkFile.exists() && !checkFile.delete() || !checkFile.exists() && !checkFile.createNewFile())  throw new IllegalArgumentException("没有文件写入权限");
+
+        } catch (Exception e) {
+            LLog.print("目录 "+ dict+" 权限拒绝");
+            return false;
+        }
+        return true;
+    }
+
+    public static void moveFileDict(File src, File desc){
+        File[] files = src.listFiles();
+        if (files == null) return;
+//        LLog.print("移动目录 ("+src+") -> ("+ desc +") 开始");
+        for (File f: files){
+            if (f.isFile()){
+                // 文件复制
+                File temp = new File(desc,f.getName());
+                if (temp.exists() && !temp.delete()) continue;
+
+                boolean isMove = f.renameTo(temp);
+                LLog.print("移动文件 ("+f+") -> ("+ temp +")  结果 = " + isMove);
+            }
+            if (f.isDirectory()){
+                // 创建目录
+                File temp = new File(desc,f.getName());
+                if (!temp.exists() && !temp.mkdir()) continue;
+                // 转移子目录
+                moveFileDict(f,temp);
+            }
+        }
+    }
+
+    private static boolean copyFileUsingChannel(File source, File dest) {
+
+        try (FileChannel sourceChannel = new FileInputStream(source).getChannel();
+             FileChannel destChannel = new FileOutputStream(dest).getChannel()) {
+            destChannel.transferFrom(sourceChannel, 0, sourceChannel.size());
+            return true;
+        }catch (Exception e){
+            LLog.error(e);
+        }
+        return false;
+
+    }
+
+    public static void copyFileDict(File src, File desc){
+        File[] files = src.listFiles();
+        if (files == null) return;
+
+        for (File f: files){
+            if (f.isFile()){
+                // 文件复制
+                File temp = new File(desc,f.getName());
+                if (temp.exists() && !temp.delete()) continue;
+
+                boolean isMove = copyFileUsingChannel(f,temp);
+                LLog.print("复制文件 ("+f+") -> ("+ temp +")  结果 = " + isMove);
+            }
+            if (f.isDirectory()){
+                // 创建目录
+                File temp = new File(desc,f.getName());
+                if (!temp.exists() && !temp.mkdir()) continue;
+                // 转移子目录
+                copyFileDict(f,temp);
             }
         }
     }

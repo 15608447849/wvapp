@@ -6,6 +6,8 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.concurrent.locks.ReentrantLock;
 
+import lee.bottle.lib.toolset.log.LLog;
+
 public class MThreadPool extends Thread implements IThreadPool{
 
     private volatile boolean isWorking = false;
@@ -65,7 +67,7 @@ public class MThreadPool extends Thread implements IThreadPool{
                 sleep(TIME);
                 checkThreadAction();
             } catch (Exception e) {
-                e.printStackTrace();
+                LLog.error(e);
             }
         }
         kill();
@@ -89,9 +91,9 @@ public class MThreadPool extends Thread implements IThreadPool{
     private void loopStopThread(MThread mt){
         while (!mt.over()) {
             try {
-                sleep(500);
+                Thread.sleep(500);
             } catch (InterruptedException e) {
-                e.printStackTrace();
+                LLog.error(e);
             }
         }
 

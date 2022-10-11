@@ -1,5 +1,6 @@
 package lee.bottle.lib.toolset.util;
 
+import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.ActivityManager;
@@ -28,9 +29,6 @@ import android.os.Looper;
 import android.os.Parcelable;
 import android.provider.ContactsContract;
 import android.provider.Settings;
-import android.telephony.TelephonyManager;
-import android.util.Log;
-import android.view.Gravity;
 import android.view.View;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.ImageView;
@@ -38,6 +36,7 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
+import androidx.core.app.ActivityCompat;
 import androidx.core.content.FileProvider;
 
 import java.io.BufferedOutputStream;
@@ -52,7 +51,6 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.NetworkInterface;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.zip.ZipEntry;
@@ -60,9 +58,6 @@ import java.util.zip.ZipInputStream;
 
 import lee.bottle.lib.toolset.log.LLog;
 
-import static android.Manifest.permission.CALL_PHONE;
-import static android.Manifest.permission.READ_PHONE_STATE;
-import static android.content.Context.TELEPHONY_SERVICE;
 import static android.content.Intent.FLAG_ACTIVITY_NEW_TASK;
 
 /**
@@ -70,12 +65,13 @@ import static android.content.Intent.FLAG_ACTIVITY_NEW_TASK;
  * email: 793065165@qq.com
  */
 public class AppUtils {
+
     /** 读取手机通讯录
      * <uses-permission android:name="android.permission.READ_CONTACTS"/>
      * */
-    private List<String> readContacts(Activity activity){
+    private List<String> readContacts(Activity activity) {
         List<String> list = new ArrayList<>();
-        ContentResolver resolver  = activity.getContentResolver();
+        ContentResolver resolver = activity.getContentResolver();
         //用于查询电话号码的URI
         Uri phoneUri = ContactsContract.CommonDataKinds.Phone.CONTENT_URI;
         // 查询的字段
@@ -90,7 +86,7 @@ public class AppUtils {
         while ((cursor.moveToNext())) {
             String name = cursor.getString(1);
             String phone = cursor.getString(2);
-            list.add(name+":"+phone);
+            list.add(name + ":" + phone);
         }
         return list;
     }
@@ -98,9 +94,9 @@ public class AppUtils {
     /**
      * 判断应用是否存在指定权限
      */
-    public static boolean checkPermissionExist(Context context,String permissionName){
+    public static boolean checkPermissionExist(Context context, String permissionName) {
         //判断是否存在文件写入权限
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M){
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
             int hasPermission = context.checkSelfPermission(permissionName);
             return hasPermission != PackageManager.PERMISSION_DENIED;
         }
@@ -130,26 +126,28 @@ public class AppUtils {
     /**
      * 隐藏软键盘
      */
-    public static void hideSoftInputFromWindow(@NonNull Activity activity){
+    public static void hideSoftInputFromWindow(@NonNull Activity activity) {
         try {
             View v = activity.getCurrentFocus();
-            if (v!=null && v.getWindowToken()!=null){
-                InputMethodManager inputMethodManager =  ((InputMethodManager)activity.getSystemService(Context.INPUT_METHOD_SERVICE));
-                if (inputMethodManager!=null)  inputMethodManager.hideSoftInputFromWindow(v.getWindowToken(), InputMethodManager.HIDE_NOT_ALWAYS);
+            if (v != null && v.getWindowToken() != null) {
+                InputMethodManager inputMethodManager = ((InputMethodManager) activity.getSystemService(Context.INPUT_METHOD_SERVICE));
+                if (inputMethodManager != null)
+                    inputMethodManager.hideSoftInputFromWindow(v.getWindowToken(), InputMethodManager.HIDE_NOT_ALWAYS);
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            LLog.error(e);
         }
     }
 
     /**
      *是否打开无线模块
      */
-    public static boolean isOpenWifi(@NonNull Context context){
+    public static boolean isOpenWifi(@NonNull Context context) {
         WifiManager mWifiManager = (WifiManager) context.getApplicationContext().getSystemService(Context.WIFI_SERVICE);
         assert mWifiManager != null;
         return mWifiManager.isWifiEnabled();
     }
+
     /**
      * 判断网络连接
      * <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
@@ -172,8 +170,8 @@ public class AppUtils {
     }
 
     /* 获取本地文件输出流 */
-    public static void getLocalFileToOutputStream(File file, OutputStream out) throws Exception{
-        try (FileInputStream fis = new FileInputStream(file)){
+    public static void getLocalFileToOutputStream(File file, OutputStream out) throws Exception {
+        try (FileInputStream fis = new FileInputStream(file)) {
             byte[] b = new byte[4096];
             int n;
             while ((n = fis.read(b)) != -1) {
@@ -185,24 +183,24 @@ public class AppUtils {
     /* 将文件转换成Byte数组 */
     public static byte[] getBytesByFile(File file) {
         int len = 1024;
-        try( FileInputStream fis = new FileInputStream(file)){
-           try(ByteArrayOutputStream bos = new ByteArrayOutputStream(len)){
-               byte[] b = new byte[len];
-               int n;
-               while ((n = fis.read(b)) != -1) {
-                   bos.write(b, 0, n);
-               }
-               return bos.toByteArray();
-           }
+        try (FileInputStream fis = new FileInputStream(file)) {
+            try (ByteArrayOutputStream bos = new ByteArrayOutputStream(len)) {
+                byte[] b = new byte[len];
+                int n;
+                while ((n = fis.read(b)) != -1) {
+                    bos.write(b, 0, n);
+                }
+                return bos.toByteArray();
+            }
         } catch (Exception e) {
-            e.printStackTrace();
+            LLog.error(e);
         }
         return null;
     }
 
     /* 解压zip */
     public static boolean unZipToFolder(InputStream zipFileStream, File dir) {
-        try (ZipInputStream inZip = new ZipInputStream(zipFileStream)){
+        try (ZipInputStream inZip = new ZipInputStream(zipFileStream)) {
 
             ZipEntry zipEntry;
             String temp;
@@ -211,16 +209,16 @@ public class AppUtils {
                 if (zipEntry.isDirectory()) {
                     //获取部件的文件夹名
                     temp = temp.substring(0, temp.length() - 1);
-                    File folder = new File(dir,temp);
+                    File folder = new File(dir, temp);
                     folder.mkdirs();
-                }else{
+                } else {
                     File file = new File(dir, temp);
                     if (!file.exists()) {
                         file.getParentFile().mkdirs();
                         file.createNewFile();
                     }
                     // 获取文件的输出流
-                    try(FileOutputStream out = new FileOutputStream(file)){
+                    try (FileOutputStream out = new FileOutputStream(file)) {
                         int len;
                         byte[] buffer = new byte[1024];
                         while ((len = inZip.read(buffer)) != -1) {
@@ -233,9 +231,9 @@ public class AppUtils {
             }
             return true;
         } catch (IOException e) {
-            e.printStackTrace();
+            LLog.error(e);
         }
-        return  false;
+        return false;
     }
 
     /* 检查无线网络有效 */
@@ -243,14 +241,15 @@ public class AppUtils {
         return AppUtils.isOpenWifi(context) && AppUtils.isNetworkAvailable(context);
     }
 
-   /* 判断GPS是否开启 */
+    /* 判断GPS是否开启 */
     public static boolean isOenGPS(@NonNull Context context) {
         LocationManager locationManager = (LocationManager) context.getSystemService(Context.LOCATION_SERVICE);
         assert locationManager != null;
         return locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
     }
+
     /* 打开GPS设置界面 */
-    public static void openGPS(@NonNull Context context){
+    public static void openGPS(@NonNull Context context) {
         Intent intent = new Intent(android.provider.Settings.ACTION_LOCATION_SOURCE_SETTINGS);
         intent.setFlags(FLAG_ACTIVITY_NEW_TASK);
         // 打开GPS设置界面
@@ -267,7 +266,7 @@ public class AppUtils {
         int pid = android.os.Process.myPid();
         String processName = "";
         ActivityManager manager = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
-        if (manager!=null){
+        if (manager != null) {
             for (ActivityManager.RunningAppProcessInfo process : manager.getRunningAppProcesses()) {
                 if (process.pid == pid) {
                     processName = process.processName;
@@ -278,12 +277,12 @@ public class AppUtils {
     }
 
     /* 判断当前进程是否是主进程 */
-    public static boolean checkCurrentIsMainProgress(@NonNull Context context){
+    public static boolean checkCurrentIsMainProgress(@NonNull Context context) {
         return checkCurrentIsMainProgress(context, AppUtils.getCurrentProcessName(context));
     }
 
     /* 判断当前进程是否是主进程 */
-    public static boolean checkCurrentIsMainProgress(@NonNull Context context, @NonNull String currentProgressName){
+    public static boolean checkCurrentIsMainProgress(@NonNull Context context, @NonNull String currentProgressName) {
         return context.getPackageName().equals(currentProgressName);
     }
 
@@ -296,10 +295,11 @@ public class AppUtils {
             PackageInfo packInfo = packageManager.getPackageInfo(ctx.getPackageName(), 0);
             version = packInfo.versionCode;
         } catch (Exception e) {
-            e.printStackTrace();
+            LLog.error(e);
         }
         return version;
     }
+
     /* 获取应用版本名 */
     public static String getVersionName(@NonNull Context ctx) {
         // 获取package manager的实例
@@ -309,82 +309,82 @@ public class AppUtils {
             PackageInfo packInfo = packageManager.getPackageInfo(ctx.getPackageName(), 0);
             version = packInfo.versionName;
         } catch (Exception e) {
-            e.printStackTrace();
+            LLog.error(e);
         }
         return version;
     }
 
     /* 简单信息弹窗 */
-    public static void toastLong(@NonNull Context context, @NonNull String message){
-        if (!checkUIThread() ) return;
+    public static void toastLong(@NonNull Context context, @NonNull String message) {
+        if (!checkUIThread()) return;
 
         try {
-            Toast toast = Toast.makeText(context,message, Toast.LENGTH_LONG);
-            if (toast!=null){
+            Toast toast = Toast.makeText(context, message, Toast.LENGTH_LONG);
+            if (toast != null) {
                 toast.show();
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            LLog.error(e);
         }
     }
 
     /* 简单信息弹窗 */
-    public static void toastShort(@NonNull Context context, @NonNull String message){
-        if (!checkUIThread() ) return;
+    public static void toastShort(@NonNull Context context, @NonNull String message) {
+        if (!checkUIThread()) return;
 
         try {
-            Toast toast = Toast.makeText(context,message, Toast.LENGTH_SHORT);
-            if (toast!=null){
+            Toast toast = Toast.makeText(context, message, Toast.LENGTH_SHORT);
+            if (toast != null) {
                 toast.show();
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            LLog.error(e);
         }
     }
 
     /* 简单信息弹窗 */
-    public static void toastCustom(@NonNull Context context, @NonNull String message,int duration,int gravity,View view){
-        if (!checkUIThread() ) return;
+    public static void toastCustom(@NonNull Context context, @NonNull String message, int duration, int gravity, View view) {
+        if (!checkUIThread()) return;
 
         try {
-            Toast toast = Toast.makeText(context,message, Toast.LENGTH_SHORT);
-            if (toast!=null){
-                if (gravity>0){
-                    toast.setGravity(gravity,0,0);
+            Toast toast = Toast.makeText(context, message, Toast.LENGTH_SHORT);
+            if (toast != null) {
+                if (gravity > 0) {
+                    toast.setGravity(gravity, 0, 0);
                 }
-                if (view!=null){
+                if (view != null) {
                     toast.setView(view);
                 }
                 toast.show();
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            LLog.error(e);
         }
     }
 
     /* 把bitmap 转file */
-    public static boolean bitmap2File(Bitmap bitmap, File file){
+    public static boolean bitmap2File(Bitmap bitmap, File file) {
         try {
-            if (bitmap==null || file==null) return false;
+            if (bitmap == null || file == null) return false;
             BufferedOutputStream bos = new BufferedOutputStream(new FileOutputStream(file));
             bitmap.compress(Bitmap.CompressFormat.JPEG, 100, bos);
             bos.flush();
             bos.close();
             return true;
         } catch (IOException e) {
-            e.printStackTrace();
+            LLog.error(e);
         }
         return false;
     }
 
     /*
-    * 创建快捷方式 ; 权限:  <uses-permission android:name="com.android.launcher.permission.INSTALL_SHORTCUT"/>
-    * */
+     * 创建快捷方式 ; 权限:  <uses-permission android:name="com.android.launcher.permission.INSTALL_SHORTCUT"/>
+     * */
     public static void addShortcut(Context context, int appIcon, boolean isCheck) {
 
         try {
             SharedPreferences sharedPreferences = context.getSharedPreferences(context.getPackageName(), Context.MODE_PRIVATE);
-            if (isCheck){
+            if (isCheck) {
                 boolean isExist = sharedPreferences.getBoolean("shortcut", false);
                 if (isExist) return;
             }
@@ -392,17 +392,17 @@ public class AppUtils {
             Intent shortcutIntent = context.getPackageManager().getLaunchIntentForPackage(context.getPackageName());
             shortcut.putExtra(Intent.EXTRA_SHORTCUT_INTENT, shortcutIntent);
             final PackageManager pm = context.getPackageManager();
-            String title = pm.getApplicationLabel( pm.getApplicationInfo(context.getPackageName(), PackageManager.GET_META_DATA)).toString();
+            String title = pm.getApplicationLabel(pm.getApplicationInfo(context.getPackageName(), PackageManager.GET_META_DATA)).toString();
             shortcut.putExtra(Intent.EXTRA_SHORTCUT_NAME, title);
             shortcut.putExtra("duplicate", false);
-            Parcelable iconResource = Intent.ShortcutIconResource.fromContext(context,appIcon);
+            Parcelable iconResource = Intent.ShortcutIconResource.fromContext(context, appIcon);
             shortcut.putExtra(Intent.EXTRA_SHORTCUT_ICON_RESOURCE, iconResource);
             context.sendBroadcast(shortcut);
             SharedPreferences.Editor editor = sharedPreferences.edit();
             editor.putBoolean("shortcut", true);
             editor.apply();
-        }catch (Exception e) {
-            e.printStackTrace();
+        } catch (Exception e) {
+            LLog.error(e);
         }
     }
 
@@ -412,7 +412,7 @@ public class AppUtils {
         try {
             in = c.getAssets().open(filePath);
             BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(in));
-            String line ;
+            String line;
             StringBuilder sb = new StringBuilder();
             do {
                 line = bufferedReader.readLine();
@@ -427,7 +427,7 @@ public class AppUtils {
             in.close();
             return sb.toString();
         } catch (Exception e) {
-            e.printStackTrace();
+            LLog.error(e);
         } finally {
             if (in != null) {
                 try {
@@ -440,52 +440,86 @@ public class AppUtils {
     }
 
     // 安装apk
-    public static void installApk(Context context, File apkFile) {
+    /*
+    * <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+     * */
+    public static boolean installApk(Context context, File apkFile,String apkUrl) {
         try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O){
+                boolean isInstallPermission = context.getPackageManager().canRequestPackageInstalls();
+                LLog.print("安装APK sdk= " + Build.VERSION.SDK_INT +" 是否存在安装权限 : "+ isInstallPermission);
+                if(!isInstallPermission){
+                    // 权限没有打开则提示用户去手动打开
+                    Intent intent = new Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES ,Uri.parse("package:" + context.getPackageName()));
+                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    context.startActivity(intent);
+                    return false;
+                }
+            }
 
-            LLog.print("安装APK: " + apkFile);
-            if (!apkFile.exists()) return;
+            LLog.print("安装APK file : " + apkFile);
+            if (!apkFile.exists()) return false;
+
             Intent intent = new Intent();
             intent.setAction(Intent.ACTION_VIEW);
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             Uri uri;
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                uri = FileProvider.getUriForFile(context, context.getApplicationContext().getPackageName() + ".fileProvider", apkFile);
                 intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
-            }else{
-                try {
-                    //apk放在cache文件中，需要获取读写权限
-                    String command = "chmod 777 "+apkFile.getAbsolutePath();
-                    Runtime runtime = Runtime.getRuntime();
-                    runtime.exec(command);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
+                uri = FileProvider.getUriForFile(context, context.getApplicationContext().getPackageName() + ".fileProvider", apkFile);
+            } else {
+                //apk放在cache文件中，需要获取读写权限
+                String command = "chmod 777 " + apkFile.getAbsolutePath();
+                Runtime runtime = Runtime.getRuntime();
+                runtime.exec(command);
                 uri = Uri.fromFile(apkFile);
             }
-            LLog.print("安装APK: " + uri );
-            intent.setDataAndType(uri,"application/vnd.android.package-archive");
+            LLog.print("安装APK uri : " + uri);
+            intent.setDataAndType(uri, "application/vnd.android.package-archive");
             context.startActivity(intent);
+            return true;
         } catch (Exception e) {
-            e.printStackTrace();
+            LLog.error("安装APK 错误", e);
+            // 尝试打开浏览器下载安装
+            try{
+                LLog.print("尝试使用浏览器打开 uri : " + apkUrl);
+                Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(apkUrl));
+                intent.setFlags(FLAG_ACTIVITY_NEW_TASK);
+                context.startActivity(intent);
+            }catch (Exception ex){
+                LLog.error("安装APK 尝试使用浏览器打开失败", ex);
+            }
+            return false;
         }
     }
+
+
 
     /**
      * 获取设备mac
      * <uses-permission android:name="android.permission.ACCESS_WIFI_STATE"/>
+     * <uses-permission android:name="android.permission.LOCAL_MAC_ADDRESS"/>
+     * <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
+     *
      */
     @SuppressLint("HardwareIds")
-    public static String devMAC(Context context){
-        WifiManager wifiManager = (WifiManager) context.getSystemService(Context.WIFI_SERVICE);
-        if (wifiManager!=null){
+    public static String devMAC(Context context) {
+        WifiManager wifiManager = (WifiManager) context.getApplicationContext().getSystemService(Context.WIFI_SERVICE);
+        if (wifiManager != null) {
             WifiInfo info = wifiManager.getConnectionInfo();
-            if (info!=null){
-                String mac =  info.getMacAddress();
+            if (info != null) {
+                if (ActivityCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                    // 无权限
+                    return getNewMac();
+                }
+
+                String mac = info.getMacAddress();
                 if (mac.equalsIgnoreCase("02:00:00:00:00:00")) return getNewMac();
+                return mac;
+
             }
         }
-        return "";
+        return "00:00:00:00:00:00";
     }
     /**
      * 通过网络接口取
@@ -512,7 +546,7 @@ public class AppUtils {
                 return res1.toString();
             }
         } catch (Exception ex) {
-            ex.printStackTrace();
+            LLog.error(ex);
         }
         return null;
     }
@@ -559,7 +593,7 @@ public class AppUtils {
                 }
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            LLog.error(e);
         }
 
         return pasteString;
@@ -577,7 +611,7 @@ public class AppUtils {
             cmb.setPrimaryClip(clipData);
 
         } catch (Exception e) {
-            e.printStackTrace();
+            LLog.error(e);
         }
     }
 
@@ -586,6 +620,7 @@ public class AppUtils {
         PackageManager manager = context.getPackageManager();
         Intent action = new Intent(Intent.ACTION_VIEW);
         action.setData(Uri.parse(scheme));
+        @SuppressLint("QueryPermissionsNeeded")
         List<ResolveInfo> list = manager.queryIntentActivities(action, PackageManager.GET_RESOLVED_FILTER);
         return list != null && list.size() > 0;
     }
@@ -599,27 +634,28 @@ public class AppUtils {
     }
 
     /* 获取状态栏高度 */
-    public static int statusBarHeight(Activity activity){
+    public static int statusBarHeight(Context context){
         int statusBarHeight = -1;
         //获取status_bar_height资源的ID
-        int resourceId = activity.getResources().getIdentifier("status_bar_height", "dimen", "android");
+        int resourceId = context.getResources().getIdentifier("status_bar_height", "dimen", "android");
         if (resourceId > 0) {
             //根据资源ID获取响应的尺寸值
-            statusBarHeight = activity.getResources().getDimensionPixelSize(resourceId);
+            statusBarHeight = context.getResources().getDimensionPixelSize(resourceId);
         }
         if (statusBarHeight == -1){
             try {
+                @SuppressLint("PrivateApi")
                 Class<?> clazz = Class.forName("com.android.internal.R$dimen");
                 Object object = clazz.newInstance();
-                int height = Integer.parseInt(clazz.getField("status_bar_height")
-                        .get(object).toString());
-                statusBarHeight = activity.getResources().getDimensionPixelSize(height);
+                int height = Integer.parseInt(
+                        String.valueOf(clazz.getField("status_bar_height").get(object))
+                );
+                statusBarHeight = context.getResources().getDimensionPixelSize(height);
             } catch (Exception e) {
-                e.printStackTrace();
+                LLog.error(e);
             }
         }
 
-        LLog.print("状态栏高度: "+ statusBarHeight);
         return statusBarHeight;
     }
 

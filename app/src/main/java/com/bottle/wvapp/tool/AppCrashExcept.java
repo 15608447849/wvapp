@@ -2,8 +2,12 @@ package com.bottle.wvapp.tool;
 
 import android.app.Application;
 
-import com.bottle.wvapp.app.ApplicationDevInfo;
-import com.bottle.wvapp.jsprovider.HttpServerImp;
+import lee.bottle.lib.toolset.os.ApplicationDevInfo;
+
+import com.bottle.wvapp.app.WebApplication;
+import com.bottle.wvapp.beans.BusinessData;
+
+import lee.bottle.lib.toolset.http.FileServerClient;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -11,10 +15,9 @@ import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
+import lee.bottle.lib.toolset.log.LLog;
 import lee.bottle.lib.toolset.os.CrashHandler;
 import lee.bottle.lib.toolset.threadpool.IOUtils;
-
-import static com.bottle.wvapp.app.BusinessData.getCurrentDevCompanyID;
 
 /**
  * Created by Leeping on 2020/10/29.
@@ -49,13 +52,13 @@ public class AppCrashExcept extends Thread implements CrashHandler.Callback {
 
     @Override
     public void crash(final File crashFile,final Throwable ex) {
-        ex.printStackTrace();
+        LLog.error(ex);
         IOUtils.run(new Runnable() {
             @Override
             public void run() {
                 StringBuilder s = new StringBuilder();
-                s.append("token").append("=").append(ApplicationDevInfo.getMemDevToken()).append("\n");
-                s.append("companyID").append("=").append(getCurrentDevCompanyID(false,null)).append("\n");
+                s.append("token").append("=").append(ApplicationDevInfo.getMemoryDEVID()+ "@" + WebApplication.DEVTYPE).append("\n");
+                s.append("companyID").append("=").append(BusinessData.getCurrentDevCompanyID(false,null)).append("\n");
                 try (FileOutputStream fos = new FileOutputStream(crashFile,true)){
                     fos.write(s.toString().getBytes());
                     fos.flush();
@@ -75,14 +78,14 @@ public class AppCrashExcept extends Thread implements CrashHandler.Callback {
             try{
                 File crashFile = crashFileQueue.take();
                 //LLog.print("上传错误文件: "+ crashFile);
-                HttpServerImp.UploadFileItem item = new HttpServerImp.UploadFileItem();
+                FileServerClient.UploadFileItem item = new FileServerClient.UploadFileItem();
                 item.uri = crashFile.getCanonicalPath();
                 item.remotePath = "/app/crash";
                 item.fileName = crashFile.getName();
                 item.uploadSuccessDelete = true;
-                HttpServerImp.addUpdateFileToQueue(item);
+                FileServerClient.addUpdateFileToQueue(item);
             }catch (Exception e){
-                e.printStackTrace();
+                LLog.error(e);
             }
         }
     }

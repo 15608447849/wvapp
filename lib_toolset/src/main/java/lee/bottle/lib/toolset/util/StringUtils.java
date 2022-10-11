@@ -11,6 +11,8 @@ import java.security.MessageDigest;
 import java.util.Iterator;
 import java.util.Map;
 
+import lee.bottle.lib.toolset.log.LLog;
+
 public class StringUtils {
 
 
@@ -41,7 +43,7 @@ public class StringUtils {
                     String[] mPinyinArray = PinyinHelper.toHanyuPinyinStringArray(nameChar[i], defaultFormat);
                     pinyinFirstKey += mPinyinArray[0].charAt(0);
                 } catch (BadHanyuPinyinOutputFormatCombination e) {
-                    e.printStackTrace();
+                    LLog.error(e);
                 }
             } else {
                 pinyinFirstKey += nameChar[i];

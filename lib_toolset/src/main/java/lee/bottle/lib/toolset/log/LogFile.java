@@ -40,7 +40,7 @@ class LogFile implements ILogHandler{
                 boolean flag =  file.delete();
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            LLog.error(e);
         }
     }
 
@@ -90,7 +90,7 @@ class LogFile implements ILogHandler{
             out.write(head + "\t" + content + "\n");
             out.flush();
         } catch (IOException e) {
-            e.printStackTrace();
+            LLog.error(e);
         }
 
     }
