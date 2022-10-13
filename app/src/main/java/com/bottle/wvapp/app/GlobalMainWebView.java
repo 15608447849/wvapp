@@ -18,7 +18,7 @@ public class GlobalMainWebView {
     private static SysWebView webView;
 
     /* 连接业务服务器及本地方法实现 */
-    private static NativeServerImp nativeServerImp ;
+    private static final NativeServerImp nativeServerImp = new NativeServerImp();
 
     /* js交互接口,自动绑定js dom对象 */
     private static NativeJSInterface nativeJSInterface;
@@ -28,24 +28,19 @@ public class GlobalMainWebView {
 
     public static void init(final Context context){
         webView = new SysWebView(context);
-        nativeServerImp = new NativeServerImp();
         nativeJSInterface = new NativeJSInterface(webView.jsInterface, GlobalMainWebView.getNativeServerImp());
         webView.webProgressI = new WebProgressI() {
             @Override
             public void updateProgress(String url, int current, boolean isManual) {
+                LLog.print("浏览器监听进度 : "+ current +" URL = "+ url);
                 if (current == 100) {
-                    LLog.print("浏览器监听进度 页面加载完成 URL = "+ url);
                     nativeServerImp.onJSPageInitialization();
                     webView.webProgressI = null;
-//                    Intent intent=new Intent("GLOBAL_WEB_LOAD_COMPLETE");
-//                    context.sendBroadcast(intent);
                 }
             }
         };
         open(_WEB_HOME_URL);
-        LLog.print(" GlobalMainWebView ******************************* 初始化完成");
-
-
+        LLog.print( webView + " GlobalMainWebView 初始化完成");
     }
 
     public static SysWebView getInstance(){

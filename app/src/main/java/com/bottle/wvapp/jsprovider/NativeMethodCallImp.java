@@ -78,9 +78,9 @@ public class NativeMethodCallImp {
         map.put("devOS","android-"+devInfoMap.get("安卓系统版本号"));
         map.put("devModel",devInfoMap.get("型号"));
         map.put("devToken", getMemoryDEVID() + "@" + WebApplication.DEVTYPE);// token
-        LLog.print(nativeServerImp + " **************** " + nativeServerImp.getNativeActivity());
+        while (nativeServerImp.getNativeActivity() == null) ;
         map.put("statusBarHeight",String.valueOf(statusBarHeight(Objects.requireNonNull(nativeServerImp.getNativeActivity()))));
-        //LLog.print("JS获取本机设备信息: "+ map);
+        LLog.print("JS获取本机设备信息: "+ map);
         return GsonUtils.javaBeanToJson(map);
     }
 

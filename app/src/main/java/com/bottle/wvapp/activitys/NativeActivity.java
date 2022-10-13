@@ -7,6 +7,7 @@ import android.nfc.tech.NfcA;
 import android.os.Build;
 import android.os.Bundle;
 
+import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.webkit.WebResourceError;
@@ -14,34 +15,25 @@ import android.webkit.WebResourceRequest;
 import android.webkit.WebView;
 import android.widget.FrameLayout;
 import android.widget.Toast;
-
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-
 import lee.bottle.lib.toolset.os.ApplicationDevInfo;
-
-import com.bottle.wvapp.R;
 import com.bottle.wvapp.app.GlobalMainWebView;
 import com.bottle.wvapp.app.WebApplication;
 import com.bottle.wvapp.jsprovider.NativeActivityInterface;
 import com.bottle.wvapp.jsprovider.NativeActivityInterfaceDefault;
 import com.bottle.wvapp.jsprovider.NativeJSInterface;
 import com.bottle.wvapp.jsprovider.NativeServerImp;
-import com.bottle.wvapp.services.IMService;
 import com.bottle.wvapp.uptver.UpdateVersionServerImp;
-
 import java.util.ArrayList;
-
 import lee.bottle.lib.toolset.log.LLog;
 import lee.bottle.lib.toolset.os.BaseActivity;
 import lee.bottle.lib.toolset.os.PermissionApply;
 import lee.bottle.lib.toolset.threadpool.IOUtils;
 import lee.bottle.lib.toolset.util.AppUtils;
 import lee.bottle.lib.toolset.util.DialogUtils;
-
 import lee.bottle.lib.webh5.SysWebView;
 import lee.bottle.lib.webh5.interfaces.LoadErrorI;
-
 import static com.bottle.wvapp.BuildConfig._WEB_HOME_URL;
 import static com.bottle.wvapp.app.GlobalMainWebView.getNativeServerImp;
 import static com.bottle.wvapp.beans.BusinessData.getCurrentDevCompanyID;
@@ -109,7 +101,6 @@ public class NativeActivity extends BaseActivity implements PermissionApply.Call
             frameLayout.setLayoutParams(new ViewGroup.LayoutParams(-1,-1));// 填满屏幕
         }else{
             frameLayout.setLayoutParams(new ViewGroup.LayoutParams(0,0));
-
         }
 
         // 设置图层

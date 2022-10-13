@@ -51,20 +51,6 @@
             android:name="org.apache.http.legacy"
             android:required="false" />
 
-<!--        <activity android:name=".activitys.MainActivity"-->
-<!--            android:configChanges="orientation|keyboardHidden"-->
-<!--            android:theme="@style/LaunchTheme">-->
-<!--            <intent-filter>-->
-<!--                <action android:name="android.intent.action.MAIN" />-->
-<!--                <category android:name="android.intent.category.LAUNCHER" />-->
-<!--            </intent-filter>-->
-<!--        </activity>-->
-<!--                <activity-->
-<!--                    android:name=".activitys.NativeActivity"-->
-<!--                    android:configChanges="orientation|keyboardHidden"-->
-<!--                    android:exported="true"-->
-<!--                    android:launchMode="singleTop"-->
-<!--                    android:theme="@style/WebTheme"/>-->
 
         <!-- 启动 -->
         <activity
@@ -75,7 +61,6 @@
             android:theme="@style/LaunchTheme">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
