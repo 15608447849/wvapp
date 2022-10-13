@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta
+      name="viewport"
+      content="width=device-width,initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+    />
+
+    <link rel="stylesheet" href="https://unpkg.com/vant@2.12/lib/index.css" />
+    <!-- 引入 Vue 和 Vant 的 JS 文件 -->
+    <script src="https://unpkg.com/vue@2.6/dist/vue.min.js"></script>
+    <script src="https://unpkg.com/vant@2.12/lib/vant.min.js"></script>
+
+    <script src="hybird/ios_interface.js"></script>
+    <script src="hybird/android_interface.js"></script>
+    <script src="hybird/hybrid_interface.js"></script>
+
+  </head>
+
+  <body>
+    <noscript></noscript>
+
+    <div id="main">
+
+      <van-cell-group>
+        <van-field v-model="value" label="文本" placeholder="请输入" />
+      </van-cell-group>
+
+      <van-button type="primary" @click="click">打开</van-button>
+
+    </div>
+
+  </body>
+
+  <script type="text/javascript">
+    Vue.use(vant);
+
+    var main = new Vue({
+      el: "#main",
+      data: {
+        value: 'https://www.baidu.com/',
+      },
+
+      created() {
+        // 获取设备信息
+        let devStr = hybrid.getDevice();
+        console.info(devStr);
+        // 通知页面初始化完成
+        hybrid.onInitializationComplete();
+      },
+
+      methods: {
+
+        click() {
+          hybrid.println('我被点击了 准备打开链接: '+ this.value);
+          hybrid.openWindow(this.value);
+        }
+
+      },
+
+    });
+  </script>
+</html>
