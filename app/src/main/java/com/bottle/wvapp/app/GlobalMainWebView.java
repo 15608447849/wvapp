@@ -2,6 +2,7 @@ package com.bottle.wvapp.app;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
+import android.content.Intent;
 
 import com.bottle.wvapp.jsprovider.NativeJSInterface;
 import com.bottle.wvapp.jsprovider.NativeServerImp;
@@ -25,7 +26,7 @@ public class GlobalMainWebView {
     /* 浏览器已打开页面 */
     private static boolean isUrlLoading;
 
-    public static void init(Context context){
+    public static void init(final Context context){
         webView = new SysWebView(context);
         nativeServerImp = new NativeServerImp();
         nativeJSInterface = new NativeJSInterface(webView.jsInterface, GlobalMainWebView.getNativeServerImp());
@@ -36,6 +37,8 @@ public class GlobalMainWebView {
                     LLog.print("浏览器监听进度 页面加载完成 URL = "+ url);
                     nativeServerImp.onJSPageInitialization();
                     webView.webProgressI = null;
+//                    Intent intent=new Intent("GLOBAL_WEB_LOAD_COMPLETE");
+//                    context.sendBroadcast(intent);
                 }
             }
         };

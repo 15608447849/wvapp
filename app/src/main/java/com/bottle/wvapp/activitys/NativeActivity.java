@@ -3,6 +3,7 @@ package com.bottle.wvapp.activitys;
 import android.Manifest;
 import android.content.Intent;
 import android.net.Uri;
+import android.nfc.tech.NfcA;
 import android.os.Build;
 import android.os.Bundle;
 
@@ -19,6 +20,7 @@ import androidx.annotation.Nullable;
 
 import lee.bottle.lib.toolset.os.ApplicationDevInfo;
 
+import com.bottle.wvapp.R;
 import com.bottle.wvapp.app.GlobalMainWebView;
 import com.bottle.wvapp.app.WebApplication;
 import com.bottle.wvapp.jsprovider.NativeActivityInterface;
@@ -43,6 +45,7 @@ import lee.bottle.lib.webh5.interfaces.LoadErrorI;
 import static com.bottle.wvapp.BuildConfig._WEB_HOME_URL;
 import static com.bottle.wvapp.app.GlobalMainWebView.getNativeServerImp;
 import static com.bottle.wvapp.beans.BusinessData.getCurrentDevCompanyID;
+import static com.bottle.wvapp.services.IMServiceSDK26FontServerUtil.startIMService;
 import static lee.bottle.lib.toolset.util.AppUtils.getClipboardContent;
 import static lee.bottle.lib.toolset.util.AppUtils.setClipboardContent;
 
@@ -54,7 +57,6 @@ import static lee.bottle.lib.toolset.util.AppUtils.setClipboardContent;
 
 
 public class NativeActivity extends BaseActivity implements PermissionApply.Callback {
-
 
     //权限数组
     private static final String[] permissionArray = new String[]{
@@ -68,14 +70,10 @@ public class NativeActivity extends BaseActivity implements PermissionApply.Call
 
     //权限申请
     private final PermissionApply permissionApply =  new PermissionApply(this, permissionArray,this);
-
-
     /* 是否退出应用 */
     private boolean isExitApplication;
-
     /** 捕获返回键 */
     private long cur_back_time = -1;
-
     /** 重置返回键 */
     private final Runnable resetBack = new Runnable() {
         @Override
@@ -83,31 +81,19 @@ public class NativeActivity extends BaseActivity implements PermissionApply.Call
             cur_back_time = -1; //重置
         }
     };
-
-
     /* web页面容器层 */
     private FrameLayout frameLayout;
-
     /* webView实现 */
     private SysWebView webView = null;
 
-    // 授权请求
-    private void permissionQuery(){
-        final int compId = getCurrentDevCompanyID(true, WebApplication.iceClient);
-        if (compId <= 0) return;
-        this.runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                permissionApply.permissionCheck(); //权限检测
-                // permissionApply.sdk30_isExternalStorageManager();// sdcard 高版本访问授权
-                // permissionApply.askFloatWindowPermission();// 请求弹窗权限
-            }
-        });
-    }
+    /*
+     * ****************************************************************************************************************************************
+     * ****************************************************************************************************************************************
+     * */
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
-        LLog.print(this+" ************************************** onCreate" );
+        LLog.print(this+" ************************************ onCreate" );
         super.onCreate(savedInstanceState);
 
         // 触发应用更新
@@ -115,6 +101,7 @@ public class NativeActivity extends BaseActivity implements PermissionApply.Call
 
         // 创建图层
         frameLayout = new FrameLayout(this);
+        // 设置大小
         if (GlobalMainWebView.isIsUrlLoading() && GlobalMainWebView.getNativeServerImp().isImServerAcceptStart){
             getWindow().getDecorView().setBackgroundResource(0); // 移除背景资源
             getWindow().getDecorView().setSystemUiVisibility(0);// 清空UI选项
@@ -130,7 +117,7 @@ public class NativeActivity extends BaseActivity implements PermissionApply.Call
 
         webView = GlobalMainWebView.getInstance();
 
-        // activity -业务服务 -js互操作对象 三者关联
+//         activity -业务服务 -js互操作对象 三者关联
         NativeActivityInterface nativeActivityInterfaceImp = createNativeActivityInterface(GlobalMainWebView.getNativeJSInterface());
         GlobalMainWebView.getNativeServerImp().setNativeActivityInterface( nativeActivityInterfaceImp );
 
@@ -143,6 +130,89 @@ public class NativeActivity extends BaseActivity implements PermissionApply.Call
         // 加载首页
         GlobalMainWebView.open(_WEB_HOME_URL);
     }
+    @Override
+    protected void onResume() {
+        LLog.print(this+"************************************ onResume" );
+        super.onResume();
+        try {
+            // 获取剪切板分享内容
+            accessSharedContent();
+            // 处理intent信息
+            intentHandler();
+            // 打开IM
+            if (GlobalMainWebView.getNativeServerImp().isImServerAcceptStart) {
+                startIMService(this);
+            }
+        } catch (Exception e) {
+            LLog.error(e);
+        }
+
+    }
+    @Override
+    protected void onPause() {
+        LLog.print(this+"************************************ onPause" );
+        super.onPause();
+        overridePendingTransition(0, 0);
+    }
+    @Override
+    protected void onDestroy() {
+        LLog.print(this+"************************************ onDestroy" );
+        GlobalMainWebView.getNativeServerImp().setNativeActivityInterface(null);
+        if (webView != null){
+            webView.loadErrorI=null;
+            webView.unbind();
+            webView =null;
+        }
+        super.onDestroy();
+    }
+
+    /* 其他activity退出返回响应结果 */
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        LLog.print("onActivityResult " +  requestCode +" "+ resultCode);
+        if (permissionApply != null) permissionApply.onActivityResult(requestCode, resultCode, data);
+        if (webView !=null) webView.onActivityResultHandle(requestCode,resultCode,data);
+        super.onActivityResult(requestCode,resultCode,data);
+    }
+    /* 回退处理 */
+    @Override
+    public void onBackPressed() {
+
+        if (webView != null && webView.onBackPressed()) return;
+
+        if (cur_back_time == -1){
+
+            Toast.makeText(this,"再次点击将退出应用",Toast.LENGTH_SHORT).show();
+            mHandler.postDelayed(resetBack,2000);
+            cur_back_time = System.currentTimeMillis();
+
+        }else{
+
+            if (System.currentTimeMillis() - cur_back_time < 100) {
+                cur_back_time = System.currentTimeMillis();
+                return;
+            }
+
+            mHandler.removeCallbacks(resetBack);
+            isExitApplication = true;
+            super.onBackPressed();
+        }
+    }
+    /* 结束应用 */
+    @Override
+    public void finish() {
+        if (isExitApplication){
+            super.finish();
+            android.os.Process.killProcess(android.os.Process.myPid());
+        }else{
+            moveTaskToBack(true);
+        }
+    }
+
+    /*
+    * ****************************************************************************************************************************************
+    * ****************************************************************************************************************************************
+    * */
 
     /*  webview 加载错误处理 */
     private LoadErrorI createWebViewErrorHandler() {
@@ -168,15 +238,14 @@ public class NativeActivity extends BaseActivity implements PermissionApply.Call
         }
     };
     }
-
-
+    /* 创建native服务实现 */
     private NativeActivityInterface createNativeActivityInterface(NativeJSInterface nativeJSInterface) {
         return new NativeActivityInterfaceDefault(this,this.webView,nativeJSInterface){
 
             @Override
             public void connectIceIM() {
                 // 允许连接长连接
-                startIMService();
+                startIMService(NativeActivity.this);
             }
 
             @Override
@@ -199,11 +268,9 @@ public class NativeActivity extends BaseActivity implements PermissionApply.Call
 
         };
     }
-
-
     /*  web页面元素初始化完成,显示web view */
     private void visibleWebViewLayout() {
-        LLog.print(this +" ** 展开webView的layout层");
+        LLog.print(this +" ************************************ 展开webView的layout层");
 
         runOnUiThread(new Runnable() {
             @Override
@@ -221,10 +288,9 @@ public class NativeActivity extends BaseActivity implements PermissionApply.Call
         });
 
     }
-
     /* 移除全屏 */
     private void removeFullScreen() {
-        LLog.print(this +" ** 移除全屏效果");
+        LLog.print(this +" ************************************ 移除全屏效果");
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
@@ -238,38 +304,24 @@ public class NativeActivity extends BaseActivity implements PermissionApply.Call
             }
         });
     }
-
-
-
-    /* 打开im服务 */
-    private void startIMService(){
-        // 打开通讯
-        Intent intent = new Intent(NativeActivity.this, IMService.class);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            // Android 8.0 不再允许后台进程直接通过startService方式去启动服务
-//          activity.startForegroundService(intent);
-            startService(intent);
-        }else {
-            startService(intent);
-        }
+    /* 授权请求 */
+    private void permissionQuery(){
+        final int compId = getCurrentDevCompanyID(true, WebApplication.iceClient);
+        if (compId <= 0) return;
+        this.runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                permissionApply.permissionCheck(); //权限检测
+                // permissionApply.sdk30_isExternalStorageManager();// sdcard 高版本访问授权
+                // permissionApply.askFloatWindowPermission();// 请求弹窗权限
+            }
+        });
     }
-
-
     /* 权限审核回调 */
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         if (permissionApply != null) permissionApply.onRequestPermissionsResult(requestCode, permissions, grantResults);
     }
-
-    /* 其他activity退出返回响应结果 */
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        LLog.print("onActivityResult " +  requestCode +" "+ resultCode);
-        if (permissionApply != null) permissionApply.onActivityResult(requestCode, resultCode, data);
-        if (webView !=null) webView.onActivityResultHandle(requestCode,resultCode,data);
-        super.onActivityResult(requestCode,resultCode,data);
-    }
-
     /* 权限申请完成 */
     private void authorizationCompletion(){
         IOUtils.run(new Runnable() {
@@ -290,7 +342,6 @@ public class NativeActivity extends BaseActivity implements PermissionApply.Call
         });
 
     }
-
     /* 授权成功回调*/
     @Override
     public void onPermissionsGranted() {
@@ -301,7 +352,6 @@ public class NativeActivity extends BaseActivity implements PermissionApply.Call
             permissionApply.sdk30_isExternalStorageManager();
         }
     }
-
     /* android11文件存储授权 */
     @Override
     public void onSDK30FileStorageRequestResult(boolean isGrant) {
@@ -309,42 +359,9 @@ public class NativeActivity extends BaseActivity implements PermissionApply.Call
             authorizationCompletion();
         }
     }
-
     /* 忽略电源回调 */
     @Override
-    public void onPowerIgnoreGranted() {
-
-    }
-
-    @Override
-    protected void onPause() {
-        LLog.print(this+"** onPause" );
-
-        super.onPause();
-        overridePendingTransition(0, 0);
-    }
-
-
-    @Override
-    protected void onResume() {
-        LLog.print(this+"** onResume" );
-        super.onResume();
-
-        try {
-
-            // 获取剪切板分享内容
-            accessSharedContent();
-
-            // 处理intent信息
-            intentHandler();
-
-            if (GlobalMainWebView.getNativeServerImp().isImServerAcceptStart) startIMService();
-        } catch (Exception e) {
-           LLog.error(e);
-        }
-
-    }
-
+    public void onPowerIgnoreGranted() { }
     /* 处理intent的信息 */
     private void intentHandler() {
         Intent intent = getIntent();
@@ -388,7 +405,6 @@ public class NativeActivity extends BaseActivity implements PermissionApply.Call
 
         }
     }
-
     /* 获取分享内容 */
     private void accessSharedContent() {
         // LLog.print(this+ " 获取剪切板内容");
@@ -404,56 +420,5 @@ public class NativeActivity extends BaseActivity implements PermissionApply.Call
         },500);
     }
 
-    @Override
-    protected void onDestroy() {
-        LLog.print(this+"** onDestroy" );
-
-        GlobalMainWebView.getNativeServerImp().setNativeActivityInterface(null);
-
-        if (webView != null){
-            webView.loadErrorI=null;
-            webView.unbind();
-            webView =null;
-        }
-
-        super.onDestroy();
-    }
-
-
-    /* 回退处理 */
-    @Override
-    public void onBackPressed() {
-
-        if (webView != null && webView.onBackPressed()) return;
-
-        if (cur_back_time == -1){
-
-            Toast.makeText(this,"再次点击将退出应用",Toast.LENGTH_SHORT).show();
-            mHandler.postDelayed(resetBack,2000);
-            cur_back_time = System.currentTimeMillis();
-
-        }else{
-
-            if (System.currentTimeMillis() - cur_back_time < 100) {
-                cur_back_time = System.currentTimeMillis();
-                return;
-            }
-
-            mHandler.removeCallbacks(resetBack);
-            isExitApplication = true;
-            super.onBackPressed();
-        }
-    }
-
-    /* 结束应用 */
-    @Override
-    public void finish() {
-        if (isExitApplication){
-            super.finish();
-            android.os.Process.killProcess(android.os.Process.myPid());
-        }else{
-            moveTaskToBack(true);
-        }
-    }
 
 }

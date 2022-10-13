@@ -62,6 +62,7 @@ public class NativeMethodCallImp {
 
     protected NativeMethodCallImp(NativeServerImp nativeServerImp) {
         this.nativeServerImp = nativeServerImp;
+        LLog.print("本地方法处理类: " + this+"  >>> "+ nativeServerImp );
     }
 
     /* 支付结果 0 成功, -1 失败 */
@@ -77,6 +78,7 @@ public class NativeMethodCallImp {
         map.put("devOS","android-"+devInfoMap.get("安卓系统版本号"));
         map.put("devModel",devInfoMap.get("型号"));
         map.put("devToken", getMemoryDEVID() + "@" + WebApplication.DEVTYPE);// token
+        LLog.print(nativeServerImp + " **************** " + nativeServerImp.getNativeActivity());
         map.put("statusBarHeight",String.valueOf(statusBarHeight(Objects.requireNonNull(nativeServerImp.getNativeActivity()))));
         //LLog.print("JS获取本机设备信息: "+ map);
         return GsonUtils.javaBeanToJson(map);
@@ -241,6 +243,7 @@ public class NativeMethodCallImp {
                 }
             }
         }
+        LLog.print("微信付款结果 **************** "+ currentPayResultCode);
         return currentPayResultCode;
     }
 
@@ -266,12 +269,10 @@ public class NativeMethodCallImp {
                     if (map != null && map.get("resultStatus")!=null && Objects.equals(map.get("resultStatus"), "9000")) {
                         currentPayResultCode = 0;
                     }
-
-
-
                 }catch (Exception ignored){ }
             }
         }
+        LLog.print("支付宝付款结果 **************** "+ currentPayResultCode);
         return currentPayResultCode;
     }
 

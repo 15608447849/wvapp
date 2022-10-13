@@ -1,6 +1,7 @@
 package com.bottle.wvapp.services;
 
 import android.annotation.SuppressLint;
+import android.app.Activity;
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
@@ -11,6 +12,8 @@ import android.os.IBinder;
 import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 import com.bottle.wvapp.R;
+import com.bottle.wvapp.activitys.NativeActivity;
+
 import lee.bottle.lib.toolset.log.LLog;
 
 import static android.content.Context.NOTIFICATION_SERVICE;
@@ -28,7 +31,7 @@ public class IMServiceSDK26FontServerUtil {
     @RequiresApi(api = Build.VERSION_CODES.O)
     static void openFontServer(Service service){
         if (!isAccept) return;
-
+        LLog.print("IM 提升前台服务");
         // Android 8.0 不再允许后台进程直接通过startService方式去启动服务
         NotificationManager manager = (NotificationManager)service.getSystemService (NOTIFICATION_SERVICE);
         NotificationChannel channel = new NotificationChannel (channel_name,service.getString(R.string.app_name),NotificationManager.IMPORTANCE_LOW);
@@ -56,6 +59,17 @@ public class IMServiceSDK26FontServerUtil {
         LLog.print("android 8.+ Service ("+ service +") stop FrontService");
     }
 
-
+    /* 打开im服务 */
+    public static void startIMService(Activity activity){
+        // 打开通讯
+        LLog.print("打开IM服务");
+        Intent intent = new Intent(activity, IMService.class);
+        if (isAccept && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            // Android 8.0 不再允许后台进程直接通过startService方式去启动服务
+          activity.startForegroundService(intent);
+        }else {
+            activity.startService(intent);
+        }
+    }
 
 }

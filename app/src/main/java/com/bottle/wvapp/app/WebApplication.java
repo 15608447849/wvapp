@@ -46,7 +46,6 @@ public class WebApplication extends ApplicationAbs  {
         SysWebViewSetting.initGlobalSetting(this);
         // 创建webview
         GlobalMainWebView.init(this);
-
     }
 
 }

@@ -9,6 +9,8 @@ import android.os.Handler;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import lee.bottle.lib.toolset.log.LLog;
+
 /**
  * Created by Leeping on 2020/10/19.
  * email: 793065165@qq.com
@@ -19,6 +21,7 @@ public class BaseActivity extends AppCompatActivity {
 
     @Override
     protected void onNewIntent(Intent intent) {
+        LLog.print(this +" *********  onNewIntent");
         super.onNewIntent(intent);
         setIntent(intent);
 
@@ -29,18 +32,19 @@ public class BaseActivity extends AppCompatActivity {
     // https://blog.csdn.net/z_zT_T/article/details/80372819
     @Override
     public Resources getResources() {
+//        LLog.print(this +" *********  getResources Build.VERSION.SDK_INT="+ Build.VERSION.SDK_INT);
         Resources res = super.getResources();
-        if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.N) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N_MR1) {
             Configuration config=new Configuration();
             config.setToDefaults();
             res.updateConfiguration(config,res.getDisplayMetrics() );
         }
         return res;
     }
-
     @Override
     protected void attachBaseContext(Context newBase) {
-        if(Build.VERSION.SDK_INT>Build.VERSION_CODES.N){
+//        LLog.print(this +" *********  attachBaseContext Build.VERSION.SDK_INT="+ Build.VERSION.SDK_INT);
+        if(Build.VERSION.SDK_INT>Build.VERSION_CODES.N_MR1){
             final Resources res = newBase.getResources();
             final Configuration config = res.getConfiguration();
             config.setToDefaults();
@@ -50,5 +54,7 @@ public class BaseActivity extends AppCompatActivity {
             super.attachBaseContext(newBase);
         }
     }
+
+
 
 }

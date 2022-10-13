@@ -67,8 +67,7 @@ public class PermissionApply {
         this.activityRef = new SoftReference<>(activity);
         this.permissions = permissions;
         this.callback = callback;
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M)
-            isPermissionsDenied = false;
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) isPermissionsDenied = false;
     }
 
     public boolean isPermissionsDenied(){

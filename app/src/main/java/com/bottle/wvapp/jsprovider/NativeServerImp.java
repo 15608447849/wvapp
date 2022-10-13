@@ -26,7 +26,7 @@ public class NativeServerImp implements NativeActivityInterface,NativeJSInterfac
     public final NativeMethodCallImp caller = new NativeMethodCallImp(this);
 
     /* activity接口引用 */
-    protected SoftReference<NativeActivityInterface> nativeActivityInterfaceRef = new SoftReference<>(null);
+    private volatile  NativeActivityInterface nativeActivityInterface = null;
 
     /* 存在协议的JS页面初始化完成 */
     public boolean isJsPageLoadComplete = false;
@@ -34,10 +34,8 @@ public class NativeServerImp implements NativeActivityInterface,NativeJSInterfac
     /* 标记IM服务是否允许启动 */
     public boolean isImServerAcceptStart = false;
 
-    /* 关联activity等活动层 */
-    public void setNativeActivityInterface(NativeActivityInterface nativeActivityInterfaceImp){
-        this.nativeActivityInterfaceRef = new SoftReference<>(nativeActivityInterfaceImp);
-    }
+
+/**************************************************************************************************************************************/
 
     // js调用本地方法
     private Object callLocalMethod(String methodName, String data) throws Exception {
@@ -99,31 +97,34 @@ public class NativeServerImp implements NativeActivityInterface,NativeJSInterfac
         return resultJson;
     }
 
-
-
-    /** web页面加载完成 */
-
+    /*************************************************************************************************************************************************/
+    /* 关联activity等活动层 */
+    public void setNativeActivityInterface(NativeActivityInterface nativeActivityInterfaceImp){
+        this.nativeActivityInterface = nativeActivityInterfaceImp;
+        LLog.print(this + " 绑定-NativeActivityInterface :  "+ nativeActivityInterfaceImp);
+    }
 
     @Override
     public Activity getNativeActivity(){
-        if (nativeActivityInterfaceRef.get()==null) return null;
-        return nativeActivityInterfaceRef.get().getNativeActivity();
+//        LLog.print(this + " 获取 NativeActivityInterface = " + nativeActivityInterface);
+        if (nativeActivityInterface==null) return null;
+        return nativeActivityInterface.getNativeActivity();
     }
 
     // 打开通讯
     @Override
     public void connectIceIM() {
         isImServerAcceptStart = true;
-        if (nativeActivityInterfaceRef.get() == null) return;
-        nativeActivityInterfaceRef.get().connectIceIM();
+        if (nativeActivityInterface == null) return;
+        nativeActivityInterface.connectIceIM();
     }
 
 
     /** 清理缓存 */
     @Override
     public void clearCache(){
-        if (nativeActivityInterfaceRef.get() == null) return;
-        nativeActivityInterfaceRef.get().clearCache();
+        if (nativeActivityInterface == null) return;
+        nativeActivityInterface.clearCache();
     }
 
     // JS页面加载完成
@@ -132,8 +133,8 @@ public class NativeServerImp implements NativeActivityInterface,NativeJSInterfac
         if (isJsPageLoadComplete) return;
         LLog.print(this + " 存在本地协议的JS页面初始化完成通知" );
 
-        if (nativeActivityInterfaceRef.get() == null) return;
-        nativeActivityInterfaceRef.get().onJSPageInitialization();
+        if (nativeActivityInterface == null) return;
+        nativeActivityInterface.onJSPageInitialization();
         isJsPageLoadComplete = true;
         checkUserCache();// 检查用户本地缓存一致性
         connectIceIM();// 启动长连接
@@ -154,15 +155,15 @@ public class NativeServerImp implements NativeActivityInterface,NativeJSInterfac
 
     @Override
     public void onIndexPageShowBefore() {
-        if (nativeActivityInterfaceRef.get() == null) return;
-        nativeActivityInterfaceRef.get().onIndexPageShowBefore();
+        if (nativeActivityInterface == null) return;
+        nativeActivityInterface.onIndexPageShowBefore();
     }
 
     // 调用JS方法,前提: 需要JS注册接口
     @Override
     public void callJsFunction(String funName, String data, JSResponseCallback callback){
-        if (nativeActivityInterfaceRef.get() == null || !isJsPageLoadComplete) return;
-        nativeActivityInterfaceRef.get().callJsFunction(funName,data,callback);
+        if (nativeActivityInterface == null || !isJsPageLoadComplete) return;
+        nativeActivityInterface.callJsFunction(funName,data,callback);
     }
 
     /***************************************************************************************************/

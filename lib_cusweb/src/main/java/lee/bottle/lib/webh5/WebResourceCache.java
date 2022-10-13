@@ -32,7 +32,7 @@ public class WebResourceCache implements WebResourceRequestI {
 
     private static final long CLEAR_TIME = 24 * 60 * 60 * 1000L; // 一天
 
-    private static final int cacheSize = (int) (Runtime.getRuntime().maxMemory()/4);
+    private static final int cacheSize = (int) (Runtime.getRuntime().maxMemory()/8);
 
     private final LruCache<String,byte[]> resourceMemCache
             = new LruCache<String,byte[]>(cacheSize){
