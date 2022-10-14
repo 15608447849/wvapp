@@ -5,18 +5,18 @@ apply plugin: 'kotlin-android-extensions'
 def appVersion = 66
 def iceTag = "DRUG"
 
-def fileServerUrl = "https://www.onekdrug.com:9999"
-def webHomeUrl = "https://wx.onekdrug.com/" //生产地址
-def address = "tcp:reg.onekdrug.com:4161;tcp:ice.onekdrug.com:4161" //生产
-def appIcon = "@mipmap/ic_launcher"
+//def fileServerUrl = "https://www.onekdrug.com:9999"
+//def webHomeUrl = "https://wx.onekdrug.com/" //生产地址
+//def address = "tcp:reg.onekdrug.com:4161;tcp:ice.onekdrug.com:4161" //生产
+//def appIcon = "@mipmap/ic_launcher"
 
 // 测试地址
-//def fileServerUrl = "http://121.37.6.129:9999"
-//def webHomeUrl = "http://wx.onek56.com/" //测试地址 测试商城
-////def webHomeUrl = "https://www.baidu.com/" //测试地址 百度
-////def webHomeUrl = "https://m.jd.com/" //测试地址 京东
-//def address = "116.205.179.210:4061" //测试
-//def appIcon = "@mipmap/ic_launch_test"
+def fileServerUrl = "http://121.37.6.129:9999"
+def webHomeUrl = "http://wx.onek56.com/" //测试地址 测试商城
+//def webHomeUrl = "https://www.baidu.com/" //测试地址 百度
+//def webHomeUrl = "https://m.jd.com/" //测试地址 京东
+def address = "116.205.179.210:4061" //测试
+def appIcon = "@mipmap/ic_launch_test"
 
 // 测试地址2
 //def fileServerUrl = "http://121.37.223.130:9999"

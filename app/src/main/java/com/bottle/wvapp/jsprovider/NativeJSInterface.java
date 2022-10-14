@@ -1,5 +1,6 @@
 package com.bottle.wvapp.jsprovider;
 
+import android.content.Intent;
 import android.webkit.JavascriptInterface;
 
 import java.io.IOException;
@@ -7,6 +8,7 @@ import java.lang.reflect.Array;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
@@ -26,8 +28,9 @@ public class NativeJSInterface extends JSInterface.DefaultFunction {
 
     private final static String NATIVE_RESPONSE_JS_NAME = "JNB._callbackInvoke('%s','%s')";// response js callback  function
 
-    // 错误请求列表
+    // 错误请求参数队列
     private final BlockingQueue<String[]> errorQueue = new LinkedBlockingQueue<>();
+
 
     // 处理错误请求再次访问
     private Thread errorLoopThread = new Thread(){
@@ -35,10 +38,16 @@ public class NativeJSInterface extends JSInterface.DefaultFunction {
         public void run() {
             while (true){
                 try{
-                    String[] reqArr = errorQueue.take();
-                    LLog.print("错误重试: "+ Arrays.toString(reqArr));
-                    invoke(reqArr[0],reqArr[1],reqArr[2]);
+                    final String[] reqArr = errorQueue.take();
 
+                    IOUtils.run(new Runnable() {
+                        @Override
+                        public void run() {
+                            String str = Arrays.toString(reqArr);
+                            LLog.print("错误-重试请求: "+ str);
+                            callMethodImpl(reqArr[0],reqArr[1],reqArr[2], Integer.parseInt(reqArr[3])+1);
+                        }
+                    });
                 }catch (Exception e){
                     LLog.error(e);
                 }
@@ -74,50 +83,53 @@ public class NativeJSInterface extends JSInterface.DefaultFunction {
         IOUtils.run(new Runnable() {
             @Override
             public void run() {
-                //异步执行
-                Object value ;
-                Throwable targetEx = null;
-                try {
-                    value = hImp.jsInvokeFunction(methodName,data);
-                } catch (Exception e) {
-                    targetEx = e;
-                    if (e instanceof InvocationTargetException) {
-                        targetEx =((InvocationTargetException)e).getTargetException();
-                    }
-
-                    HashMap<String,Object> map = new HashMap<>();
-                    map.put("code",-1);
-                    map.put("message","NATIVE ERROR");
-                    map.put("error",targetEx.getMessage());
-                    value = map;
-                }
-
-                if (callback_id == null) return;
-
-                final String result  = value == null ? null :
-                        value instanceof String ? getDecodeJSONStr(value.toString()) : javaBeanToJson(value);
-
-                if (targetEx!=null){
-                    if (targetEx.getCause() instanceof IOException){
-                        try {
-                            errorQueue.put(new String[]{methodName,data,callback_id});
-                            return;
-                        } catch (InterruptedException e) {
-                            LLog.error(e);
-                        }
-                    }else{
-                        LLog.print("js调用native错误"
-                                + "\nmethodName = "+ methodName
-                                + "\ndata = " + data
-                                + "\nresult = "+ result
-                                + "\n"+ ErrorUtils.printExceptInfo(targetEx)
-                        );
-                    }
-                }
-
-                loadJavaScript(String.format(define__onResponseJSInvokeNative(),callback_id ,result));
+                callMethodImpl(methodName,data,callback_id,0);
             }
         });
+    }
+
+    private void callMethodImpl(String methodName, String data, String callback_id, int counts) {
+        //异步执行
+        Object value ;
+        Throwable targetEx = null;
+        try {
+            value = hImp.jsInvokeFunction(methodName,data);
+        } catch (Exception e) {
+            targetEx = e;
+            if (e instanceof InvocationTargetException) {
+                targetEx =((InvocationTargetException)e).getTargetException();
+            }
+
+            HashMap<String,Object> map = new HashMap<>();
+            map.put("code",-1);
+            map.put("message","NATIVE ERROR");
+            map.put("error",targetEx.getMessage());
+            value = map;
+        }
+
+        if (callback_id == null) return;
+
+        final String result  = value == null ? null :
+                value instanceof String ? getDecodeJSONStr(value.toString()) : javaBeanToJson(value);
+
+        if (targetEx!=null){
+            if (targetEx.getCause() instanceof IOException){
+                try {
+                    if (counts<10) {
+                        errorQueue.put(new String[]{methodName,data,callback_id,String.valueOf(counts)});
+                        return;
+                    }
+                } catch (Exception ignored) { }
+            }
+
+            LLog.print("js调用native错误"
+                    + "\nmethodName = "+ methodName
+                    + "\ndata = " + data
+                    + "\nresult = "+ result
+                    + "\n"+ ErrorUtils.printExceptInfo(targetEx)
+            );
+        }
+        loadJavaScript(String.format(define__onResponseJSInvokeNative(),callback_id ,result));
     }
 
     /**
