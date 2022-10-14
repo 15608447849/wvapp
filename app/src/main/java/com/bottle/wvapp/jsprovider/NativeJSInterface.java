@@ -45,7 +45,7 @@ public class NativeJSInterface extends JSInterface.DefaultFunction {
                         public void run() {
                             String str = Arrays.toString(reqArr);
                             LLog.print("错误-重试请求: "+ str);
-                            callMethodImpl(reqArr[0],reqArr[1],reqArr[2], Integer.parseInt(reqArr[3])+1);
+                            callMethodImpl(reqArr[0], reqArr[1], reqArr[2], Integer.parseInt(reqArr[3]));
                         }
                     });
                 }catch (Exception e){
@@ -116,7 +116,7 @@ public class NativeJSInterface extends JSInterface.DefaultFunction {
             if (targetEx.getCause() instanceof IOException){
                 try {
                     if (counts<10) {
-                        errorQueue.put(new String[]{methodName,data,callback_id,String.valueOf(counts)});
+                        errorQueue.put(new String[]{methodName,data,callback_id,String.valueOf(counts+1)});
                         return;
                     }
                 } catch (Exception ignored) { }
