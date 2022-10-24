@@ -170,23 +170,31 @@
         return '{}';
     }
 
-   /* JS 跳转其他页面 */
-    function openWindow(url,data){
+    /* JS 跳转其他页面 type=打开类型*/
+    function openWindow(url,type){
         try {
-             if (typeof data === "undefined"){
-                data = null;
+             if (typeof type === "undefined"){
+                type = null;
              }
 
-             if (typeof data === "object") {
-                data = JSON.stringify(data);
+             if (typeof type === "object") {
+                type = JSON.stringify(type);
              }
 
-            JSInterface.openWindow(url,data);
+            JSInterface.openWindow(url,type);
         } catch (exception) {
             console.error(exception);
          }
       }
 
+    /* js关闭当前页 bool=ture结束应用 */
+    function closeCurrentWindow(bool){
+        try {
+            JSInterface.closeWindow(bool);
+        } catch (exception) {
+            console.error(exception);
+         }
+      }
 
 /**********************************************************************************************************************************/
 
@@ -275,7 +283,8 @@
 
     getDevice:getDevice,  //JS 获取设备信息
     println:println,  //JS 打印设备日志
-    openWindow:openWindow,//JS 打开其他页面
+    openWindow:openWindow,//JS 打开其他页面(url,打开类型) push 压入一个新页面 ; pushAndRemove 移除当前页 打开新页面 ; pushAndRemoveAll 移除所有历史页面 打开新页面
+    closeCurrentWindow:closeCurrentWindow,//JS 关闭当前页  false - 强制关闭当前页 ; true - 强制整个关闭应用
 
     onInitializationComplete:onInitializationComplete  //JS 通知页面初始化加载完成
   }

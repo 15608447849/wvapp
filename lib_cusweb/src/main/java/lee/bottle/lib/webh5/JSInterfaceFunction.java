@@ -161,9 +161,11 @@ public abstract class JSInterfaceFunction {
 
     // 获取设备信息
     public abstract String getDevice();
-    // 打开窗口
-    public abstract void openWindow(String url,String data);
     // 窗口初始化加载完成通知
-
     public abstract void onInitializationComplete();
+
+    /* 打开窗口 push 压入一个新页面 ; pushAndRemove 移除当前页 打开新页面 ; pushAndRemoveAll 移除所有历史页面 打开新页面*/
+    public abstract void openWindow(String url,String type);
+    /* 结束当前窗口 false - 强制关闭当前页;true - 强制整个关闭应用 */
+    public abstract void closeCurrentWindow(String bool);
 }

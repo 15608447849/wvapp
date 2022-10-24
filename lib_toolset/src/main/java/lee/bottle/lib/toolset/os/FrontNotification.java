@@ -124,6 +124,11 @@ public class FrontNotification {
               return this;
         }
 
+        public FrontNotification.Build setExpandText(String text){
+            builder.setStyle(new NotificationCompat.BigTextStyle().bigText(text));
+            return this;
+        }
+
         public FrontNotification.Build setLevel(int level){
             this.level = level;
             return this;

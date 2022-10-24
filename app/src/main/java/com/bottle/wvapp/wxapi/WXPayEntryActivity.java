@@ -42,26 +42,25 @@ public class WXPayEntryActivity extends Activity implements IWXAPIEventHandler {
         }
     }
 
-
     @Override
     public void onReq(BaseReq req) {
 
     }
-
     @Override
     public void onResp(BaseResp resp) {
+        String flag = "";
+        // {"prepayId":"wx201539564014345b5cedbdc32fe2a70000","returnKey":"","errCode":0}
         if(resp.getType() == ConstantsAPI.COMMAND_PAY_BY_WX){
             // 0 成功, -1 错误, -2 用户取消
-            LLog.print("本机微信支付结果: " + GsonUtils.javaBeanToJson(resp));
-            NativeMethodCallImp.wxpayNotify(resp.errCode);
+            flag = "移动APP方案";
         }
         // 易宝支付 微信小程序支付方案
         if (resp.getType() == ConstantsAPI.COMMAND_LAUNCH_WX_MINIPROGRAM) {
 //            WXLaunchMiniProgram.Resp launchMiniProResp = (WXLaunchMiniProgram.Resp) resp;
 //            String extraData =launchMiniProResp.extMsg; //对应小程序组件 <button open-type="launchApp"> 中的 app-parameter 属性
-            LLog.print("本机微信支付结果(易宝): " + GsonUtils.javaBeanToJson(resp));
-            NativeMethodCallImp.wxpayNotify(0);
+            flag = "易宝小程序方案";
         }
+        LLog.print("微信支付 "+flag+" 结果: " + GsonUtils.javaBeanToJson(resp));
         finish();
     }
 }

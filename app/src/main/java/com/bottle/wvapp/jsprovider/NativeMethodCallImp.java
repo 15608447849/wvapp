@@ -34,6 +34,7 @@ import lee.bottle.lib.toolset.http.FileServerClient;
 import lee.bottle.lib.toolset.log.LLog;
 import lee.bottle.lib.toolset.os.ApplicationAbs;
 import lee.bottle.lib.toolset.os.CrashHandler;
+import lee.bottle.lib.toolset.threadpool.IOUtils;
 import lee.bottle.lib.toolset.util.AppUtils;
 import lee.bottle.lib.toolset.util.DialogUtils;
 import lee.bottle.lib.toolset.util.GsonUtils;
@@ -64,9 +65,6 @@ public class NativeMethodCallImp {
         this.nativeServerImp = nativeServerImp;
         LLog.print("本地方法处理类: " + this+"  >>> "+ nativeServerImp );
     }
-
-    /* 支付结果 0 成功, -1 失败 */
-    private static volatile int currentPayResultCode = -1;
 
     /** 获取设备信息 */
     private String getDeviceInfoMap(){
@@ -147,7 +145,6 @@ public class NativeMethodCallImp {
         nativeServerImp.onIndexPageShowBefore();
     }
 
-
     /** 版本更新*/
     private void versionUpdate(){
         Activity activity = nativeServerImp.getNativeActivity();
@@ -155,7 +152,6 @@ public class NativeMethodCallImp {
             UpdateVersionServerImp.checkVersion(activity,true);
         }
     }
-
 
     /**
      * app支付
@@ -192,28 +188,8 @@ public class NativeMethodCallImp {
         return null;
     }
 
-
-    // 微信支付 线程休眠 等待结果
-    public static void wxpayWait(){
-        synchronized (WXPayEntryActivity.class) {
-            try {
-                WXPayEntryActivity.class.wait(3 * 60 * 1000L);
-            } catch (InterruptedException ignored) { }
-        }
-    }
-
-    // 微信支付 线程执行 通知结果
-    public static void wxpayNotify(int resCode) {
-        currentPayResultCode = resCode;
-        synchronized (WXPayEntryActivity.class){
-            WXPayEntryActivity.class.notifyAll();
-        }
-    }
-
-
     /** 微信支付 */
     public int wxpay(String json){
-        currentPayResultCode = -1;
         Activity activity = nativeServerImp.getNativeActivity();
         if (activity != null) {
             //获取支付信息 https://www.jianshu.com/p/84eac713f007
@@ -235,50 +211,50 @@ public class NativeMethodCallImp {
                 req.nonceStr = map.get("noncestr");//随机字符串
                 req.timeStamp= map.get("timestamp");//时间戳
                 req.sign = map.get("sign");//签名
+                wxapi.sendReq(req);
 
-                boolean isSuccess = wxapi.sendReq(req);
-
-                if (isSuccess) {
-                    wxpayWait();
-                }
             }
         }
-        LLog.print("微信付款结果 **************** "+ currentPayResultCode);
-        return currentPayResultCode;
+
+        return 0;
     }
 
     /** 支付宝支付 */
     public int alipay(String json){
-        currentPayResultCode = -1;
         final Activity activity = nativeServerImp.getNativeActivity();
         if (activity != null){
             //获取支付信息
-            Map<String,String> map = payHandle(json,"alipay");
+            final Map<String,String> map = payHandle(json,"alipay");
             if (map != null) {
-                //把数组所有元素排序，并按照“参数=参数值”的模式用“&”字符拼接成字符串
-                try{
-                    StringBuilder sb = new StringBuilder();
-                    for (Map.Entry<String, String> e : map.entrySet()) {
-                        sb.append(e.getKey()).append("=").append(URLEncoder.encode(e.getValue() + "", "UTF-8")).append("&");
+                IOUtils.run(new Runnable() {
+                    @Override
+                    public void run() {
+                        //把数组所有元素排序，并按照“参数=参数值”的模式用“&”字符拼接成字符串
+                        try{
+                            final StringBuilder sb = new StringBuilder();
+                            for (Map.Entry<String, String> e : map.entrySet()) {
+                                sb.append(e.getKey()).append("=").append(URLEncoder.encode(e.getValue() + "", "UTF-8")).append("&");
+                            }
+                            sb.deleteCharAt(sb.length() - 1);
+                            //执行
+                            PayTask alipay = new PayTask(activity);
+                            Map<String,String>  resultMap = alipay.payV2(sb.toString(),true);
+                            LLog.print("支付宝支付 移动app方案 结果 "+ GsonUtils.javaBeanToJson(resultMap));
+                            // Objects.equals(map.get("resultStatus"), "9000") 支付成功
+                        }catch (Exception e){
+                            e.printStackTrace();
+                        }
                     }
-                    sb.deleteCharAt(sb.length() - 1);
-
-                    //执行
-                    PayTask alipay = new PayTask(activity);
-                    map = alipay.payV2(sb.toString(),true);
-                    if (map != null && map.get("resultStatus")!=null && Objects.equals(map.get("resultStatus"), "9000")) {
-                        currentPayResultCode = 0;
-                    }
-                }catch (Exception ignored){ }
+                });
             }
         }
-        LLog.print("支付宝付款结果 **************** "+ currentPayResultCode);
-        return currentPayResultCode;
+
+        return 0;
     }
 
     /** 易宝平台 */
     public int yeepay(String json){
-        currentPayResultCode = -1;
+
         Activity activity = nativeServerImp.getNativeActivity();
         if (activity != null){
             //获取支付信息
@@ -320,15 +296,13 @@ public class NativeMethodCallImp {
                     req.miniprogramType = WXLaunchMiniProgram.Req.MINIPTOGRAM_TYPE_RELEASE;
                     req.userName = wx_orgid;
                     req.path =  path;
-                    boolean isSuccess = api.sendReq(req);
-                    if (isSuccess) {
-                        wxpayWait();
-                    }
+                    api.sendReq(req);
+
                 }
             }
         }
-        LLog.print("易宝支付 当前支付结果返回值 currentPayResultCode = " + currentPayResultCode);
-        return currentPayResultCode;
+
+        return 0;
     }
 
 
@@ -339,6 +313,7 @@ public class NativeMethodCallImp {
         final Activity activity = nativeServerImp.getNativeActivity();
         if (activity==null) return;
 
+        AppUtils.toastLong(activity,"访问: "+ url);
         activity.runOnUiThread(new Runnable() {
             @Override
             public void run() {

@@ -1,9 +1,17 @@
 package com.bottle.wvapp.activitys;
 
+import android.content.Context;
 import android.content.Intent;
+import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
+import android.provider.DocumentsContract;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
+import android.widget.Toast;
+
+import androidx.core.content.FileProvider;
 
 import com.bottle.wvapp.beans.UrlDownloadDialog;
 import com.bottle.wvapp.jsprovider.NativeActivityInterfaceDefault;
@@ -15,8 +23,11 @@ import java.io.File;
 
 import lee.bottle.lib.toolset.log.LLog;
 import lee.bottle.lib.toolset.os.BaseActivity;
+import lee.bottle.lib.toolset.util.FileOpenUtils;
 import lee.bottle.lib.webh5.SysWebView;
 import lee.bottle.lib.webh5.interfaces.WebProgressI;
+
+import static lee.bottle.lib.toolset.util.FileOpenUtils.openASpecificFile;
 
 
 public class WebActivity extends BaseActivity {
@@ -52,14 +63,25 @@ public class WebActivity extends BaseActivity {
 
         // web下载事件
         webView.setDownloadListener(new UrlDownloadDialog(this){
+
             @Override
             protected void openDirectly(String url) {
-                webView.open("https://view.xdocin.com/view?src="+url);
+                super.openDirectly(url);
+                finish();
             }
 
             @Override
             protected void downloadNow(String url, File file) {
+                circleProgressDialog.showDialog();
                 super.downloadNow(url, file);
+            }
+
+            @Override
+            protected void downloadComplete(File storeFile) {
+                super.downloadComplete(storeFile);
+                circleProgressDialog.dismiss();
+
+                openASpecificFile(WebActivity.this,storeFile);
                 finish();
             }
 
@@ -107,6 +129,49 @@ public class WebActivity extends BaseActivity {
         webView.open(indexURL);
     }
 
+    public static void openASpecificFolderInFileManager(Context context, File file) {
+//        Intent i = new Intent(Intent.ACTION_VIEW);
+//        i.setDataAndType(Uri.parse(path), "resource/folder");
+//        context.startActivity(Intent.createChooser(i, "Open with"));
+
+
+//        Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+//        intent.addCategory(Intent.CATEGORY_OPENABLE);
+//        intent.setDataAndType(Uri.parse(path), "file/*");
+//        context.startActivity(intent);
+
+
+//        Uri uri = Uri.parse(path);
+//        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+//        intent.addCategory(Intent.CATEGORY_OPENABLE);
+//        intent.setType("*/*");
+//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+//            intent.putExtra(DocumentsContract.EXTRA_INITIAL_URI, uri);
+//        }
+//        context.startActivity(intent);
+
+
+//        Intent intent = new Intent(Intent.ACTION_VIEW);
+//        intent.setDataAndType(Uri.parse(Environment.DIRECTORY_DOCUMENTS ), DocumentsContract.Document.MIME_TYPE_DIR);
+//        context.startActivity(intent);
+
+//        file = file.getParentFile();
+        Intent intent = new Intent(Intent.ACTION_VIEW);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK|Intent.FLAG_ACTIVITY_CLEAR_TOP);
+
+        Uri uri;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+            uri = FileProvider.getUriForFile(context, context.getApplicationContext().getPackageName() + ".fileProvider", file);
+        } else {
+            uri = Uri.fromFile(file);
+        }
+        LLog.print(" uri = "+ uri);
+
+        intent.setDataAndType(uri, "file/*");
+//        intent.setDataAndType(uri, "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
+        context.startActivity(intent);
+    }
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
@@ -133,14 +198,6 @@ public class WebActivity extends BaseActivity {
         super.onRestart();
     }
 
-    // 捕获返回键 处理
-    @Override
-    public void onBackPressed() {
-        Intent intent = getIntent();
-        boolean isRollback = intent.getBooleanExtra("isRollback", true);
-        if (isRollback && webView.onBackPressed()) return;
-        super.onBackPressed();
-    }
 
     @Override
     protected void onDestroy() {
@@ -151,6 +208,17 @@ public class WebActivity extends BaseActivity {
         }
 
         super.onDestroy();
+    }
+
+    // 捕获返回键 处理
+    @Override
+    public void onBackPressed() {
+        Intent intent = getIntent();
+        boolean isRollback = intent.getBooleanExtra("isRollback", true);
+        if (isRollback && webView.onBackPressed()) return;
+        cur_back_time = 0;
+        isExitApplication = false;
+        super.onBackPressed();
     }
 
 

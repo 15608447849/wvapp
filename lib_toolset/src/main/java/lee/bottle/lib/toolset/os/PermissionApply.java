@@ -4,10 +4,13 @@ import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.app.AppOpsManager;
+import android.app.NotificationManager;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
+import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
@@ -19,8 +22,11 @@ import android.provider.Settings;
 import androidx.annotation.RequiresApi;
 
 import java.lang.ref.SoftReference;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 
 import lee.bottle.lib.toolset.log.LLog;
+import lee.bottle.lib.toolset.util.AppUtils;
 
 import static lee.bottle.lib.toolset.util.AppUtils.checkWindowPermission;
 
@@ -58,6 +64,9 @@ public class PermissionApply {
     // android 允许未知来源权限界面申请
     private final int INSTALL_PERMISSION_CODE = 131;
 
+    // android 允许消息通知栏
+    private final int REQUEST_NOTIFY_CODE = 132;
+
     private final String[] permissions ;
 
     private final PermissionApply.Callback callback;
@@ -77,7 +86,6 @@ public class PermissionApply {
     //应用权限检测
     public void permissionCheck() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M){
-
             getPermissions();
         }
     }
@@ -91,7 +99,6 @@ public class PermissionApply {
         if (activity == null) return;
 
         if (!checkWindowPermission(activity)) {
-
             //弹窗请求授权浮窗
             final DialogInterface.OnClickListener listener = new DialogInterface.OnClickListener(){
                 @Override
@@ -117,9 +124,7 @@ public class PermissionApply {
             builder.setNegativeButton("取消",listener);
             builder.setCancelable(false);
             builder.create().show();
-
         }
-
     }
 
 
@@ -201,6 +206,129 @@ public class PermissionApply {
         }
     }
 
+    private void startSysNotifyActivity() {
+        Activity activity = activityRef.get();
+        if (activity == null) return;
+
+        Intent intent = new Intent();
+        //直接跳转到应用通知设置的代码：
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {//8.0及以上
+            intent.setAction(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
+            intent.addCategory(Intent.CATEGORY_DEFAULT);
+            intent.setData(Uri.parse("package:"+ activity.getPackageName()));
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {//5.0以上到8.0以下
+            intent.setAction(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
+            intent.putExtra("app_package", activity.getPackageName());
+            intent.putExtra("app_uid", activity.getApplicationInfo().uid);
+        }
+        activity.startActivityForResult(intent,REQUEST_NOTIFY_CODE);
+    }
+
+    private boolean isAlertWindowNotifyPermissionsDeniedIng = false;
+    //授权失败提示框 >> 打开系统应用
+    @SuppressLint("WrongConstant")
+    private void alertWindowNotifyPermissionsDenied() {
+        LLog.print("打开授权请求提示框 isAlertWindowNotifyPermissionsDeniedIng = "+ isAlertWindowNotifyPermissionsDeniedIng );
+
+        Activity activity = activityRef.get();
+        if (activity == null || isAlertWindowNotifyPermissionsDeniedIng) return;
+
+        final DialogInterface.OnClickListener listener = new DialogInterface.OnClickListener(){
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                dialog.cancel();
+                isAlertWindowNotifyPermissionsDeniedIng = false;
+                if (which == DialogInterface.BUTTON_POSITIVE){
+                    startSysSettingActivity();
+                }else if (which == DialogInterface.BUTTON_NEGATIVE){
+                    System.exit(0);
+                }else if (which == DialogInterface.BUTTON_NEUTRAL){
+                    isAlertWindowNotifyPermissionsDeniedIng = true;
+                }
+            }
+        };
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(activity);
+        PackageManager pkm = activity.getPackageManager();
+        try {
+            Drawable mAppicon =
+                    pkm.getActivityInfo(activity.getComponentName(),
+                            ActivityInfo.FLAG_STATE_NOT_NEEDED).loadIcon(pkm);
+            builder.setIcon(mAppicon);//设置图标，
+        } catch (PackageManager.NameNotFoundException e) {
+            LLog.error(e);
+        }
+        builder.setTitle("应用授权失败") ;//设置标题
+        builder.setMessage("您已拒绝应用相关权限,可能无法正常使用") ;//设置内容
+        builder.setPositiveButton("手动授权",listener);
+        builder.setNegativeButton("退出应用",listener);
+        builder.setNeutralButton("继续使用",listener);
+        builder.setCancelable(false);
+
+        builder.create().show();
+        isAlertWindowNotifyPermissionsDeniedIng = true;
+    }
+
+    //打开系统应用
+    private void  startSysSettingActivity() {
+        Activity activity = activityRef.get();
+        if (activity == null) return;
+
+        Intent intent = new Intent();
+        intent.setAction( Settings.ACTION_APPLICATION_DETAILS_SETTINGS) ;
+        intent.setData(Uri.parse("package:" + activity.getPackageName()));
+        intent.addCategory(Intent.CATEGORY_DEFAULT);
+        activity.startActivityForResult(intent,SDK_POWER_REQUEST);
+    }
+
+
+    // 打开 允许安装未知来源 界面
+    public void openInstallPermission() {
+        Activity activity = activityRef.get();
+        if (activity == null) return;
+
+        Intent intent;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            intent = new Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES ,Uri.parse("package:" + activity.getPackageName()));
+        }else {
+            intent = new Intent(Settings.ACTION_SECURITY_SETTINGS ,Uri.parse("package:" + activity.getPackageName()));
+        }
+        activity.startActivityForResult(intent, INSTALL_PERMISSION_CODE);
+    }
+
+
+    private boolean isAlertMessageNotifyPermissionsDeniedIng = false;
+    // 请求通知栏
+    public void requestNotify(){
+        final Activity activity = activityRef.get();
+        if (activity == null || isAlertMessageNotifyPermissionsDeniedIng) return;
+
+        boolean isEnable = AppUtils.isNotifyEnabled(activity);
+        if (isEnable) return;
+
+        final DialogInterface.OnClickListener listener = new DialogInterface.OnClickListener(){
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                dialog.cancel();
+                if (which == DialogInterface.BUTTON_POSITIVE) {
+                    startSysNotifyActivity();
+                }
+                isAlertMessageNotifyPermissionsDeniedIng = false;
+            }
+        };
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(activity);
+        builder.setTitle("授权请求") ;//设置标题
+        builder.setMessage("应用请求打开通知栏消息提醒") ;//设置内容
+        builder.setPositiveButton("手动打开",listener);
+        builder.setNegativeButton("下次再说",listener);
+        builder.setCancelable(false);
+        builder.create().show();
+        isAlertMessageNotifyPermissionsDeniedIng = true;
+    }
+
+
     /** activity 权限申请回调 */
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults){
 
@@ -231,81 +359,6 @@ public class PermissionApply {
     }
 
 
-    private boolean isAlertWindowNotifyPermissionsDeniedIng = false;
-    //授权失败提示框 >> 打开系统应用
-    @SuppressLint("WrongConstant")
-    private void alertWindowNotifyPermissionsDenied() {
-        LLog.print("打开授权请求提示框 isAlertWindowNotifyPermissionsDeniedIng = "+ isAlertWindowNotifyPermissionsDeniedIng );
-
-        Activity activity = activityRef.get();
-        if (activity == null || isAlertWindowNotifyPermissionsDeniedIng) return;
-
-        final DialogInterface.OnClickListener listener = new DialogInterface.OnClickListener(){
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-                dialog.cancel();
-                isAlertWindowNotifyPermissionsDeniedIng = false;
-
-                if (which == DialogInterface.BUTTON_POSITIVE){
-                    startSysSettingActivity();
-                }else if (which == DialogInterface.BUTTON_NEGATIVE){
-                    System.exit(0);
-                }else if (which == DialogInterface.BUTTON_NEUTRAL){
-                    isAlertWindowNotifyPermissionsDeniedIng = true;
-                }
-            }
-        };
-
-        AlertDialog.Builder builder = new AlertDialog.Builder(activity);
-        builder.setTitle("应用授权失败") ;//设置标题
-        builder.setMessage("您已拒绝应用相关权限,可能无法正常使用") ;//设置内容
-        PackageManager pkm = activity.getPackageManager();
-        try {
-            Drawable mAppicon = pkm.getActivityInfo(activity.getComponentName(), ActivityInfo.FLAG_STATE_NOT_NEEDED).loadIcon(pkm);
-            builder.setIcon(mAppicon);//设置图标，
-        } catch (PackageManager.NameNotFoundException e) {
-            LLog.error(e);
-        }
-        builder.setPositiveButton("手动授权",listener);
-        builder.setNegativeButton("退出应用",listener);
-        builder.setNeutralButton("继续使用",listener);
-        builder.setCancelable(false);
-        builder.create().show();
-        isAlertWindowNotifyPermissionsDeniedIng = true;
-    }
-
-    //打开系统应用
-    private void  startSysSettingActivity() {
-        Activity activity = activityRef.get();
-        if (activity == null) return;
-
-        Intent intent = new Intent();
-        intent.setAction( Settings.ACTION_APPLICATION_DETAILS_SETTINGS) ;
-        intent.setData(Uri.parse("package:" + activity.getPackageName()));
-        intent.addCategory(Intent.CATEGORY_DEFAULT);
-//        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-//        intent.addFlags(Intent.FLAG_ACTIVITY_NO_HISTORY);
-//        intent.addFlags(Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS);
-//        activity.startActivity(intent);
-        activity.startActivityForResult(intent,SDK_POWER_REQUEST);
-    }
-
-
-    // 打开 允许安装未知来源 界面
-    public void openInstallPermission() {
-        Activity activity = activityRef.get();
-        if (activity == null) return;
-
-        Intent intent;
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            intent = new Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES ,Uri.parse("package:" + activity.getPackageName()));
-        }else {
-            intent = new Intent(Settings.ACTION_SECURITY_SETTINGS ,Uri.parse("package:" + activity.getPackageName()));
-        }
-        activity.startActivityForResult(intent, INSTALL_PERMISSION_CODE);
-    }
-
-
     /**
      * activity 回调
      */
@@ -332,6 +385,10 @@ public class PermissionApply {
 
         if (requestCode == INSTALL_PERMISSION_CODE){
             LLog.print("ANDROID 未知来源权限申请结果: " +  ( resultCode == Activity.RESULT_OK));
+        }
+
+        if (requestCode == REQUEST_NOTIFY_CODE){
+            LLog.print("ANDROID 允许消息通知栏结果: " +  ( resultCode == Activity.RESULT_OK));
         }
     }
 }

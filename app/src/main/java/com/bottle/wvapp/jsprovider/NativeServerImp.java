@@ -1,14 +1,24 @@
 package com.bottle.wvapp.jsprovider;
 
 import android.app.Activity;
+import android.content.Intent;
 
+import com.bottle.wvapp.activitys.NativeActivity;
 import com.bottle.wvapp.app.WebApplication;
+import com.bottle.wvapp.tool.NotifyUer;
 import com.onek.client.IceClient;
 
 import java.lang.ref.SoftReference;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 
 import lee.bottle.lib.toolset.log.LLog;
+import lee.bottle.lib.toolset.util.AppUtils;
+import lee.bottle.lib.toolset.util.DialogUtils;
 import lee.bottle.lib.toolset.util.GsonUtils;
 import lee.bottle.lib.webh5.interfaces.JSResponseCallback;
 
@@ -119,7 +129,6 @@ public class NativeServerImp implements NativeActivityInterface,NativeJSInterfac
         nativeActivityInterface.connectIceIM();
     }
 
-
     /** 清理缓存 */
     @Override
     public void clearCache(){
@@ -152,7 +161,6 @@ public class NativeServerImp implements NativeActivityInterface,NativeJSInterfac
 
     }
 
-
     @Override
     public void onIndexPageShowBefore() {
         if (nativeActivityInterface == null) return;
@@ -163,17 +171,45 @@ public class NativeServerImp implements NativeActivityInterface,NativeJSInterfac
     @Override
     public void callJsFunction(String funName, String data, JSResponseCallback callback){
         if (nativeActivityInterface == null || !isJsPageLoadComplete) return;
+        LLog.print("请求JS: " + funName+" >> "+ data);
         nativeActivityInterface.callJsFunction(funName,data,callback);
     }
 
     /***************************************************************************************************/
 
-    /** 推送消息 */
-    public void pushMessageToJs(final String message){
-        callJsFunction("communicationSysReceive",message, null);
+    private String handlerPushMessage(String message) {
+        Map<String,String> map = GsonUtils.string2Map(message);
+        String content = map.get("content");
+        String likePath = map.get("likePath");
+        Activity activity = getNativeActivity();
+        if (activity != null){
+
+            if (!AppUtils.isNotifyEnabled(activity)){
+                alertTipWindow(content);
+            }else {
+                // 允许消息推送
+                Intent intent = new Intent(activity,activity.getClass());
+                if (likePath!=null){
+                    // 通知栏参数
+                    intent.putStringArrayListExtra("notify_param",new ArrayList<>(Collections.singletonList(likePath)));
+                    // 创建消息提醒-点击跳转指定页面
+                    NotifyUer.createMessageNotify(getNativeActivity(), content, intent);
+                }else {
+                    // 创建文本消息提醒
+                    NotifyUer.createMessageNotifyTips(getNativeActivity(),content,intent);
+                }
+            }
+        }
+
+        return content;
     }
 
-    /** 消息通知栏点击进入 */
+    /** 推送消息 */
+    public void pushMessageToJs(final String message){
+        callJsFunction("communicationSysReceive",handlerPushMessage(message), null);
+    }
+
+    /** 消息通知栏 点击进入指定页面 */
     public void notifyEntryToJs(String path){
         if (path == null) path = "/message";
         callJsFunction("notifyEntry",path, null);
@@ -181,6 +217,7 @@ public class NativeServerImp implements NativeActivityInterface,NativeJSInterfac
 
     /** 推送支付结果 */
     public void pushPaySuccessMessageToJs(final String message){
+        // {"orderNo":"2210200013841635","money":0.01,"tradeStatus":1,"tradeDate":"2022-10-20 18:59:45","paytype":"alipay"}
         callJsFunction("communicationPayReceive",message, null);
     }
 
@@ -197,6 +234,11 @@ public class NativeServerImp implements NativeActivityInterface,NativeJSInterfac
     /* 进入APP 传递剪切板的分享内容 */
     public void enterApp(String data) {
         callJsFunction("enterApp",data, null);
+    }
+
+    /* 弹窗提醒消息 */
+    public void alertTipWindow(String message) {
+        DialogUtils.dialogSimple(getNativeActivity(),"新消息", message, "我知道了", null).show();
     }
 
 }

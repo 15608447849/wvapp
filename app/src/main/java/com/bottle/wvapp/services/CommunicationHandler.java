@@ -1,15 +1,22 @@
 package com.bottle.wvapp.services;
 
+import android.content.Intent;
+
 import lee.bottle.lib.toolset.os.ApplicationDevInfo;
 
+import com.bottle.wvapp.activitys.NativeActivity;
 import com.bottle.wvapp.app.WebApplication;
 import com.bottle.wvapp.tool.NotifyUer;
 
 import java.lang.ref.SoftReference;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
 import lee.bottle.lib.toolset.log.LLog;
+import lee.bottle.lib.toolset.util.GsonUtils;
 
 import static com.bottle.wvapp.beans.BusinessData.getCurrentDevCompanyID;
 
@@ -20,7 +27,6 @@ public class CommunicationHandler {
         this.imServiceRef = new SoftReference<>(imService);
     }
 
-
     /*  同步服务器上的用户信息 */
     private int updateLocalCacheReturnCompanyID(){
         int compid = getCurrentDevCompanyID(true, WebApplication.iceClient);
@@ -28,8 +34,6 @@ public class CommunicationHandler {
         if (compid == 0){
             // 断开连接
             imServiceRef.get().communicationClose();
-            // 取消消息通知
-            NotifyUer.cacheAllMessageByExistNotify(imServiceRef.get().getApplication());
         }
         return compid;
     }
@@ -69,7 +73,7 @@ public class CommunicationHandler {
     private void protocol_logout(String prop, String msg, Map<String,String> intent) {
         if (prop.startsWith("logout")){
             LLog.print("登出信息: "+ msg);
-            String message = null;
+
             // 刷新用户企业信息(与服务器同步)
             int compid = updateLocalCacheReturnCompanyID();
             String devID = msg.substring(0,msg.lastIndexOf("@"));
@@ -81,24 +85,19 @@ public class CommunicationHandler {
             if (devType.equals(WebApplication.DEVTYPE)){
                 if (devID.equals(curDevID)){
                     // 同一个设备
-                    message = "您的账号已从当前移动设备退出";
+                    //intent.put("alertTipWindow","您的账号已从当前设备退出");// 弹窗提醒
                 }else{
                     // 不同设备
                     if (prop.equals("logout-force")){
                         // 当前设备需要强制登出
                         // 通知activity 强制退出
                         intent.put("forceLogout","true");
-                        message = "您的账号已在其他移动设备登录";
+                        //message = "您的账号正在其他设备登录";
                     }
                 }
-
             }else{
-                message = "您的账号已从其他设备退出登录";
-            }
-
-            if (message!=null) {
-                LLog.print(message);
-                NotifyUer.createMessageNotifyTips(imServiceRef.get().getApplication(), message);
+                // 其他类型的终端
+                //intent.put("alertTipWindow","您的账号已在其他终端("+devType+")退出");// 弹窗提醒
             }
         }
     }
@@ -135,11 +134,12 @@ public class CommunicationHandler {
                 }
             }
 
+            Map<String,String> map = new HashMap<>();
+            map.put("content",content);
+            map.put("likePath",likePath);
             // 发送推送消息
-            intent.put("pushMessageToJs",content);
+            intent.put("pushMessageToJs", GsonUtils.javaBeanToJson(map));
 
-            //打开广播-跳转个人中心
-            NotifyUer.createMessageNotify(imServiceRef.get().getApplication(), content, likePath);
         }
     }
 

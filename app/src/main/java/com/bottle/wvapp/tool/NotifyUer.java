@@ -1,6 +1,7 @@
 package com.bottle.wvapp.tool;
 
 
+import android.app.Activity;
 import android.app.Notification;
 import android.app.NotificationManager;
 import android.content.Context;
@@ -14,6 +15,7 @@ import java.util.Arrays;
 import java.util.Timer;
 import java.util.TimerTask;
 
+import lee.bottle.lib.toolset.log.LLog;
 import lee.bottle.lib.toolset.os.FrontNotification;
 
 /**
@@ -21,18 +23,12 @@ import lee.bottle.lib.toolset.os.FrontNotification;
  * email: 793065165@qq.com
  */
 public class NotifyUer {
-    private static Timer timer = new Timer();
+
     private static int currentId =  1;
 
-    public static void createMessageNotify(Context context, String message, String... params) {
+    public static void createMessageNotify(Context context, String message, Intent intent) {
+        LLog.print("创建通知栏消息");
         FrontNotification.Build build = new FrontNotification.Build(context).setId(currentId++);
-        Intent intent = new Intent(context, NativeActivity.class);
-        if (params!=null){
-            ArrayList<String> paramList = new ArrayList<>(Arrays.asList(params));
-            intent.putStringArrayListExtra("notify_param",paramList);
-        }
-//        intent.setFlags(FLAG_ACTIVITY_NEW_TASK);
-//        build.setFlags(new int[]{Notification.FLAG_INSISTENT,Notification.FLAG_AUTO_CANCEL});
         build.setFlags(new int[]{Notification.FLAG_SHOW_LIGHTS,Notification.FLAG_AUTO_CANCEL});
         build.setActivityIntent(intent);
         build.setGroup("messageList");
@@ -44,7 +40,8 @@ public class NotifyUer {
         build.generateNotification().showNotification();
     }
 
-    public static void createMessageNotifyTips(final Context context, String message) {
+    public static void createMessageNotifyTips(final Context context, String message, Intent intent) {
+        LLog.print("创建通知提示: "+ context +" , "+ message);
         final int channelID = currentId++;
         FrontNotification.Build build = new FrontNotification.Build(context).setId(channelID);
         build.setFlags(new int[]{Notification.FLAG_SHOW_LIGHTS,Notification.FLAG_AUTO_CANCEL});
@@ -54,26 +51,25 @@ public class NotifyUer {
         build.setText( context.getString(R.string.app_name),message,"新消息");
         build.setWhen(System.currentTimeMillis());
         build.setTicker(message);
+        build.setExpandText(message);
+        build.setActivityIntent(intent);
         build.generateNotification().showNotification();
-        timer.schedule(new TimerTask() {
-            @Override
-            public void run() {
-              cacheAllMessageByExistNotifySpecID(context,channelID);
-            }
-        },5000);
     }
 
-    public static FrontNotification createDownloadApkNotify(Context context,String title){
-        Intent intent = new Intent(context, NativeActivity.class);
+    public static FrontNotification createDownloadApkNotify(Context context,String title,Intent intent){
+
        return new FrontNotification.Build(context).setLevel(3)
                 .setId(currentId++)
                 .setGroup("download-"+title)
-                .setFlags(new int[]{Notification.FLAG_FOREGROUND_SERVICE,Notification.FLAG_ONLY_ALERT_ONCE,
-                        Notification.FLAG_ONGOING_EVENT,Notification.FLAG_NO_CLEAR})
                 .setDefaults(Notification.DEFAULT_ALL)
-               .setActivityIntent(intent)
+                .setActivityIntent(intent)
                 .setSmallIcon(R.drawable.ic_update_version)
-               .setText(context.getString(R.string.app_name),title ,"下载完成自动关闭")
+                .setText(context.getString(R.string.app_name),title ,"下载完成自动关闭")
+                .setFlags(new int[]{
+                       Notification.FLAG_FOREGROUND_SERVICE,
+                       Notification.FLAG_ONLY_ALERT_ONCE,
+                       Notification.FLAG_ONGOING_EVENT,
+                       Notification.FLAG_NO_CLEAR})
                 .generateNotification();
     }
 

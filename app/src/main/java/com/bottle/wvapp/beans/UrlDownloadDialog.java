@@ -42,7 +42,7 @@ public class UrlDownloadDialog implements DownloadListener {
                 "是否立即下载",
                 msg,
                 R.drawable.ic_update_version,
-                "直接打开(推荐)",
+                "直接打开",
                 "立即下载",
                 "取消",
                 0,
@@ -69,9 +69,9 @@ public class UrlDownloadDialog implements DownloadListener {
     protected void openDirectly(String url) {
         //其他应用打开
         Intent intent = new Intent(Intent.ACTION_VIEW);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         intent.addCategory(Intent.CATEGORY_BROWSABLE);
-        intent.setData(Uri.parse("https://view.xdocin.com/view?src="+url));
-//                            intent.setData(Uri.parse(url));
+        intent.setData(Uri.parse(url));
         activity.startActivity(intent);
     }
 
@@ -82,16 +82,19 @@ public class UrlDownloadDialog implements DownloadListener {
             @Override
             public void onResult(HttpUtils.Response response) {
                 final File storeFile = response.getData();
-                final String resMsg = storeFile + " 下载完成";
                 activity.runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-                        AppUtils.toastLong(activity,resMsg);
+                        downloadComplete(storeFile);
                     }
                 });
 
             }
         }));
+    }
+
+    protected void downloadComplete(File storeFile) {
+        AppUtils.toastLong(activity,storeFile + " 下载完成");
     }
 
     protected void cancelAction(String url) {

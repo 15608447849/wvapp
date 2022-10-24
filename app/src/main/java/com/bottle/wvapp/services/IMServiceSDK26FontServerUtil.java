@@ -6,6 +6,7 @@ import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.Service;
+import android.content.Context;
 import android.content.Intent;
 import android.os.Build;
 import android.os.IBinder;
@@ -60,15 +61,15 @@ public class IMServiceSDK26FontServerUtil {
     }
 
     /* 打开im服务 */
-    public static void startIMService(Activity activity){
+    public static void startIMService(Context context){
         // 打开通讯
         LLog.print("打开IM服务");
-        Intent intent = new Intent(activity, IMService.class);
+        Intent intent = new Intent(context, IMService.class);
         if (isAccept && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             // Android 8.0 不再允许后台进程直接通过startService方式去启动服务
-          activity.startForegroundService(intent);
+            context.startForegroundService(intent);
         }else {
-            activity.startService(intent);
+            context.startService(intent);
         }
     }
 

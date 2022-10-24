@@ -93,6 +93,11 @@ public class JSInterface {
             LLog.print("JS 请求打开链接 URL= "+url+" ,DATA= "+ data);
         }
 
+        @Override
+        public void closeCurrentWindow(String bool) {
+
+        }
+
         @JavascriptInterface
         @Override
         public void onInitializationComplete() {

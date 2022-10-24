@@ -24,19 +24,20 @@ public class DialogUtils {
         void onAction0();
     }
 
-    public static AlertDialog dialogSimple(Context context, String msg,String buttonText, final Action0 action0) {
+    public static AlertDialog dialogSimple(Context context,String title, String msg,String buttonText, final Action0 action0) {
         //弹出提示
         return dialogSimple(context,
+                title,
                 msg,
                 buttonText,
                 0,
                 action0);
     }
 
-    public static AlertDialog dialogSimple(Context context, String msg,String buttonText,int token, final Action0 action0) {
+    public static AlertDialog dialogSimple(Context context, String title,String msg,String buttonText,int token, final Action0 action0) {
         //弹出提示
         return build(context,
-                "提示",
+                title,
                 msg,
                 R.drawable.ic_warn,
                 null == buttonText ? "确定" : buttonText,

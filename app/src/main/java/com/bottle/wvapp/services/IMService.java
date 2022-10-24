@@ -30,6 +30,7 @@ import lee.bottle.lib.toolset.util.GsonUtils;
 
 import static android.content.Intent.FLAG_ACTIVITY_NEW_TASK;
 
+import static com.bottle.wvapp.activitys.NativeActivity.ACTION_BROADCAST_RECEIVE;
 import static com.bottle.wvapp.beans.BusinessData.getOrderServerNo;
 import static com.bottle.wvapp.beans.BusinessData.getCurrentDevCompanyID;
 
@@ -118,7 +119,6 @@ public class IMService extends Service {
                 public void heartbeat(Connection con) {
                     Log.w("ice","heartbeat:"+ con._toString().replace("\n"," "));
                     receive.lastHeartbeatTime = System.currentTimeMillis();
-
                 }
 
                 @Override
@@ -231,13 +231,12 @@ public class IMService extends Service {
 
     void sendDataToNativeActivity(Map<String,String> map){
         if (map == null) return;
-        Intent intent = new Intent(this, NativeActivity.class);
-        intent.setFlags(FLAG_ACTIVITY_NEW_TASK);
+        Intent intent = new Intent(ACTION_BROADCAST_RECEIVE);
         for (String k:map.keySet()){
             String v = map.get(k);
             intent.putExtra(k,v);
         }
-        getApplication().startActivity(intent);
+        getApplication().sendBroadcast(intent);
         if (isDebugger) LLog.print(this+ " send data to native Activity : "+ GsonUtils.javaBeanToJson(map));
     }
 

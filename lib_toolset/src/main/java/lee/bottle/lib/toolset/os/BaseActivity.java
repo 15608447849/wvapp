@@ -6,6 +6,7 @@ import android.content.res.Configuration;
 import android.content.res.Resources;
 import android.os.Build;
 import android.os.Handler;
+import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -54,6 +55,50 @@ public class BaseActivity extends AppCompatActivity {
             super.attachBaseContext(newBase);
         }
     }
+
+    /***********************************************************************************************************************/
+    /* 是否退出 */
+    protected boolean isExitActivity = true;
+    /* 是否杀死应用 */
+    protected boolean isExitApplication = true;
+    /** 捕获返回键点击间隔时间 */
+    protected long cur_back_time = -1;
+    /** 重置返回键 */
+    private final Runnable resetBack = new Runnable() {
+        @Override
+        public void run() {
+            cur_back_time = -1; //重置
+        }
+    };
+
+    /* 回退事件处理 */
+    @Override
+    public void onBackPressed() {
+        if (cur_back_time == -1){
+            Toast.makeText(this,"再次点击将退出应用",Toast.LENGTH_SHORT).show();
+            mHandler.postDelayed(resetBack,2000);
+            cur_back_time = System.currentTimeMillis();
+        }else{
+            if (System.currentTimeMillis() - cur_back_time < 100) {
+                cur_back_time = System.currentTimeMillis();
+                return;
+            }
+            mHandler.removeCallbacks(resetBack);
+            super.onBackPressed();
+        }
+    }
+    /* 结束应用 */
+    @Override
+    public void finish() {
+        if (isExitActivity){
+            super.finish();
+            if (isExitApplication)
+                android.os.Process.killProcess(android.os.Process.myPid());
+        }else{
+            moveTaskToBack(true);
+        }
+    }
+
 
 
 

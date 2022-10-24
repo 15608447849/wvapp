@@ -1,20 +1,21 @@
 package com.bottle.wvapp.activitys;
 
 import android.Manifest;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.net.Uri;
-import android.nfc.tech.NfcA;
 import android.os.Build;
 import android.os.Bundle;
 
-import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.webkit.WebResourceError;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebView;
 import android.widget.FrameLayout;
-import android.widget.Toast;
+
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import lee.bottle.lib.toolset.os.ApplicationDevInfo;
@@ -26,11 +27,14 @@ import com.bottle.wvapp.jsprovider.NativeJSInterface;
 import com.bottle.wvapp.jsprovider.NativeServerImp;
 import com.bottle.wvapp.uptver.UpdateVersionServerImp;
 import java.util.ArrayList;
+import java.util.List;
+
 import lee.bottle.lib.toolset.log.LLog;
 import lee.bottle.lib.toolset.os.BaseActivity;
 import lee.bottle.lib.toolset.os.PermissionApply;
 import lee.bottle.lib.toolset.threadpool.IOUtils;
 import lee.bottle.lib.toolset.util.AppUtils;
+import lee.bottle.lib.toolset.util.IntentUtils;
 import lee.bottle.lib.toolset.util.DialogUtils;
 import lee.bottle.lib.webh5.SysWebView;
 import lee.bottle.lib.webh5.interfaces.LoadErrorI;
@@ -62,21 +66,30 @@ public class NativeActivity extends BaseActivity implements PermissionApply.Call
 
     //权限申请
     private final PermissionApply permissionApply =  new PermissionApply(this, permissionArray,this);
-    /* 是否退出应用 */
-    private boolean isExitApplication;
-    /** 捕获返回键 */
-    private long cur_back_time = -1;
-    /** 重置返回键 */
-    private final Runnable resetBack = new Runnable() {
-        @Override
-        public void run() {
-            cur_back_time = -1; //重置
-        }
-    };
     /* web页面容器层 */
     private FrameLayout frameLayout;
     /* webView实现 */
     private SysWebView webView = null;
+    /* 权限最后检查时间 */
+    private long lastPermissionTime;
+    /*******************************************************************************************************************************************/
+
+    public static final String ACTION_BROADCAST_RECEIVE = "NATIVE_ACTION_RECEIVE_MESSAGE";
+    private BroadcastReceiver broadcastReceiver = new BroadcastReceiver(){
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            LLog.print("广播接收: "+ intent);
+            intentHandler(intent);
+        }
+    };
+    private void registerBroadcast() {
+        IntentFilter intentFilter = new IntentFilter();
+        intentFilter.addAction(ACTION_BROADCAST_RECEIVE);
+        registerReceiver(broadcastReceiver,intentFilter);
+    }
+    private void unregisterBroadcast(){
+        unregisterReceiver(broadcastReceiver);
+    }
 
     /*
      * ****************************************************************************************************************************************
@@ -87,7 +100,8 @@ public class NativeActivity extends BaseActivity implements PermissionApply.Call
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         LLog.print(this+" ************************************ onCreate" );
         super.onCreate(savedInstanceState);
-
+        // 注册广播
+        registerBroadcast();
         // 触发应用更新
         UpdateVersionServerImp.checkVersion(this,false);
 
@@ -121,15 +135,20 @@ public class NativeActivity extends BaseActivity implements PermissionApply.Call
         // 加载首页
         GlobalMainWebView.open(_WEB_HOME_URL);
     }
+
+
+
     @Override
     protected void onResume() {
         LLog.print(this+"************************************ onResume" );
         super.onResume();
         try {
+            // 尝试进行权限检查
+            checkPermissionQuery();
             // 获取剪切板分享内容
             accessSharedContent();
             // 处理intent信息
-            intentHandler();
+            intentHandler(getIntent());
             // 打开IM
             if (GlobalMainWebView.getNativeServerImp().isImServerAcceptStart) {
                 startIMService(this);
@@ -139,6 +158,15 @@ public class NativeActivity extends BaseActivity implements PermissionApply.Call
         }
 
     }
+
+    private void checkPermissionQuery() {
+        if (  System.currentTimeMillis() - lastPermissionTime > 15*60*1000L){
+            // 权限检测
+            permissionQuery();
+            lastPermissionTime = System.currentTimeMillis();
+        }
+    }
+
     @Override
     protected void onPause() {
         LLog.print(this+"************************************ onPause" );
@@ -148,12 +176,14 @@ public class NativeActivity extends BaseActivity implements PermissionApply.Call
     @Override
     protected void onDestroy() {
         LLog.print(this+"************************************ onDestroy" );
+        unregisterBroadcast();
         GlobalMainWebView.getNativeServerImp().setNativeActivityInterface(null);
         if (webView != null){
             webView.loadErrorI=null;
             webView.unbind();
             webView =null;
         }
+
         super.onDestroy();
     }
 
@@ -165,39 +195,12 @@ public class NativeActivity extends BaseActivity implements PermissionApply.Call
         if (webView !=null) webView.onActivityResultHandle(requestCode,resultCode,data);
         super.onActivityResult(requestCode,resultCode,data);
     }
-    /* 回退处理 */
+
+    // 捕获返回键 处理
     @Override
     public void onBackPressed() {
-
-        if (webView != null && webView.onBackPressed()) return;
-
-        if (cur_back_time == -1){
-
-            Toast.makeText(this,"再次点击将退出应用",Toast.LENGTH_SHORT).show();
-            mHandler.postDelayed(resetBack,2000);
-            cur_back_time = System.currentTimeMillis();
-
-        }else{
-
-            if (System.currentTimeMillis() - cur_back_time < 100) {
-                cur_back_time = System.currentTimeMillis();
-                return;
-            }
-
-            mHandler.removeCallbacks(resetBack);
-            isExitApplication = true;
-            super.onBackPressed();
-        }
-    }
-    /* 结束应用 */
-    @Override
-    public void finish() {
-        if (isExitApplication){
-            super.finish();
-            android.os.Process.killProcess(android.os.Process.myPid());
-        }else{
-            moveTaskToBack(true);
-        }
+        if (webView.onBackPressed()) return;
+        super.onBackPressed();
     }
 
     /*
@@ -253,8 +256,6 @@ public class NativeActivity extends BaseActivity implements PermissionApply.Call
                 removeFullScreen();
                 // 获取一次剪切板分享内容
                 accessSharedContent();
-                // 权限检测
-                permissionQuery();
             }
 
         };
@@ -299,14 +300,21 @@ public class NativeActivity extends BaseActivity implements PermissionApply.Call
     private void permissionQuery(){
         final int compId = getCurrentDevCompanyID(true, WebApplication.iceClient);
         if (compId <= 0) return;
-        this.runOnUiThread(new Runnable() {
+        mHandler.postDelayed(new Runnable() {
             @Override
             public void run() {
                 permissionApply.permissionCheck(); //权限检测
+
                 // permissionApply.sdk30_isExternalStorageManager();// sdcard 高版本访问授权
                 // permissionApply.askFloatWindowPermission();// 请求弹窗权限
             }
-        });
+        },30 * 1000);
+        mHandler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                permissionApply.requestNotify();// 请求通知栏
+            }
+        },60 * 1000);
     }
     /* 权限审核回调 */
     @Override
@@ -350,13 +358,14 @@ public class NativeActivity extends BaseActivity implements PermissionApply.Call
             authorizationCompletion();
         }
     }
+
     /* 忽略电源回调 */
     @Override
     public void onPowerIgnoreGranted() { }
+
     /* 处理intent的信息 */
-    private void intentHandler() {
-        Intent intent = getIntent();
-        NativeServerImp nativeServerImp = getNativeServerImp();
+    private void intentHandler(Intent intent) {
+        final NativeServerImp nativeServerImp = getNativeServerImp();
         if (intent != null && nativeServerImp!=null){
 
             Bundle bundle = intent.getExtras();
@@ -368,34 +377,47 @@ public class NativeActivity extends BaseActivity implements PermissionApply.Call
             }
 
             // 通知栏点击进入
-            ArrayList<String> list = intent.getStringArrayListExtra("notify_param");
-            intent.removeExtra("notify_param");
-            if (list!=null) nativeServerImp.notifyEntryToJs(list.get(0)); //跳转到指定页面
+            IntentUtils.getStringArrayListExtra(intent, "notify_param", new IntentUtils.ListCallback() {
+                @Override
+                public void callback(List<String> list) {
+                    nativeServerImp.notifyEntryToJs(list.get(0)); //跳转到指定页面
+                }
+            });
 
             // 长连接 强制退出
-            String isForceLogoutStr = intent.getStringExtra("forceLogout");
-            intent.removeExtra("forceLogout");
-            if (isForceLogoutStr!=null && Boolean.parseBoolean(isForceLogoutStr)) nativeServerImp.forceLogout();
+            IntentUtils.getStringExtra(intent, "forceLogout", new IntentUtils.StringCallback() {
+                @Override
+                public void callback(String v) {
+                    if (Boolean.parseBoolean(v)) nativeServerImp.forceLogout();
+                }
+            });
 
             // 长连接 支付结果
-            String pushPaySuccessMessageToJsStr = intent.getStringExtra("pushPaySuccessMessageToJs");
-            intent.removeExtra("pushPaySuccessMessageToJs");
-            if (pushPaySuccessMessageToJsStr!=null)  nativeServerImp.pushPaySuccessMessageToJs(pushPaySuccessMessageToJsStr);
+            IntentUtils.getStringExtra(intent, "pushPaySuccessMessageToJs", new IntentUtils.StringCallback() {
+                @Override
+                public void callback(String v) {
+                    nativeServerImp.pushPaySuccessMessageToJs(v);
+                }
+            });
 
             // 长连接 推送消息
-            String pushMessageToJsStr = intent.getStringExtra("pushMessageToJs");
-            intent.removeExtra("pushMessageToJs");
-            if (pushMessageToJsStr!=null)  nativeServerImp.pushMessageToJs(pushMessageToJsStr);
+            IntentUtils.getStringExtra(intent, "pushMessageToJs", new IntentUtils.StringCallback() {
+                @Override
+                public void callback(String v) {
+                    nativeServerImp.pushMessageToJs(v);
+                }
+            });
 
             // 长连接 弹窗提醒
-            String alertTipWindowStr = intent.getStringExtra("alertTipWindow");
-            intent.removeExtra("alertTipWindow");
-            if (alertTipWindowStr!=null) {
-                DialogUtils.dialogSimple(this, alertTipWindowStr, "我知道了", null).show();
-            }
-
+            IntentUtils.getStringExtra(intent, "alertTipWindow", new IntentUtils.StringCallback() {
+                @Override
+                public void callback(String v) {
+                    nativeServerImp.alertTipWindow(v);
+                }
+            });
         }
     }
+
     /* 获取分享内容 */
     private void accessSharedContent() {
         // LLog.print(this+ " 获取剪切板内容");

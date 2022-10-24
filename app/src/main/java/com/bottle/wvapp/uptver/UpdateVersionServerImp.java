@@ -4,6 +4,7 @@ import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.os.Build;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -129,7 +130,7 @@ public class UpdateVersionServerImp{
     //打开进度条
     private static void openNoticeBarProgress(Activity activity,String title) {
         if (notification == null && activity!=null) {
-            notification = NotifyUer.createDownloadApkNotify(activity, title);
+            notification = NotifyUer.createDownloadApkNotify(activity, title,new Intent(activity,activity.getClass()));
             notification.setProgress(100, 0);
         }
     }

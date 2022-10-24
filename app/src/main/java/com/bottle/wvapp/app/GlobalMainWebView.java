@@ -8,6 +8,7 @@ import com.bottle.wvapp.jsprovider.NativeJSInterface;
 import com.bottle.wvapp.jsprovider.NativeServerImp;
 
 import lee.bottle.lib.toolset.log.LLog;
+import lee.bottle.lib.toolset.threadpool.IOUtils;
 import lee.bottle.lib.webh5.SysWebView;
 import lee.bottle.lib.webh5.interfaces.WebProgressI;
 
@@ -34,8 +35,20 @@ public class GlobalMainWebView {
             public void updateProgress(String url, int current, boolean isManual) {
                 LLog.print("浏览器监听进度 : "+ current +" URL = "+ url);
                 if (current == 100) {
-                    nativeServerImp.onJSPageInitialization();
                     webView.webProgressI = null;
+                    nativeServerImp.onJSPageInitialization();
+//                    IOUtils.run(new Runnable() {
+//                        @Override
+//                        public void run() {
+//                            try {
+//                                Thread.sleep(10*1000L);
+//                            } catch (InterruptedException e) {
+//                                e.printStackTrace();
+//                            }
+//                            nativeServerImp.onJSPageInitialization();
+//                        }
+//                    });
+
                 }
             }
         };
