@@ -33,9 +33,9 @@ public class BaseActivity extends AppCompatActivity {
     // https://blog.csdn.net/z_zT_T/article/details/80372819
     @Override
     public Resources getResources() {
-//        LLog.print(this +" *********  getResources Build.VERSION.SDK_INT="+ Build.VERSION.SDK_INT);
+        LLog.print(this +" *********  getResources Build.VERSION.SDK_INT="+ Build.VERSION.SDK_INT);
         Resources res = super.getResources();
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N_MR1) {
+        if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.N_MR1) {
             Configuration config=new Configuration();
             config.setToDefaults();
             res.updateConfiguration(config,res.getDisplayMetrics() );
@@ -44,8 +44,8 @@ public class BaseActivity extends AppCompatActivity {
     }
     @Override
     protected void attachBaseContext(Context newBase) {
-//        LLog.print(this +" *********  attachBaseContext Build.VERSION.SDK_INT="+ Build.VERSION.SDK_INT);
-        if(Build.VERSION.SDK_INT>Build.VERSION_CODES.N_MR1){
+        LLog.print(this +" *********  attachBaseContext Build.VERSION.SDK_INT="+ Build.VERSION.SDK_INT);
+        if(Build.VERSION.SDK_INT > Build.VERSION_CODES.N_MR1){
             final Resources res = newBase.getResources();
             final Configuration config = res.getConfiguration();
             config.setToDefaults();
@@ -92,8 +92,7 @@ public class BaseActivity extends AppCompatActivity {
     public void finish() {
         if (isExitActivity){
             super.finish();
-            if (isExitApplication)
-                android.os.Process.killProcess(android.os.Process.myPid());
+            if (isExitApplication) android.os.Process.killProcess(android.os.Process.myPid());
         }else{
             moveTaskToBack(true);
         }

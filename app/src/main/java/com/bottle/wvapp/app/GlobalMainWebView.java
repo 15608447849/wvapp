@@ -36,18 +36,18 @@ public class GlobalMainWebView {
                 LLog.print("浏览器监听进度 : "+ current +" URL = "+ url);
                 if (current == 100) {
                     webView.webProgressI = null;
-                    nativeServerImp.onJSPageInitialization();
-//                    IOUtils.run(new Runnable() {
-//                        @Override
-//                        public void run() {
-//                            try {
-//                                Thread.sleep(10*1000L);
-//                            } catch (InterruptedException e) {
-//                                e.printStackTrace();
-//                            }
-//                            nativeServerImp.onJSPageInitialization();
-//                        }
-//                    });
+//                    nativeServerImp.onJSPageInitialization();
+                    IOUtils.run(new Runnable() {
+                        @Override
+                        public void run() {
+                            try {
+                                Thread.sleep(500L);
+                            } catch (InterruptedException e) {
+                                e.printStackTrace();
+                            }
+                            nativeServerImp.onJSPageInitialization();
+                        }
+                    });
 
                 }
             }

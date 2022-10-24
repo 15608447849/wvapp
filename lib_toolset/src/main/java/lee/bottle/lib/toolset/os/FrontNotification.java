@@ -139,11 +139,24 @@ public class FrontNotification {
         public FrontNotification generateNotification(){
             PendingIntent pi = null;
             if (activityIntent !=null){
-                pi = PendingIntent.getActivity(context,0, activityIntent,PendingIntent.FLAG_UPDATE_CURRENT);//传递值 PendingIntent.FLAG_UPDATE_CURRENT
+//                pi = PendingIntent.getActivity(context,0, activityIntent,PendingIntent.FLAG_UPDATE_CURRENT);
+
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+                    pi = PendingIntent.getActivity(context,0, activityIntent,PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
+                }else {
+                    pi = PendingIntent.getActivity(context,0, activityIntent,PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_ONE_SHOT);
+                }
+
             }else if (serviceIntent!=null){
-                pi = PendingIntent.getService(context,0, serviceIntent,0);
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+                    pi = PendingIntent.getService(context,0, serviceIntent,PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
+                }else {
+                    pi = PendingIntent.getService(context,0, serviceIntent,PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_ONE_SHOT);
+                }
             }
-            if (pi!=null) builder.setContentIntent(pi);
+            if (pi!=null) {
+                builder.setContentIntent(pi);
+            }
 
             builder.setDefaults(defaults!=0?defaults:Notification.DEFAULT_ALL);
 

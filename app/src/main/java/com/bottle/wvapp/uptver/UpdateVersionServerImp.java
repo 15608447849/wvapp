@@ -14,6 +14,8 @@ import com.bottle.wvapp.R;
 import com.bottle.wvapp.tool.NotifyUer;
 
 import java.io.File;
+import java.util.Timer;
+import java.util.TimerTask;
 
 import lee.bottle.lib.toolset.http.FileServerClient;
 import lee.bottle.lib.toolset.http.HttpUtils;
@@ -130,8 +132,10 @@ public class UpdateVersionServerImp{
     //打开进度条
     private static void openNoticeBarProgress(Activity activity,String title) {
         if (notification == null && activity!=null) {
-            notification = NotifyUer.createDownloadApkNotify(activity, title,new Intent(activity,activity.getClass()));
-            notification.setProgress(100, 0);
+            try {
+                notification = NotifyUer.createDownloadApkNotify(activity, title,new Intent(activity,activity.getClass()));
+                notification.setProgress(100, 0);
+            }catch (Exception ignored){ }
         }
     }
 
@@ -237,7 +241,12 @@ public class UpdateVersionServerImp{
                             //提示安装
                             boolean flag = AppUtils.installApk(activity, file, apkUrl);
                             if (flag){
-                                System.exit(0);
+                                new Timer().schedule(new TimerTask() {
+                                    @Override
+                                    public void run() {
+                                        System.exit(0);
+                                    }
+                                },3000);
                             }
                         } else{
                             System.exit(0);

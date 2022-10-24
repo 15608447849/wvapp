@@ -67,6 +67,7 @@ public class PermissionApply {
     // android 允许消息通知栏
     private final int REQUEST_NOTIFY_CODE = 132;
 
+    // 需要请求权限的列表
     private final String[] permissions ;
 
     private final PermissionApply.Callback callback;
@@ -84,10 +85,11 @@ public class PermissionApply {
     }
 
     //应用权限检测
-    public void permissionCheck() {
+    public boolean permissionCheck() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M){
-            getPermissions();
+            return getPermissions();
         }
+        return true;
     }
     /**
      * 请求用户给予悬浮窗的权限
@@ -187,9 +189,9 @@ public class PermissionApply {
 
     //获取权限
     @TargetApi(23)
-    private void getPermissions() {
+    private boolean getPermissions() {
         Activity activity = activityRef.get();
-        if (activity == null) return;
+        if (activity == null) return false;
 
         isPermissionsDenied = false;
         for (String permission : permissions) {
@@ -204,6 +206,7 @@ public class PermissionApply {
         if(isPermissionsDenied){
             activity.requestPermissions(permissions, SDK_PERMISSION_REQUEST);
         }
+        return !isPermissionsDenied();
     }
 
     private void startSysNotifyActivity() {

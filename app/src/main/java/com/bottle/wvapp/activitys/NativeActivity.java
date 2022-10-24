@@ -75,6 +75,7 @@ public class NativeActivity extends BaseActivity implements PermissionApply.Call
     /*******************************************************************************************************************************************/
 
     public static final String ACTION_BROADCAST_RECEIVE = "NATIVE_ACTION_RECEIVE_MESSAGE";
+
     private BroadcastReceiver broadcastReceiver = new BroadcastReceiver(){
         @Override
         public void onReceive(Context context, Intent intent) {
@@ -160,10 +161,16 @@ public class NativeActivity extends BaseActivity implements PermissionApply.Call
     }
 
     private void checkPermissionQuery() {
-        if (  System.currentTimeMillis() - lastPermissionTime > 15*60*1000L){
-            // 权限检测
-            permissionQuery();
+        if (  System.currentTimeMillis() - lastPermissionTime > 3 * 60 *1000L){
             lastPermissionTime = System.currentTimeMillis();
+            mHandler.postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    // 权限检测
+                    permissionQuery();
+                }
+            },30 * 1000);
+
         }
     }
 
@@ -298,23 +305,12 @@ public class NativeActivity extends BaseActivity implements PermissionApply.Call
     }
     /* 授权请求 */
     private void permissionQuery(){
+
         final int compId = getCurrentDevCompanyID(true, WebApplication.iceClient);
         if (compId <= 0) return;
-        mHandler.postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                permissionApply.permissionCheck(); //权限检测
+        boolean permission = permissionApply.permissionCheck(); //权限检测
+        if (permission) permissionApply.requestNotify();// 请求通知栏
 
-                // permissionApply.sdk30_isExternalStorageManager();// sdcard 高版本访问授权
-                // permissionApply.askFloatWindowPermission();// 请求弹窗权限
-            }
-        },30 * 1000);
-        mHandler.postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                permissionApply.requestNotify();// 请求通知栏
-            }
-        },60 * 1000);
     }
     /* 权限审核回调 */
     @Override
@@ -345,17 +341,20 @@ public class NativeActivity extends BaseActivity implements PermissionApply.Call
     @Override
     public void onPermissionsGranted() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
+            permissionApply.requestNotify();
             authorizationCompletion();
         }else {
             //android11 文件授权需要进入系统授权页并获取返回结果
             permissionApply.sdk30_isExternalStorageManager();
         }
+
     }
     /* android11文件存储授权 */
     @Override
     public void onSDK30FileStorageRequestResult(boolean isGrant) {
         if (isGrant){
             authorizationCompletion();
+            permissionApply.requestNotify();
         }
     }
 

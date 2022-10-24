@@ -185,7 +185,7 @@ public class NativeServerImp implements NativeActivityInterface,NativeJSInterfac
         if (activity != null){
 
             if (!AppUtils.isNotifyEnabled(activity)){
-                alertTipWindow(content);
+                //alertTipWindow(content);
             }else {
                 // 允许消息推送
                 Intent intent = new Intent(activity,activity.getClass());
